@@ -19,6 +19,10 @@ Status: bootstrap baseline. Product and control owners must validate before impl
 | REQ-013 | Connect requirements through design, implementation, tests, deployment, and operational metrics. | Traceability matrix and CI checks. | Engineering |
 | REQ-014 | Support interchangeable AI providers through adapters and record provider/model/version. | Provider contract tests. | AI Platform |
 | REQ-015 | Enforce RBAC, least privilege, prompt/document threat controls, and secrets protection. | Threat-model review and security tests. | Security |
+| REQ-016 | Connect the web app to Jira Cloud through server-side OAuth 2.0 3LO with scoped consent and encrypted token handling. | OAuth flow, token custody, scope, revocation, and negative security tests. | Platform/Security |
+| REQ-017 | Synchronize Jira data through an isolated, observable adapter without making Jira authoritative for FULCRUM risk state. | Adapter contract, reconciliation, provenance, and boundary tests. | Platform/FCRM |
+| REQ-018 | Provide an FCRM copilot that drafts, explains, challenges, and identifies gaps while preserving human decision authority. | Agent contract, grounding, review, override, and prohibited-action tests. | FCRM/AI |
+| REQ-019 | Provide chatbot Q&A using permission-checked, explicitly linked, reconciled Jira initiative context plus FULCRUM context. | Context-manifest, access-isolation, citation, freshness, refusal, and regression tests. | Product/Platform |
 
 ## Traceability convention
 

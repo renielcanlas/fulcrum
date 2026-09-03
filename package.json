@@ -1,0 +1,7 @@
+{
+  "name": "fulcrum",
+  "private": true,
+  "type": "module",
+  "scripts": {"start": "node src/server/app.js", "test": "node --test"},
+  "engines": {"node": ">=20"}
+}
