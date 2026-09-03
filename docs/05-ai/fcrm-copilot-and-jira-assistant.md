@@ -35,11 +35,11 @@ The assembler applies tenant, user, project, issue, and field-level access contr
 
 **Initiative Q&A:** “What changed in the Jira initiative since the last assessment?”, “Which delivery channels are affected?”, “What evidence supports geography risk?”, and “What remains unknown?” Answers cite individual FULCRUM/Jira sources and disclose inference.
 
-**Assisted assessment:** the assessment agent produces a draft artifact; the deterministic scoring engine calculates ratings; the analyst validates inputs and rationale; the challenge agent tests support and contradictions; the committee receives a briefing. No model output is a decision.
+**Assisted assessment:** the bounded assessment task produces a draft artifact; the deterministic scoring engine calculates ratings; the analyst validates inputs and rationale; bounded contradiction checks may flag support gaps; the committee receives a briefing. No model output is a decision.
 
 ## Agent topology
 
-The orchestrator invokes `jira-context.v1` for normalized, permission-filtered context; `risk-decomposition.v1` for observations; `assessment.v1` for drafting; `challenge.v1` for critique; and `fulcrum-assistant.v1` for read-only conversational answers. A separate `action-planner.v1` may prepare a proposed FULCRUM or Jira action, but it has no write permission. All outputs use versioned schemas and are validated before display or persistence.
+The deterministic `AssessmentOrchestrator` invokes bounded tasks such as `jira-context.v1`, `evidence-interpretation.v1`, `policy-synthesis.v1`, `risk-decomposition.v1`, `assessment-draft.v1`, `version-comparison.v1`, `committee-package.v1`, and `fulcrum-assistant.v1`. These are task contracts, not autonomous business agents. A future action planner remains deferred; any later proposal would have no write permission and would still require a normal authorized application command. All outputs use versioned schemas and are validated before display or persistence.
 
 ## Model strategy
 
