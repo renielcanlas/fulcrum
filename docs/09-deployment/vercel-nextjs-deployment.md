@@ -1,8 +1,10 @@
 # Vercel deployment architecture
 
-## Recommendation
+## Decision and current status
 
-Adopt Next.js App Router as the web framework and deploy the web application/API to Vercel. Keep domain logic, workflow state machine, AI provider, Jira adapter, authorization, and audit interfaces framework-neutral so they can move to a worker/service later if needed.
+FULCRUM uses Next.js App Router as the web framework and Vercel as the hackathon web/API deployment target. Keep domain logic, workflow state machine, AI provider, Jira adapter, authorization, and audit interfaces framework-neutral so they can move to a worker/service later if needed.
+
+**Implemented:** Next.js 16 App Router shell, server Route Handlers for health, sessions, demo users, and Copilot responses, server-only OpenAI access, and Vercel-compatible build scripts. **Not yet implemented:** durable database, external session store, production audit persistence, background queue, and live Jira OAuth sync. The current demo repository and session store are intentionally in-memory.
 
 The current hand-rolled Node server is useful for local demonstration, but it assumes a long-lived process and in-memory state. Vercel Functions are request-oriented and can run on different instances; sessions, audit, conversations, assessment data, OAuth tokens, and jobs must not rely on process memory. Vercel’s guidance also recommends external state such as Redis for shared state. [Vercel Functions limits](https://vercel.com/docs/functions/limitations) [Vercel Fluid Compute](https://vercel.com/kb/guide/vercel-services-fluid-compute)
 
@@ -21,7 +23,7 @@ Next.js UI (Assessment / Committee / Copilot)
    risk truth  sessions/jobs  OpenAI   Atlassian
 ```
 
-Recommended external dependencies: managed Postgres for FULCRUM authority and audit, Redis or equivalent for ephemeral session/rate-limit/job coordination, object storage for evidence, and a durable queue/workflow service for long-running extraction/sync tasks. The exact vendors are OPEN QUESTIONS.
+Recommended external dependencies: Supabase PostgreSQL or equivalent managed Postgres for FULCRUM authority and audit, Redis or equivalent for ephemeral session/rate-limit/job coordination, object storage for evidence, and a durable queue/workflow service for long-running extraction/sync tasks. The exact vendors are OPEN QUESTIONS.
 
 ## Runtime boundaries
 
@@ -39,7 +41,7 @@ Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix.
 
 ## Deployment process
 
-1. Create the Next.js application and preserve existing domain modules/tests. **Current status:** the repository now has the Next.js App Router shell and route-handler equivalents for health, sessions, demo users, and Copilot responses.
+1. Create the Next.js application and preserve existing domain modules/tests. **Current status:** complete; the repository has the Next.js App Router shell and route-handler equivalents for health, sessions, demo users, and Copilot responses.
 2. Move the UI into `app/` routes and the Copilot endpoint into a server Route Handler.
 3. Replace in-memory sessions, audit, repository, and conversations with external persistence interfaces; use a demo database adapter locally.
 4. Add health/readiness endpoints that do not reveal secrets and identify provider/database configuration state.
@@ -49,6 +51,18 @@ Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix.
 8. Verify streaming, tool calls, audit persistence, session behavior across repeated requests, and Jira failure/reconciliation behavior.
 9. Promote to Production only after secrets, data handling, security, and human-governance checks pass.
 10. Monitor function errors/duration, AI latency/tokens/cost, database health, queue lag, Jira sync health, authorization failures, and audit completeness.
+
+## Solo-developer deployment commands
+
+After connecting the GitHub repository to Vercel, Vercel can build from the repository using the detected Next.js framework. Local verification remains:
+
+```bash
+npm test
+npm run build
+npm start
+```
+
+The first Preview should use synthetic data and non-production credentials. Configure Production variables only after Preview smoke tests pass. A CLI deployment is also possible with `npx vercel` and `npx vercel --prod` after authenticating the Vercel CLI; no Vercel project or production deployment is claimed by this repository yet.
 
 ## Function design constraints
 

@@ -15,6 +15,8 @@ INTAKE → UNDERSTAND → EXTRACT → RESEARCH → DECOMPOSE RISK → SCORE
 
 FULCRUM does not automatically approve or reject changes. AI retrieves, extracts, explains, compares, drafts, and challenges. Deterministic services calculate governed outputs. Authorized FCRM analysts and Risk Committee members retain decision authority.
 
+This is a Next.js App Router application designed for deployment to Vercel. The current increment is a working Copilot foundation; durable production persistence and live enterprise integrations remain on the roadmap.
+
 ## Why FULCRUM
 
 Financial-crime risk assessments can take 15–20 business days and can be difficult to reconstruct when an examiner asks why a rating was assigned. FULCRUM is designed to make an assessment decision-ready in approximately two days while preserving:
@@ -140,7 +142,7 @@ npm test
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Use `npm run build && npm start` to run the production build locally.
+Open [http://localhost:3000](http://localhost:3000). Use `npm run build && npm start` to run the production build locally. See the [Vercel deployment architecture](docs/09-deployment/vercel-nextjs-deployment.md) for the deployment path.
 
 Without an API key, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. To use the OpenAI adapter, create `.env` in the repository root:
 
@@ -188,7 +190,7 @@ Start here:
 
 - [AGENTS.md](AGENTS.md) — canonical engineering and AI-agent instructions
 - [Project charter](docs/00-context/project-charter.md) — problem, scope, principles, and outcomes
-- [Requirements](docs/01-requirements/requirements.md) — traceable requirements `REQ-001` through `REQ-027`
+- [Requirements](docs/01-requirements/requirements.md) — traceable requirements `REQ-001` through `REQ-028`
 - [Architecture principles](docs/03-architecture/architecture-principles.md)
 - [Conceptual architecture](docs/03-architecture/conceptual-architecture.md)
 - [Conceptual data model](docs/03-architecture/conceptual-data-model.md)
@@ -202,6 +204,10 @@ Start here:
 - [AI security and provenance](docs/07-governance/ai-security-and-provenance.md)
 - [Audit and security events](docs/07-governance/audit-security-events.md)
 - [Vercel deployment architecture](docs/09-deployment/vercel-nextjs-deployment.md)
+- [Deployment topology](docs/09-deployment/deployment-topology.md)
+- [Environment model](docs/09-deployment/environment-model.md)
+- [CI/CD and migrations](docs/09-deployment/ci-cd-and-migrations.md)
+- [Demo versus production deployment matrix](docs/09-deployment/demo-production-matrix.md)
 - [Architecture decision records](docs/11-decisions/README.md)
 - [Jira-ready roadmap](docs/01-requirements/jira-roadmap.md)
 
@@ -209,7 +215,7 @@ Start here:
 
 1. **Copilot foundation — current:** embedded UI, backend orchestration, typed read tools, demo context, authorization, and audit.
 2. **Workflow foundation — current:** centralized state machine, explicit human gates, immutable event intent, conditions, and reassessment/versioning paths.
-3. **Deployment foundation — next:** Next.js migration, durable persistence interfaces, Vercel Preview deployment, and environment configuration.
+3. **Deployment foundation — current:** Next.js App Router, Vercel-compatible route handlers, build scripts, and environment configuration. Durable persistence and Vercel Preview deployment remain next.
 4. **Governed knowledge:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
 5. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
 6. **Jira Cloud connection:** OAuth 2.0 3LO, token vault, linked-initiative sync, reconciliation, and integration observability.
