@@ -217,6 +217,7 @@ Start here:
 - [Golden Initiative API/data contracts](docs/04-domain/golden-initiative-contracts.md)
 - [Domain model and entity relationships](docs/04-domain/domain-model-and-entity-relationships.md)
 - [Evidence and decision lineage](docs/04-domain/evidence-and-decision-lineage.md)
+- [Versioning and configuration model](docs/04-domain/versioning-and-configuration-model.md)
 - [Canonical golden fixture](data/demo/golden-initiative.json)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)
 - [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
