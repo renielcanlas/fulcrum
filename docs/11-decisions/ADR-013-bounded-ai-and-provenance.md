@@ -1,6 +1,6 @@
 # ADR-013: Bounded AI capabilities and provenance
 
-Status: Proposed. Requirements: REQ-018, REQ-019, REQ-021.
+Status: Accepted. Requirements: REQ-018, REQ-019, REQ-021.
 
 ## Decision
 

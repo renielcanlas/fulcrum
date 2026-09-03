@@ -1,6 +1,6 @@
 # ADR-011: Security and governance architecture
 
-Status: Proposed. Requirements: REQ-015, REQ-016, REQ-018, REQ-020, REQ-021.
+Status: Accepted. Requirements: REQ-015, REQ-016, REQ-018, REQ-020, REQ-021.
 
 ## Context
 

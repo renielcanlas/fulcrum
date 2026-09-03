@@ -192,6 +192,10 @@ Start here:
 - [Project charter](docs/00-context/project-charter.md) — problem, scope, principles, and outcomes
 - [Requirements](docs/01-requirements/requirements.md) — traceable requirements `REQ-001` through `REQ-028`
 - [Architecture principles](docs/03-architecture/architecture-principles.md)
+- [Accepted architecture baseline](docs/03-architecture/architecture-baseline.md)
+- [Architecture decision dependency map](docs/03-architecture/architecture-decision-dependency-map.md)
+- [Judge-facing decision summary](docs/03-architecture/judge-facing-decision-summary.md)
+- [Cross-architecture consistency review](docs/03-architecture/architecture-consistency-review.md)
 - [Conceptual architecture](docs/03-architecture/conceptual-architecture.md)
 - [Conceptual data model](docs/03-architecture/conceptual-data-model.md)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)

@@ -1,6 +1,6 @@
 # ADR-016: Managed serverless deployment model
 
-Status: Proposed. Requirements: REQ-013, REQ-015, REQ-028.
+Status: Accepted. Requirements: REQ-013, REQ-015, REQ-028.
 
 ## Decision
 

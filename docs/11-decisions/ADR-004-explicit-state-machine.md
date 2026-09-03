@@ -1,6 +1,6 @@
 # ADR-004: Explicit state-machine workflow
 
-Status: Proposed. Requirements: REQ-001, REQ-008, REQ-013.
+Status: Accepted. Requirements: REQ-001, REQ-008, REQ-013.
 
 ## Context
 

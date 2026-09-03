@@ -1,6 +1,6 @@
 # ADR-006: Human-controlled consequential decisions
 
-Status: Proposed. Requirements: REQ-005, REQ-007, REQ-008.
+Status: Accepted. Requirements: REQ-005, REQ-007, REQ-008.
 
 ## Context
 

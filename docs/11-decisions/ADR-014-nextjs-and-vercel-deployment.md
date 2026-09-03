@@ -1,6 +1,6 @@
 # ADR-014: Next.js application deployed to Vercel
 
-Status: Proposed. Requirements: REQ-013, REQ-015, REQ-018, REQ-019, REQ-027.
+Status: Accepted. Requirements: REQ-013, REQ-015, REQ-018, REQ-019, REQ-027.
 
 ## Context
 

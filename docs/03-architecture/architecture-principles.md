@@ -1,6 +1,6 @@
 # FULCRUM architecture principles
 
-Status: Proposed baseline. These principles govern implementation decisions and should be challenged through ADRs when a concrete tradeoff arises.
+Status: Accepted baseline. These principles govern implementation decisions and should be challenged through ADRs when a concrete tradeoff arises. See the [consolidated architecture baseline](architecture-baseline.md).
 
 1. **Human accountability is a system invariant.** FULCRUM prepares; authorized humans decide. No AI output, Jira event, or integration callback can approve/reject a risk case.
 2. **Domain authority is explicit.** FULCRUM owns risk-case state, assessment versions, scoring configuration, decisions, and audit. Jira owns engineering work. Synchronization never makes Jira authoritative for risk decisions.

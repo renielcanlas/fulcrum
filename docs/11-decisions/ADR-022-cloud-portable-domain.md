@@ -1,6 +1,6 @@
 # ADR-022: Cloud-portable domain architecture
 
-Status: Proposed. Requirements: REQ-013, REQ-028.
+Status: Accepted. Requirements: REQ-013, REQ-028.
 
 ## Decision
 

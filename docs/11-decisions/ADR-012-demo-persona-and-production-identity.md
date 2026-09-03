@@ -1,6 +1,6 @@
 # ADR-012: Demo persona selector and production identity boundary
 
-Status: Proposed. Requirements: REQ-015.
+Status: Accepted. Requirements: REQ-015.
 
 ## Decision
 

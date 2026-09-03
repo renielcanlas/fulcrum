@@ -1,6 +1,6 @@
 # ADR-017: Managed PostgreSQL as authoritative persistence
 
-Status: Proposed. Requirements: REQ-002, REQ-009, REQ-021, REQ-028.
+Status: Accepted. Requirements: REQ-002, REQ-009, REQ-021, REQ-028.
 
 ## Decision
 

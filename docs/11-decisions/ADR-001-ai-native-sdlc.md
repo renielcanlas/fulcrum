@@ -1,6 +1,6 @@
 # ADR-001: AI-native connected SDLC
 
-Status: Proposed. Requirements: REQ-012–REQ-015.
+Status: Accepted. Requirements: REQ-012–REQ-015.
 
 ## Context
 

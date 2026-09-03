@@ -1,6 +1,6 @@
 # ADR-003: FCRM copilot with Jira initiative context
 
-Status: Proposed. Requirements: REQ-005, REQ-009, REQ-010, REQ-016, REQ-017, REQ-018, REQ-019. Related: ADR-000 and ADR-002.
+Status: Accepted. Requirements: REQ-005, REQ-009, REQ-010, REQ-016, REQ-017, REQ-018, REQ-019. Related: ADR-000 and ADR-002.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # ADR-010: Dependency-aware selective reassessment
 
-Status: Proposed. Requirements: REQ-006, REQ-009, REQ-011.
+Status: Accepted. Requirements: REQ-006, REQ-009, REQ-011.
 
 ## Context
 

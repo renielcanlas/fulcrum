@@ -1,6 +1,6 @@
 # ADR-005: FULCRUM is the FCRM system of record
 
-Status: Proposed. Requirements: REQ-001, REQ-009, REQ-017.
+Status: Accepted. Requirements: REQ-001, REQ-009, REQ-017.
 
 ## Context
 

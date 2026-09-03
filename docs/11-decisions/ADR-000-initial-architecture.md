@@ -1,6 +1,6 @@
 # ADR-000: Initial architecture
 
-Status: Proposed. Requirements: REQ-001–REQ-015.
+Status: Accepted. Requirements: REQ-001–REQ-015.
 
 ## Context
 

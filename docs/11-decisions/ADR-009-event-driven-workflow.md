@@ -1,6 +1,6 @@
 # ADR-009: Event-driven workflow integration
 
-Status: Proposed. Requirements: REQ-009, REQ-013, REQ-017.
+Status: Accepted. Requirements: REQ-009, REQ-013, REQ-017.
 
 ## Context
 

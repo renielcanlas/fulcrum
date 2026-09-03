@@ -1,6 +1,6 @@
 # ADR-015: Vercel for hackathon deployment
 
-Status: Proposed. Requirements: REQ-028.
+Status: Accepted. Requirements: REQ-028.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # ADR-020: GitHub-driven CI/CD
 
-Status: Proposed. Requirements: REQ-013, REQ-028.
+Status: Accepted. Requirements: REQ-013, REQ-028.
 
 ## Decision
 

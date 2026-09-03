@@ -1,6 +1,6 @@
 # ADR-018: Server-side third-party integration gateways
 
-Status: Proposed. Requirements: REQ-016, REQ-017, REQ-027.
+Status: Accepted. Requirements: REQ-016, REQ-017, REQ-027.
 
 ## Decision
 

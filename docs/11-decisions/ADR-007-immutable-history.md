@@ -1,6 +1,6 @@
 # ADR-007: Immutable workflow history
 
-Status: Proposed. Requirements: REQ-007, REQ-009.
+Status: Accepted. Requirements: REQ-007, REQ-009.
 
 ## Context
 

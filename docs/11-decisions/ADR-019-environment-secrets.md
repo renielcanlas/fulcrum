@@ -1,6 +1,6 @@
 # ADR-019: Environment-based secrets for the demo
 
-Status: Proposed. Requirements: REQ-027, REQ-028.
+Status: Accepted. Requirements: REQ-027, REQ-028.
 
 ## Decision
 

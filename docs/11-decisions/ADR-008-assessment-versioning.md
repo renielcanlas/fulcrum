@@ -1,6 +1,6 @@
 # ADR-008: Version assessments instead of destructive mutation
 
-Status: Proposed. Requirements: REQ-002, REQ-009, REQ-011.
+Status: Accepted. Requirements: REQ-002, REQ-009, REQ-011.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # ADR-021: External dependency failure isolation
 
-Status: Proposed. Requirements: REQ-009, REQ-017, REQ-028.
+Status: Accepted. Requirements: REQ-009, REQ-017, REQ-028.
 
 ## Decision
 

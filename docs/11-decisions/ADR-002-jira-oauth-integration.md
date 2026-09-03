@@ -1,6 +1,6 @@
 # ADR-002: Jira Cloud OAuth 2.0 integration
 
-Status: Proposed. Requirements: REQ-013, REQ-015. Related: ADR-000.
+Status: Accepted. Requirements: REQ-013, REQ-015. Related: ADR-000.
 
 ## Context
 
