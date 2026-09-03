@@ -40,6 +40,18 @@ export default function Home() {
             </a>
             <a
               className="transition hover:text-[rgb(25,66,71)]"
+              href="#journey"
+            >
+              Journey
+            </a>
+            <a
+              className="transition hover:text-[rgb(25,66,71)]"
+              href="#ai-usage"
+            >
+              AI usage
+            </a>
+            <a
+              className="transition hover:text-[rgb(25,66,71)]"
               href="#demo-story"
             >
               Demo story
@@ -191,6 +203,82 @@ export default function Home() {
                 >
                   {link} <span className="ml-1">→</span>
                 </a>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section
+        id="journey"
+        className="scroll-mt-20 border-b border-[#d8e1e1] bg-white px-6 py-20 lg:px-10"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[rgb(9,167,141)]">
+                Behind the build
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight">
+                My Hackathon Journey
+              </h2>
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                From a broad FCRM brief to a working, judge-ready vertical
+                slice—these are the decisions and artifacts that shaped FULCRUM.
+              </p>
+            </div>
+            <a
+              href={`${repoDocs}/docs/00-context/hackathon-journey.md`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-fit rounded-full border border-[#b8c7c9] px-5 py-3 text-sm font-bold text-[rgb(25,66,71)] transition hover:border-[rgb(9,167,141)] hover:bg-[rgba(9,167,141,0.06)]"
+            >
+              Explore the full journey →
+            </a>
+          </div>
+          <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              [
+                "01",
+                "Requirements",
+                "Turned a vague brief into a scoped FCRM problem, requirements, research questions, and a canonical demo scenario.",
+              ],
+              [
+                "02",
+                "Design",
+                "Established the architecture, data model, workflow, evidence lineage, UX direction, and governance boundaries.",
+              ],
+              [
+                "03",
+                "Development",
+                "Built the Next.js/Vercel foundation, synthetic data, governed Ciel copilot, tool contracts, and demo experience.",
+              ],
+              [
+                "04",
+                "Testing",
+                "Added deterministic scoring, security, workflow, lineage, AI-boundary, and Golden Initiative regression tests.",
+              ],
+              [
+                "05",
+                "Deployment",
+                "Chose a practical Vercel deployment path with provider-neutral integrations and a clear production evolution plan.",
+              ],
+              [
+                "06",
+                "Operations",
+                "Documented observability, evaluation, failure handling, auditability, and the feedback loop for continuous improvement.",
+              ],
+            ].map(([number, title, body]) => (
+              <article
+                key={number}
+                className="rounded-2xl border border-[#d8e1e1] bg-[#f5f7f7] p-5 transition hover:-translate-y-1 hover:border-[rgb(9,167,141)] hover:bg-white hover:shadow-md"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-[rgba(9,167,141,0.12)] text-xs font-bold text-[rgb(9,167,141)]">
+                    {number}
+                  </span>
+                  <h3 className="font-bold text-[rgb(25,66,71)]">{title}</h3>
+                </div>
+                <p className="mt-4 text-sm leading-6 text-slate-600">{body}</p>
               </article>
             ))}
           </div>
