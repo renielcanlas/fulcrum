@@ -218,7 +218,12 @@ Start here:
 - [Domain model and entity relationships](docs/04-domain/domain-model-and-entity-relationships.md)
 - [Evidence and decision lineage](docs/04-domain/evidence-and-decision-lineage.md)
 - [Versioning and configuration model](docs/04-domain/versioning-and-configuration-model.md)
+- [Data model resolution](docs/04-domain/data-model-resolution.md) — approved decisions before physical schema design
+- [Canonical entity glossary](docs/04-domain/canonical-entity-glossary.md)
+- [Physical schema scope](docs/04-domain/physical-schema-scope.md)
+- [Golden fixture mapping](docs/04-domain/golden-fixture-mapping.md)
 - [Jira/FULCRUM data authority ADR](docs/11-decisions/ADR-028-jira-fulcrum-data-authority.md)
+- [Data model resolution ADR](docs/11-decisions/ADR-029-data-model-resolution.md)
 - [Canonical golden fixture](data/demo/golden-initiative.json)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)
 - [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
