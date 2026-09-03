@@ -142,11 +142,14 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Without an API key, the app runs in safe demo mode. To use the OpenAI adapter:
+Without an API key, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. To use the OpenAI adapter, create `.env` in the repository root:
 
 ```bash
-OPENAI_API_KEY=your_key npm start
+OPENAI_API_KEY=your_key
+OPENAI_MODEL=gpt-5
 ```
+
+Then run `npm start`. `.env` is ignored by Git; never commit real credentials.
 
 Optional configuration:
 
@@ -198,6 +201,7 @@ Start here:
 - [Identity and RBAC](docs/07-governance/identity-and-rbac.md)
 - [AI security and provenance](docs/07-governance/ai-security-and-provenance.md)
 - [Audit and security events](docs/07-governance/audit-security-events.md)
+- [Vercel deployment architecture](docs/09-deployment/vercel-nextjs-deployment.md)
 - [Architecture decision records](docs/11-decisions/README.md)
 - [Jira-ready roadmap](docs/01-requirements/jira-roadmap.md)
 
@@ -205,10 +209,11 @@ Start here:
 
 1. **Copilot foundation — current:** embedded UI, backend orchestration, typed read tools, demo context, authorization, and audit.
 2. **Workflow foundation — current:** centralized state machine, explicit human gates, immutable event intent, conditions, and reassessment/versioning paths.
-3. **Governed knowledge — next:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
-4. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
-5. **Jira Cloud connection:** OAuth 2.0 3LO, token vault, linked-initiative sync, reconciliation, and integration observability.
-6. **Production-shaped delivery:** deployment controls, operational runbooks, security testing, regression gates, and model/provider evaluation.
+3. **Deployment foundation — next:** Next.js migration, durable persistence interfaces, Vercel Preview deployment, and environment configuration.
+4. **Governed knowledge:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
+5. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
+6. **Jira Cloud connection:** OAuth 2.0 3LO, token vault, linked-initiative sync, reconciliation, and integration observability.
+7. **Production-shaped delivery:** deployment controls, operational runbooks, security testing, regression gates, and model/provider evaluation.
 
 ## Design decisions and guardrails
 

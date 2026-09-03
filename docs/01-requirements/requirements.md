@@ -31,6 +31,7 @@ Status: bootstrap baseline. Product and control owners must validate before impl
 | REQ-025 | Provide a demo-only persona selector with server-side sessions and explicit production identity boundaries. | Persona catalog, session, logout, and unauthorized API tests. | Platform/Security |
 | REQ-026 | Enforce application-owned RBAC separately from Jira OAuth authorization. | Role/capability matrix and cross-role negative tests. | Security |
 | REQ-027 | Protect provider/Jira credentials and preserve AI/security/business audit provenance without raw secrets. | Secret scanning, redaction, audit schema, and failure-path tests. | Platform/Security |
+| REQ-028 | Deploy the web tier through a framework and hosting model that supports server-side integrations, streaming, durable external state, and Preview/Production separation. | Next.js build, Vercel Preview smoke test, environment/configuration checks, and persistence tests. | Platform/Delivery |
 
 ## Traceability convention
 
