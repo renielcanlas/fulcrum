@@ -1,0 +1,13 @@
+{
+  "provider": "Atlassian Jira Cloud",
+  "siteUrl": "https://geniushacks.atlassian.net",
+  "projectKey": "FCRM",
+  "board": {
+    "id": 2,
+    "url": "https://geniushacks.atlassian.net/jira/software/projects/FCRM/boards/2?filter=&groupBy=none",
+    "placement": "status_columns",
+    "swimlanes": "not specified"
+  },
+  "scopes": ["read:jira-work", "write:jira-work", "read:jira-user", "offline_access"],
+  "statusPlacement": "Jira status controls board columns; no direct swimlane placement is configured."
+}

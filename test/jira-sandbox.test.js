@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildJql, createJiraWorkItem, fetchJiraWorkItems, normalizeIssue} from "../src/integrations/jira.js";
+import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, normalizeIssue} from "../src/integrations/jira.js";
 
 test("Jira sandbox scopes searches to a valid project key", () => {
   assert.equal(buildJql("FCRM", "statusCategory != Done"), "project = FCRM AND (statusCategory != Done)");
@@ -61,4 +61,29 @@ test("Jira sandbox creates a basic Task with bearer auth", async () => {
   assert.equal(requestOptions.options.method, "POST");
   assert.equal(requestOptions.options.headers.authorization, "Bearer token-1");
   assert.match(requestOptions.options.body, /Review payment controls/);
+});
+
+test("cleanup deletes only issues returned by the FCRM project search", async () => {
+  const requests = [];
+  const result = await deleteAllJiraWorkItems({cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options = {}) => {
+    requests.push({url: url.toString(), options});
+    if (options.method === "DELETE") return new Response(null, {status: 204});
+    return new Response(JSON.stringify({issues: [{key: "FCRM-1"}, {key: "FCRM-2"}]}), {status: 200});
+  }});
+  assert.deepEqual(result, {deleted: 2, matched: 2});
+  assert.match(requests[0].url, /project\+%3D\+FCRM/);
+  assert.deepEqual(requests.slice(1).map((request) => request.url.split("/").pop()), ["FCRM-1", "FCRM-2"]);
+  assert.equal(requests[1].options.method, "DELETE");
+});
+
+test("Jira sandbox adds a comment to an issue", async () => {
+  let request;
+  const result = await commentJiraWorkItem({issueKey: "FCRM-9", body: "Synthetic analyst note.", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options) => {
+    request = {url: url.toString(), options};
+    return new Response(JSON.stringify({id: "comment-1"}), {status: 201});
+  }});
+  assert.deepEqual(result, {issueKey: "FCRM-9", commentId: "comment-1", commented: true});
+  assert.equal(request.options.method, "POST");
+  assert.match(request.url, /FCRM-9\/comment$/);
+  assert.match(request.options.body, /Synthetic analyst note/);
 });

@@ -1,0 +1,15 @@
+{
+  "name": "Clean up FCRM test project",
+  "projectKey": "FCRM",
+  "summary": "Delete all FCRM test work items",
+  "description": "Permanently delete every Jira work item currently returned by the FCRM project search. Test-account cleanup only.",
+  "issueType": "Task",
+  "labels": ["fulcrum-sandbox", "cleanup"],
+  "steps": [
+    {
+      "id": "delete-all-fcrm-work-items",
+      "label": "Delete all FCRM work items",
+      "action": "delete_all"
+    }
+  ]
+}

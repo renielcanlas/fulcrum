@@ -12,6 +12,26 @@ DRAFT → SUBMITTED → INTAKE_VALIDATION → ASSESSMENT_IN_PROGRESS
 
 `FINAL_DECISION` is the workflow state. Its required `decisionOutcome` is one of `APPROVED`, `APPROVED_WITH_CONDITIONS`, `DEFERRED`, or `REJECTED`. A final outcome is never inferred from a Jira status or an AI response.
 
+## Product-facing workflow
+
+The user-facing assessment journey is presented in five stages:
+
+```text
+INTAKE → CONTEXT AND RESEARCH → RISK ASSESSMENT → REVIEW → DECISION
+```
+
+These are presentation stages over the governed state machine, not a second workflow:
+
+| Product stage | Governed activities |
+|---|---|
+| Intake | `DRAFT`, `SUBMITTED`, `INTAKE_VALIDATION` |
+| Context and Research | Jira context, evidence collection, clarification, policy retrieval |
+| Risk Assessment | `ASSESSMENT_IN_PROGRESS`, deterministic scoring, controls, AI-assisted analysis |
+| Review | `ANALYST_REVIEW`, `DECISION_READY`, `COMMITTEE_REVIEW` |
+| Decision | `FINAL_DECISION`, followed by condition tracking where applicable |
+
+Jira status or board placement may provide delivery context, but cannot advance these FULCRUM governance stages or create the decision.
+
 Exceptional paths:
 
 ```text

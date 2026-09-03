@@ -1,6 +1,7 @@
 import {fetchJiraWorkItems} from "../../../../src/integrations/jira.js";
 import {runtime} from "../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../src/auth/session.js";
+import {JIRA_PROJECT_KEY} from "../../../../src/integrations/jira-config.js";
 
 const cookieName = "fulcrum_session";
 
@@ -8,7 +9,7 @@ export async function GET(request) {
   const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   const params = new URL(request.url).searchParams;
-  const projectKey = "FCRM";
+  const projectKey = JIRA_PROJECT_KEY;
   const extraJql = params.get("jql") ?? "";
   try {
     const connection = runtime.jiraConnections.get(user.id);

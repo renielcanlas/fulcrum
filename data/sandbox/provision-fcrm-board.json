@@ -1,0 +1,24 @@
+{
+  "name": "Provision FCRM test board",
+  "projectKey": "FCRM",
+  "summary": "Provision realistic synthetic bank initiatives",
+  "description": "Create four synthetic bank initiatives, add collaboration notes, and distribute them across the five FCRM workflow statuses through Jira transitions.",
+  "issueType": "Task",
+  "labels": ["fulcrum-sandbox", "provisioning", "fcrm"],
+  "assumptions": ["Board ID and placement settings come from data/config/jira-integration.json.", "Board columns are driven by Jira status; no swimlane is assumed or directly changed by this scenario.", "The FCRM Jira workflow uses Intake, Context and Research, Risk Assessment, Review, and Decision.", "Items remain unassigned because Jira account IDs are site-specific."],
+  "steps": [
+    {"id": "create-merchant-expansion", "label": "Create merchant acquiring expansion", "action": "create", "summary": "Assess merchant acquiring expansion", "description": "Maya Chen proposes expanding merchant acquiring services for small business customers. Review customer due diligence, transaction monitoring, sanctions screening, and third-party oversight before launch.", "issueType": "Task", "labels": ["fulcrum-sandbox", "initiative", "merchant-acquiring"]},
+    {"id": "comment-merchant-expansion", "label": "Add Product Owner context", "action": "comment", "body": "Synthetic Product Owner note: confirm the target merchant segment, onboarding controls, and expected transaction profile before FCRM review."},
+    {"id": "move-merchant-expansion", "label": "Set merchant initiative status", "action": "transition", "status": "Context and Research"},
+    {"id": "create-cross-border-payments", "label": "Create cross-border payments review", "action": "create", "summary": "Review cross-border payments corridor", "description": "Daniel Reyes is reviewing a proposed payments corridor with a local partner. Validate geography, sanctions, beneficial ownership, alert escalation, and payout controls.", "issueType": "Task", "labels": ["fulcrum-sandbox", "initiative", "cross-border"]},
+    {"id": "comment-cross-border-payments", "label": "Add analyst review note", "action": "comment", "body": "Synthetic FCRM Analyst note: partner diligence and enhanced monitoring evidence are the main launch-readiness questions."},
+    {"id": "move-cross-border-payments", "label": "Set corridor review status", "action": "transition", "status": "Risk Assessment"},
+    {"id": "create-kyc-refresh", "label": "Create KYC refresh initiative", "action": "create", "summary": "Modernize small business KYC refresh", "description": "Plan a risk-based KYC refresh journey for small business customers, including trigger events, documentary evidence, exception handling, and quality assurance.", "issueType": "Task", "labels": ["fulcrum-sandbox", "initiative", "kyc"]},
+    {"id": "comment-kyc-refresh", "label": "Add committee readiness note", "action": "comment", "body": "Synthetic committee note: document the control owner, measurable completion criteria, and post-launch review evidence."},
+    {"id": "start-kyc-refresh", "label": "Set KYC refresh status", "action": "transition", "status": "Review"},
+    {"id": "complete-kyc-refresh", "label": "Complete KYC refresh planning", "action": "transition", "status": "Decision"},
+    {"id": "create-fraud-controls", "label": "Create real-time fraud controls", "action": "create", "summary": "Tune real-time payment fraud controls", "description": "Define fraud detection, step-up authentication, transaction limits, and operational escalation for a real-time payments capability.", "issueType": "Task", "labels": ["fulcrum-sandbox", "initiative", "fraud-controls"]},
+    {"id": "comment-fraud-controls", "label": "Add security design note", "action": "comment", "body": "Synthetic Security note: validate device-risk signals, step-up authentication thresholds, and the operating model for fraud alerts."},
+    {"id": "set-fraud-controls-intake", "label": "Set fraud controls status", "action": "transition", "status": "Intake"}
+  ]
+}

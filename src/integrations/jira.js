@@ -1,3 +1,4 @@
+import {JIRA_PROJECT_KEY} from "./jira-config.js";
 const DEFAULT_FIELDS = ["summary", "status", "assignee", "updated", "duedate", "project", "issuetype"];
 
 export const demoWorkItems = [
@@ -64,11 +65,53 @@ export async function transitionJiraWorkItem({issueKey, status, cloudId, accessT
   const base = `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`;
   const transitionsResponse = await fetchImpl(`${base}/transitions`, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
   if (!transitionsResponse.ok) throw new Error(`jira_transitions_failed_${transitionsResponse.status}`);
-  const transition = (await transitionsResponse.json()).transitions?.find(item => item.to?.name?.toLowerCase() === status.trim().toLowerCase());
-  if (!transition) throw new Error("jira_transition_unavailable");
+  const availableTransitions = (await transitionsResponse.json()).transitions ?? [];
+  const transition = availableTransitions.find(item => item.to?.name?.toLowerCase() === status.trim().toLowerCase());
+  if (!transition) throw new Error(`jira_transition_unavailable: ${availableTransitions.map(item => item.to?.name).filter(Boolean).join(", ") || "no available transitions"}`);
   const response = await fetchImpl(`${base}/transitions`, {method: "POST", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({transition: {id: transition.id}})});
   if (!response.ok) throw new Error(`jira_transition_failed_${response.status}`);
   return {issueKey, status: transition.to.name, transitioned: true};
+}
+
+export function jiraErrorStatus(error) {
+  const match = error.message?.match(/jira_[a-z_]+_(\d{3})$/);
+  return match ? Number(match[1]) : null;
+}
+
+export async function commentJiraWorkItem({issueKey, body, cloudId, accessToken, fetchImpl = fetch}) {
+  if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !body?.trim()) throw new Error("invalid_comment");
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}/comment`, {method: "POST", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: body.trim()}]}]}})});
+  if (!response.ok) throw new Error(`jira_comment_failed_${response.status}`);
+  const comment = await response.json();
+  return {issueKey, commentId: comment.id, commented: true};
+}
+
+export async function deleteAllJiraWorkItems({projectKey = JIRA_PROJECT_KEY, cloudId, accessToken, fetchImpl = fetch}) {
+  if (projectKey !== JIRA_PROJECT_KEY) throw new Error("invalid_cleanup_project");
+  if (!cloudId || !accessToken) throw new Error("jira_connection_required");
+  const base = `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}`;
+  const issues = [];
+  let nextPageToken;
+  do {
+    const searchUrl = new URL(`${base}/rest/api/3/search/jql`);
+    searchUrl.searchParams.set("jql", `project = ${JIRA_PROJECT_KEY}`);
+    searchUrl.searchParams.set("fields", "key");
+    searchUrl.searchParams.set("maxResults", "100");
+    if (nextPageToken) searchUrl.searchParams.set("nextPageToken", nextPageToken);
+    const searchResponse = await fetchImpl(searchUrl, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+    if (!searchResponse.ok) throw new Error(`jira_cleanup_search_failed_${searchResponse.status}`);
+    const page = await searchResponse.json();
+    issues.push(...(page.issues ?? []));
+    nextPageToken = page.nextPageToken;
+  } while (nextPageToken);
+  let deleted = 0;
+  for (const issue of issues) {
+    if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issue.key) || !issue.key.startsWith(`${JIRA_PROJECT_KEY}-`)) throw new Error("invalid_cleanup_issue");
+    const deleteResponse = await fetchImpl(`${base}/rest/api/3/issue/${encodeURIComponent(issue.key)}`, {method: "DELETE", headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+    if (!deleteResponse.ok) throw new Error(`jira_delete_failed_${deleteResponse.status}`);
+    deleted += 1;
+  }
+  return {deleted, matched: issues.length};
 }
 
 export async function fetchJiraWorkItems({projectKey, extraJql = "", cloudId = process.env.JIRA_CLOUD_ID, accessToken = process.env.JIRA_ACCESS_TOKEN, siteUrl = process.env.JIRA_SITE_URL, fetchImpl = fetch}) {
