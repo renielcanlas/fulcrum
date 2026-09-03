@@ -14,10 +14,16 @@ export default function SandboxPage() {
   const [connection, setConnection] = useState(null);
 
   useEffect(() => {
-    fetch("/api/jira/status")
-      .then((response) => response.json())
-      .then(setConnection)
-      .catch(() => setConnection({connected: false}));
+    async function initializeSandbox() {
+      try {
+        await fetch("/api/sandbox/session", {method: "POST"});
+        const response = await fetch("/api/jira/status");
+        setConnection(await response.json());
+      } catch {
+        setConnection({connected: false});
+      }
+    }
+    initializeSandbox();
   }, []);
 
   function connectJira() {
