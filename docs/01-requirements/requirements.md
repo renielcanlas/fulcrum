@@ -23,6 +23,11 @@ Status: bootstrap baseline. Product and control owners must validate before impl
 | REQ-017 | Synchronize Jira data through an isolated, observable adapter without making Jira authoritative for FULCRUM risk state. | Adapter contract, reconciliation, provenance, and boundary tests. | Platform/FCRM |
 | REQ-018 | Provide an FCRM copilot that drafts, explains, challenges, and identifies gaps while preserving human decision authority. | Agent contract, grounding, review, override, and prohibited-action tests. | FCRM/AI |
 | REQ-019 | Provide chatbot Q&A using permission-checked, explicitly linked, reconciled Jira initiative context plus FULCRUM context. | Context-manifest, access-isolation, citation, freshness, refusal, and regression tests. | Product/Platform |
+| REQ-020 | Enforce the canonical assessment lifecycle through a centralized explicit state machine. | Transition-table, authorization, precondition, idempotency, and negative tests. | Platform/FCRM |
+| REQ-021 | Preserve immutable workflow, AI, override, vote, decision, and condition history. | Audit replay and tamper/compensating-event tests. | Governance/Platform |
+| REQ-022 | Create linked assessment versions for material changes with dependency-aware selective reassessment. | Version, invalidation, comparison, and impact tests. | FCRM/Platform |
+| REQ-023 | Emit versioned domain events for accepted material workflow transitions. | Event catalogue, outbox/retry, ordering, and idempotency tests. | Platform |
+| REQ-024 | Govern conditional approvals with owners, due dates, evidence, verification, waiver, and overdue states. | Condition lifecycle and authorization tests. | FCRM/Committee |
 
 ## Traceability convention
 

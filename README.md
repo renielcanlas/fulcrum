@@ -189,6 +189,9 @@ Start here:
 - [Architecture principles](docs/03-architecture/architecture-principles.md)
 - [Conceptual architecture](docs/03-architecture/conceptual-architecture.md)
 - [Conceptual data model](docs/03-architecture/conceptual-data-model.md)
+- [Workflow architecture](docs/03-architecture/workflow-architecture.md)
+- [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
+- [Workflow self-review](docs/03-architecture/workflow-self-review.md)
 - [FCRM Copilot and Jira Assistant](docs/05-ai/fcrm-copilot-and-jira-assistant.md)
 - [AI boundaries](.ai/policies/ai-boundaries.md)
 - [Architecture decision records](docs/11-decisions/README.md)
@@ -197,10 +200,11 @@ Start here:
 ## Delivery roadmap
 
 1. **Copilot foundation — current:** embedded UI, backend orchestration, typed read tools, demo context, authorization, and audit.
-2. **Governed knowledge — next:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
-3. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
-4. **Jira Cloud connection:** OAuth 2.0 3LO, token vault, linked-initiative sync, reconciliation, and integration observability.
-5. **Production-shaped delivery:** deployment controls, operational runbooks, security testing, regression gates, and model/provider evaluation.
+2. **Workflow foundation — current:** centralized state machine, explicit human gates, immutable event intent, conditions, and reassessment/versioning paths.
+3. **Governed knowledge — next:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
+4. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
+5. **Jira Cloud connection:** OAuth 2.0 3LO, token vault, linked-initiative sync, reconciliation, and integration observability.
+6. **Production-shaped delivery:** deployment controls, operational runbooks, security testing, regression gates, and model/provider evaluation.
 
 ## Design decisions and guardrails
 
