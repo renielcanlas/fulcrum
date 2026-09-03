@@ -4,7 +4,7 @@ Status: Accepted for hackathon implementation. This is the consolidated baseline
 
 ## Business boundary and authority
 
-FULCRUM is the authoritative Financial Crime Risk Management assessment system. It owns assessment lifecycle and versions, submitted and accepted business facts, evidence lineage, risk factors, inherent/control/residual calculations, controls, analyst assessment, AI recommendations and provenance, overrides, policy references, committee votes, final decisions, conditions, configuration versions, and audit history.
+FULCRUM is the authoritative Financial Crime Risk Management assessment system. The primary domain aggregate is an `Initiative`, which owns the proposed business change and links assessment lifecycle and versions, submitted and accepted business facts, evidence lineage, risk factors, inherent/control/residual calculations, controls, analyst assessment, AI recommendations and provenance, overrides, policy references, committee votes, final decisions, conditions, configuration versions, Jira references, and audit history.
 
 Jira is an execution and collaboration integration. It may mirror initiatives, assignments, comments, workflow context, action/remediation items, conditions, and due dates through an explicit, auditable adapter. Jira is not the financial-crime decision store and cannot silently change FULCRUM state.
 

@@ -9,6 +9,7 @@
 
 ## Open questions
 
+- Which working expansion should FULCRUM use consistently? Current briefs contain multiple expansions; the product name itself remains FULCRUM.
 - Which business-unit products, jurisdictions, and change types are in the minimum viable demo?
 - Which authoritative internal policies and retention/classification rules apply?
 - What are baseline turnaround, analyst effort, and acceptable false-positive/false-negative tradeoffs?

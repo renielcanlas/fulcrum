@@ -6,7 +6,7 @@ Financial-crime risk assessments for new products and material changes are fragm
 
 ## Outcome and scope
 
-FULCRUM aims to make an assessment decision-ready in approximately two days while preserving evidence, policy references, reasoning, review, overrides, and an immutable audit trail. In scope: intake, evidence, governed AI assistance, configurable deterministic scoring, analyst review, challenge, committee package, committee decision, audit, and contextual Q&A. Out of scope for the bootstrap: application code, production integrations, real regulated data, autonomous decisioning, and unresearched regulatory conclusions.
+FULCRUM aims to make an Initiative assessment decision-ready in approximately two days while preserving evidence, policy references, reasoning, review, overrides, and an immutable audit trail. In scope: Initiative intake, evidence, governed AI assistance, configurable deterministic scoring, analyst review, challenge, committee package, committee decision, audit, and contextual Q&A. The bootstrap has begun application implementation, but production integrations, real regulated data, autonomous decisioning, and unresearched regulatory conclusions remain out of scope.
 
 ## Product story
 

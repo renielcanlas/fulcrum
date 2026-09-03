@@ -2,7 +2,7 @@
 
 ### Governed financial-crime risk assessment, prepared by AI and decided by humans.
 
-FULCRUM is a standalone risk assessment workbench for new products and material changes across banking, payments, commercial banking, and wealth management.
+FULCRUM is a standalone financial-crime decision intelligence workbench. Its primary object is an **Initiative**: a proposed new product, feature, process, vendor, geography, or customer-segment change assessed across banking, payments, commercial banking, and wealth management.
 
 It turns a fragmented process of email, Word, Excel, SharePoint, and manually collected evidence into one traceable journey:
 
@@ -190,11 +190,13 @@ Start here:
 
 - [AGENTS.md](AGENTS.md) — canonical engineering and AI-agent instructions
 - [Project charter](docs/00-context/project-charter.md) — problem, scope, principles, and outcomes
-- [Requirements](docs/01-requirements/requirements.md) — traceable requirements `REQ-001` through `REQ-028`
+- [Product direction](docs/00-context/product-direction.md) — Initiative, differentiation, and product boundary
+- [Requirements](docs/01-requirements/requirements.md) — traceable requirements `REQ-001` through `REQ-029`
 - [Architecture principles](docs/03-architecture/architecture-principles.md)
 - [Accepted architecture baseline](docs/03-architecture/architecture-baseline.md)
 - [Architecture decision dependency map](docs/03-architecture/architecture-decision-dependency-map.md)
 - [Judge-facing decision summary](docs/03-architecture/judge-facing-decision-summary.md)
+- [Initiative domain decision](docs/11-decisions/ADR-024-initiative-as-primary-domain-object.md)
 - [Cross-architecture consistency review](docs/03-architecture/architecture-consistency-review.md)
 - [Conceptual architecture](docs/03-architecture/conceptual-architecture.md)
 - [Conceptual data model](docs/03-architecture/conceptual-data-model.md)
