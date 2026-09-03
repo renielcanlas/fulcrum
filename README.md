@@ -229,6 +229,7 @@ Start here:
 - [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
 - [Workflow self-review](docs/03-architecture/workflow-self-review.md)
 - [FCRM Copilot and Jira Assistant](docs/05-ai/fcrm-copilot-and-jira-assistant.md)
+- [AI capability map](docs/05-ai/ai-capability-map.md) — Step 7.1 AI/deterministic/human boundary
 - [Azure AI Foundry and Document Intelligence architecture](docs/05-ai/azure-ai-foundry-and-document-intelligence.md)
 - [AI boundaries](.ai/policies/ai-boundaries.md)
 - [Security & Governance Architecture](docs/07-governance/security-governance-architecture.md)
