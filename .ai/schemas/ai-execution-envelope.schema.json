@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fulcrum/ai-execution-envelope/1.0",
+  "title": "FULCRUM AI execution envelope",
+  "type": "object",
+  "required": ["task_id", "orchestration_run_id", "assessment_id", "assessment_version_id", "actor", "task_type", "task_contract_version", "context_version", "instruction_version", "input_references", "correlation_id", "idempotency_key", "requested_at"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "orchestration_run_id": {"type": "string", "minLength": 1},
+    "assessment_id": {"type": "string", "minLength": 1},
+    "assessment_version_id": {"type": "string", "minLength": 1},
+    "actor": {
+      "type": "object",
+      "required": ["id", "role", "scope"],
+      "properties": {
+        "id": {"type": "string"},
+        "role": {"type": "string"},
+        "scope": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "task_type": {"type": "string"},
+    "task_contract_version": {"type": "string"},
+    "context_version": {"type": "string"},
+    "instruction_version": {"type": "string"},
+    "input_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "id"],
+        "properties": {
+          "type": {"enum": ["ASSESSMENT", "FACT", "EVIDENCE", "POLICY", "CONTROL", "RISK_FACTOR", "JIRA", "AI_ARTIFACT"]},
+          "id": {"type": "string"},
+          "version": {"type": "string"},
+          "locator": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "correlation_id": {"type": "string"},
+    "idempotency_key": {"type": "string"},
+    "requested_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}
