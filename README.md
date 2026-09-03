@@ -215,6 +215,7 @@ Start here:
 - [Conceptual data model](docs/03-architecture/conceptual-data-model.md)
 - [Golden Initiative demo scenario](docs/04-domain/golden-initiative-demo.md) — canonical synthetic end-to-end dataset
 - [Golden Initiative API/data contracts](docs/04-domain/golden-initiative-contracts.md)
+- [Domain model and entity relationships](docs/04-domain/domain-model-and-entity-relationships.md)
 - [Canonical golden fixture](data/demo/golden-initiative.json)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)
 - [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
