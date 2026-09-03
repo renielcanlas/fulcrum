@@ -1,0 +1,19 @@
+{
+  "name": "Launch Small Business Real-Time Payments",
+  "projectKey": "FCRM",
+  "issueType": "Task",
+  "summary": "Assess small business real-time payments launch",
+  "description": "Evaluate the financial-crime risks, controls, monitoring requirements, and launch readiness for a real-time payments product serving small business customers.",
+  "labels": ["fulcrum-sandbox", "fcrm"],
+  "steps": [
+    {
+      "id": "create-initiative",
+      "action": "create",
+      "label": "Create initiative work item",
+      "summary": "Assess small business real-time payments launch",
+      "description": "Evaluate the financial-crime risks, controls, monitoring requirements, and launch readiness for a real-time payments product serving small business customers.",
+      "issueType": "Task",
+      "labels": ["fulcrum-sandbox", "fcrm"]
+    }
+  ]
+}

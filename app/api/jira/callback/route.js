@@ -21,7 +21,7 @@ export async function GET(request) {
     const selected = resources.find(resource => !process.env.JIRA_CLOUD_ID || resource.id === process.env.JIRA_CLOUD_ID) ?? resources[0];
     if (!selected) throw new Error("jira_site_not_found");
     runtime.jiraConnections.set(user.id, {cloudId: selected.id, siteUrl: selected.url, siteName: selected.name, accessToken: token.access_token, refreshToken: token.refresh_token ?? null, expiresAt: Date.now() + (token.expires_in ?? 3600) * 1000});
-    runtime.audit.record({eventType: "JiraConnected", actorId: user.id, actorType: "DEMO_PERSONA", userRole: user.role, entityId: selected.id, metadata: {siteName: selected.name, scopes: "read:jira-work read:jira-user offline_access"}});
+    runtime.audit.record({eventType: "JiraConnected", actorId: user.id, actorType: "DEMO_PERSONA", userRole: user.role, entityId: selected.id, metadata: {siteName: selected.name, scopes: "read:jira-work write:jira-work read:jira-user offline_access"}});
     destination.searchParams.set("jira", "connected");
   } catch (error) {
     runtime.audit.record({eventType: "JiraConnectionFailed", actorId: user.id, actorType: "DEMO_PERSONA", userRole: user.role, metadata: {reason: error.message}});

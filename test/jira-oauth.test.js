@@ -9,7 +9,7 @@ test("Jira OAuth state is bound to the user and single-use", () => {
   assert.throws(() => store.consumeState(state, "analyst-7"), /invalid_oauth_state/);
 });
 
-test("Jira authorization URL requests read-only consent", () => {
+test("Jira authorization URL requests sandbox consent", () => {
   const url = buildAuthorizationUrl({clientId: "client-1", redirectUri: "http://localhost:3000/api/jira/callback", state: "state-1"});
   assert.equal(url.origin, "https://auth.atlassian.com");
   assert.equal(url.searchParams.get("client_id"), "client-1");

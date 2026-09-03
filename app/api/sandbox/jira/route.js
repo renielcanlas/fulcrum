@@ -8,7 +8,7 @@ export async function GET(request) {
   const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   const params = new URL(request.url).searchParams;
-  const projectKey = (params.get("projectKey") ?? "FCRM").trim().toUpperCase();
+  const projectKey = "FCRM";
   const extraJql = params.get("jql") ?? "";
   try {
     const connection = runtime.jiraConnections.get(user.id);

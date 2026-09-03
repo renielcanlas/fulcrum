@@ -3,7 +3,7 @@ import {randomBytes} from "node:crypto";
 const AUTH_URL = "https://auth.atlassian.com/authorize";
 const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const RESOURCES_URL = "https://api.atlassian.com/oauth/token/accessible-resources";
-const SCOPES = "read:jira-work read:jira-user offline_access";
+const SCOPES = "read:jira-work write:jira-work read:jira-user offline_access";
 const STATE_TTL_MS = 10 * 60 * 1000;
 
 export class JiraConnectionStore {

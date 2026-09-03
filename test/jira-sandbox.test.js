@@ -1,17 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildJql, fetchJiraWorkItems, normalizeIssue} from "../src/integrations/jira.js";
+import {buildJql, createJiraWorkItem, fetchJiraWorkItems, normalizeIssue} from "../src/integrations/jira.js";
 
 test("Jira sandbox scopes searches to a valid project key", () => {
   assert.equal(buildJql("FCRM", "statusCategory != Done"), "project = FCRM AND (statusCategory != Done)");
   assert.throws(() => buildJql("fcrm"), /invalid_project_key/);
 });
 
-test("Jira sandbox returns synthetic work items without live credentials", async () => {
+test("Jira sandbox returns no items without live credentials", async () => {
   const result = await fetchJiraWorkItems({projectKey: "FCRM", cloudId: "", accessToken: ""});
-  assert.equal(result.mode, "demo");
-  assert.equal(result.items[0].key, "FCRM-101");
-  assert.equal(result.items[0].synthetic, true);
+  assert.equal(result.mode, "not_connected");
+  assert.deepEqual(result.items, []);
 });
 
 test("Jira responses are normalized to the sandbox contract", () => {
@@ -50,4 +49,16 @@ test("live Jira search sends bearer auth and requested fields", async () => {
   assert.match(requestedUrl.toString(), /project\+%3D\+ABC/);
   assert.equal(requestedOptions.headers.authorization, "Bearer token-1");
   assert.equal(result.items[0].key, "ABC-1");
+});
+
+test("Jira sandbox creates a basic Task with bearer auth", async () => {
+  let requestOptions;
+  const created = await createJiraWorkItem({projectKey: "ABC", summary: "Review payment controls", description: "Assess launch readiness.", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options) => {
+    requestOptions = {url, options};
+    return new Response(JSON.stringify({id: "2", key: "ABC-2"}), {status: 201});
+  }});
+  assert.deepEqual(created, {id: "2", key: "ABC-2", self: undefined});
+  assert.equal(requestOptions.options.method, "POST");
+  assert.equal(requestOptions.options.headers.authorization, "Bearer token-1");
+  assert.match(requestOptions.options.body, /Review payment controls/);
 });
