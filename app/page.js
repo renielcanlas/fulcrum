@@ -282,6 +282,60 @@ export default function Home() {
               </article>
             ))}
           </div>
+          <div
+            id="ai-usage"
+            className="mt-10 grid gap-6 rounded-[1.5rem] bg-[rgba(12,34,38,0.95)] p-6 text-[rgba(255,255,255,0.85)] sm:p-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center"
+          >
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[rgb(82,224,129)]">
+                Transparent build practice
+              </p>
+              <h3 className="mt-3 text-2xl font-bold text-white">
+                How AI helped build FULCRUM
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-white/70">
+                AI accelerated research, design, development, testing, and
+                deployment—while the product keeps decisions governed by
+                deterministic logic and humans.
+              </p>
+              <a
+                href={`${repoDocs}/docs/05-ai/ai-usage-and-hackathon-methodology.md`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-5 inline-flex text-sm font-bold text-[rgb(82,224,129)] hover:text-white"
+              >
+                Read the detailed AI usage notes →
+              </a>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                [
+                  "Research & design",
+                  "ChatGPT Project discussions, then ChatGPT and the Codex VS Code plugin shaped the requirements, architecture, UX, and Markdown decision records.",
+                ],
+                [
+                  "Development",
+                  "Codex in VS Code drove most implementation, supported by available AI resources in the Myridius Azure portal.",
+                ],
+                [
+                  "Testing",
+                  "AI-assisted unit tests checked AI workflows, deterministic decision logic, security boundaries, and regression behavior.",
+                ],
+                [
+                  "Deployment",
+                  "Vercel automatically deploys the app whenever changes are committed, keeping the judge-facing demo current.",
+                ],
+              ].map(([title, body]) => (
+                <div
+                  key={title}
+                  className="rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <p className="text-sm font-bold text-white">{title}</p>
+                  <p className="mt-2 text-xs leading-5 text-white/65">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
       <section id="demo-story" className="scroll-mt-20 px-6 py-16 lg:px-10">

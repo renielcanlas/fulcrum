@@ -4,8 +4,10 @@ This project uses AI across both the project-development lifecycle and the FULCR
 
 ## How AI was used to build FULCRUM
 
-- **General research and discovery:** We used a ChatGPT Project as a shared workspace for early research, problem framing, requirement expansion, domain questions, and design exploration. [ChatGPT Project — research workspace](https://chatgpt.com/g/g-p-6a986f8905ec8191af3c67f1f4f241c7-geniushacks/project)
-- **Repository creation and technical decision-making:** We used Codex to inspect the repository, establish the persistent documentation architecture, create requirements and ADRs, develop the initial architecture, implement the Copilot foundation, and run tests. Codex operated against repository artifacts rather than relying on private conversation memory.
+- **Requirements and design:** I fed the initial requirements into a [ChatGPT Project for general research, requirements discussion, and idea exploration](https://chatgpt.com/g/g-p-6a986f8905ec8191af3c67f1f4f241c7-geniushacks/project). Through the design phase, ChatGPT and the Codex plugin for VS Code helped develop the user journeys, architecture, data model, workflow, governance decisions, and UX direction. The resulting design and architecture decisions were captured as Markdown documents in this repository.
+- **Development:** I used the Codex plugin for VS Code for most of the development journey: repository changes, implementation, refactoring, documentation, and verification. I also used available AI resources from the Myridius Azure portal as part of the platform exploration.
+- **Testing:** AI-assisted test generation helped create unit and regression tests for AI workflows, deterministic decision/scoring behavior, security boundaries, human governance, lineage, and workflow correctness. The tests remain executable repository artifacts rather than claims based only on model output.
+- **Deployment:** Vercel is connected to the repository so the app is automatically deployed whenever changes are committed. This keeps the judge-facing demo aligned with the latest reviewed code.
 - **Runtime AI capability:** We use the OpenAI API through a provider adapter for **Ciel**, the FULCRUM Copilot. The API supports model responses, structured backend tool calls, governed context retrieval, assessment explanation, drafting, and chatbot interaction.
 
 ## What “model training” means in this project
