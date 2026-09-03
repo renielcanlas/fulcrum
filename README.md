@@ -137,10 +137,10 @@ Requirements: Node.js 20 or newer.
 
 ```bash
 npm test
-npm start
+npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Use `npm run build && npm start` to run the production build locally.
 
 Without an API key, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. To use the OpenAI adapter, create `.env` in the repository root:
 

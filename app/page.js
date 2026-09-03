@@ -1,0 +1,11 @@
+"use client";
+
+import {useEffect, useState} from "react";
+
+export default function Home() {
+  const [users, setUsers] = useState([]); const [userId, setUserId] = useState(""); const [signedIn, setSignedIn] = useState(null); const [question, setQuestion] = useState(""); const [messages, setMessages] = useState(["Sign in with a synthetic persona to use FULCRUM Copilot."]); const [busy, setBusy] = useState(false);
+  useEffect(() => { fetch("/api/demo-users").then(r=>r.json()).then(setUsers); }, []);
+  async function signIn() { const r=await fetch("/api/session",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId})}); const d=await r.json(); setSignedIn(d.user ?? null); }
+  async function ask(e) { e.preventDefault(); if (!question.trim() || !signedIn || busy) return; const text=question; setQuestion(""); setMessages(x=>[...x,`You: ${text}`]); setBusy(true); const r=await fetch("/api/copilot/respond",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({assessmentId:"FA-2026-00124",message:text})}); const d=await r.json(); setMessages(x=>[...x,`FULCRUM: ${d.answer ?? d.error}`]); setBusy(false); }
+  return <main style={{maxWidth:900,margin:"5vh auto",background:"white",border:"1px solid #dce2ee",borderRadius:12,padding:24}}><h1>FULCRUM Copilot</h1><p style={{background:"#eef4ff",padding:12,borderRadius:8}}>Assessment context: <strong>FA-2026-00124</strong> · Cross-Border Wallet Expansion</p><section style={{background:"#f1f3f7",padding:16,minHeight:220,whiteSpace:"pre-wrap"}}>{messages.map((m,i)=><p key={i}>{m}</p>)}</section><div style={{margin:"16px 0"}}><select value={userId} onChange={e=>setUserId(e.target.value)}><option value="">Select demo persona</option>{users.map(u=><option key={u.id} value={u.id}>{u.displayName} — {u.role}</option>)}</select> <button onClick={signIn}>Sign in as persona</button>{signedIn && <span> Signed in: {signedIn.displayName}</span>}</div><form onSubmit={ask} style={{display:"flex",gap:8}}><input value={question} onChange={e=>setQuestion(e.target.value)} placeholder="Why is AML residual risk High?" style={{flex:1,padding:12}}/><button disabled={!signedIn || busy}>{busy?"Working…":"Ask"}</button></form></main>;
+}

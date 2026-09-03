@@ -39,7 +39,7 @@ Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix.
 
 ## Deployment process
 
-1. Create the Next.js application and preserve existing domain modules/tests.
+1. Create the Next.js application and preserve existing domain modules/tests. **Current status:** the repository now has the Next.js App Router shell and route-handler equivalents for health, sessions, demo users, and Copilot responses.
 2. Move the UI into `app/` routes and the Copilot endpoint into a server Route Handler.
 3. Replace in-memory sessions, audit, repository, and conversations with external persistence interfaces; use a demo database adapter locally.
 4. Add health/readiness endpoints that do not reveal secrets and identify provider/database configuration state.
