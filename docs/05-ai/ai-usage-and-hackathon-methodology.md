@@ -6,7 +6,7 @@ This project uses AI across both the project-development lifecycle and the FULCR
 
 - **General research and discovery:** We used a ChatGPT Project as a shared workspace for early research, problem framing, requirement expansion, domain questions, and design exploration. [ChatGPT Project — research workspace](https://chatgpt.com/g/g-p-6a986f8905ec8191af3c67f1f4f241c7-geniushacks/project)
 - **Repository creation and technical decision-making:** We used Codex to inspect the repository, establish the persistent documentation architecture, create requirements and ADRs, develop the initial architecture, implement the Copilot foundation, and run tests. Codex operated against repository artifacts rather than relying on private conversation memory.
-- **Runtime AI capability:** We use the OpenAI API through a provider adapter for the FULCRUM Copilot. The API supports model responses, structured backend tool calls, governed context retrieval, assessment explanation, drafting, and chatbot interaction.
+- **Runtime AI capability:** We use the OpenAI API through a provider adapter for **Ciel**, the FULCRUM Copilot. The API supports model responses, structured backend tool calls, governed context retrieval, assessment explanation, drafting, and chatbot interaction.
 
 ## What “model training” means in this project
 

@@ -21,7 +21,7 @@ This is a Next.js App Router application designed for deployment to Vercel. The 
 
 The first end-to-end scenario is **Launch U.S.–Philippines Instant Remittance**. Maya Chen submits the synthetic initiative, Daniel Reyes reviews the FCRM findings and overrides one AI recommendation with a recorded rationale, and Helen Morgan approves the bounded launch with conditions. The complete facts, evidence, controls, risk domains, workflow timing, Jira links, AI observations, override, and decision are in the [Golden Initiative demo](docs/04-domain/golden-initiative-demo.md) and [canonical fixture](data/demo/golden-initiative.json).
 
-To run the presentation flow, start the app with `npm run dev`, open `http://localhost:3000`, select a synthetic persona, and ask the Copilot about residual risk, evidence, missing information, or open Jira conditions. The Copilot can explain and draft; it cannot approve or reject.
+To run the presentation flow, start the app with `npm run dev`, open `http://localhost:3000`, select a synthetic persona, and ask **Ciel**, FULCRUM's governed AI copilot, about residual risk, evidence, missing information, or open Jira conditions. Ciel can explain and draft; it cannot approve or reject.
 
 ## Why FULCRUM
 
@@ -39,7 +39,7 @@ Financial-crime risk assessments can take 15–20 business days and can be diffi
 
 ## What makes this AI-native
 
-FULCRUM is not a generic chatbot or an LLM wrapper. The embedded **FULCRUM Copilot** operates inside the assessment workspace and uses governed backend tools to answer questions such as:
+FULCRUM is not a generic chatbot or an LLM wrapper. The embedded **Ciel** copilot operates inside the assessment workspace and uses governed backend tools to answer questions such as:
 
 - “Why is residual AML risk High?”
 - “Which evidence supports the geography risk?”
@@ -48,7 +48,7 @@ FULCRUM is not a generic chatbot or an LLM wrapper. The embedded **FULCRUM Copil
 - “Which implementation conditions are still open in Jira?”
 - “What is still missing before committee review?”
 
-The Copilot uses the active assessment context, permission-checked FULCRUM records, and explicitly linked Jira initiative context. It does not receive the entire assessment in every prompt, does not access the database directly, and does not treat conversation history as authoritative.
+Ciel uses the active assessment context, permission-checked FULCRUM records, and explicitly linked Jira initiative context. It does not receive the entire assessment in every prompt, does not access the database directly, and does not treat conversation history as authoritative.
 
 ## How we used AI to build this project
 

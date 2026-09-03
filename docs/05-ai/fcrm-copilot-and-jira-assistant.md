@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The integrated AI capability supports FCRM analysts with assisted decision preparation and provides a conversational interface over a FULCRUM initiative plus its authorized Jira context. It is a copilot, not an autonomous decision-maker.
+The integrated AI capability supports FCRM analysts with assisted decision preparation and provides a conversational interface over a FULCRUM initiative plus its authorized Jira context. Its user-facing persona is **Ciel**, FULCRUM's governed AI copilot. Ciel is a copilot, not an autonomous decision-maker.
 
 ## What the copilot does
 
@@ -31,7 +31,7 @@ The assembler applies tenant, user, project, issue, and field-level access contr
 
 ## Interaction patterns
 
-**Analyst workspace:** a side panel on the initiative shows “Ask FULCRUM”, evidence-backed suggestions, missing information, contradictions, and draft actions. Each suggestion has accept, edit, reject, and explain controls.
+**Analyst workspace:** a side panel on the initiative shows “Ask Ciel”, evidence-backed suggestions, missing information, contradictions, and draft actions. Each suggestion has accept, edit, reject, and explain controls.
 
 **Initiative Q&A:** “What changed in the Jira initiative since the last assessment?”, “Which delivery channels are affected?”, “What evidence supports geography risk?”, and “What remains unknown?” Answers cite individual FULCRUM/Jira sources and disclose inference.
 

@@ -37,7 +37,7 @@ export default function DemoPage() {
   const [signedIn, setSignedIn] = useState(null);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
-    "Welcome to the synthetic FULCRUM demo.",
+    "Hi, I’m Ciel. I can help you understand this initiative and its decision trail.",
   ]);
   const [busy, setBusy] = useState(false);
   const [trace, setTrace] = useState(null);
@@ -68,7 +68,7 @@ export default function DemoPage() {
       const data = await response.json();
       setMessages((current) => [
         ...current,
-        `FULCRUM: ${data.answer ?? data.error}`,
+        `Ciel: ${data.answer ?? data.error}`,
       ]);
     } finally {
       setBusy(false);
@@ -172,7 +172,7 @@ export default function DemoPage() {
               onClick={() => setChatOpen(true)}
               className="hidden rounded-lg bg-[rgb(82,224,129)] px-4 py-2.5 text-sm font-bold text-[rgb(12,34,38)] shadow-sm transition hover:bg-[rgb(110,235,151)] sm:block"
             >
-              Ask FULCRUM
+              Ask Ciel
             </button>
           </div>
           <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -321,7 +321,7 @@ function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
       <div className="flex items-center justify-between bg-[rgba(12,34,38,0.95)] px-5 py-4 text-white">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[rgb(82,224,129)]">
-            AI copilot
+            Ciel · AI copilot
           </p>
           <h2 className="mt-1 font-bold">Initiative-aware chat</h2>
         </div>
@@ -352,7 +352,7 @@ function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
         className="flex gap-2 border-t border-slate-200 bg-white p-3"
       >
         <label className="sr-only" htmlFor="question">
-          Ask FULCRUM
+          Ask Ciel
         </label>
         <input
           id="question"
