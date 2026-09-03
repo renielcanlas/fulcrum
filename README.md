@@ -231,6 +231,7 @@ Start here:
 - [FCRM Copilot and Jira Assistant](docs/05-ai/fcrm-copilot-and-jira-assistant.md)
 - [AI capability map](docs/05-ai/ai-capability-map.md) — Step 7.1 AI/deterministic/human boundary
 - [Agent and orchestration design](docs/05-ai/agent-and-orchestration-design.md) — Step 7.2 bounded coordination and human gates
+- [Context engineering and RAG design](docs/05-ai/context-engineering-and-rag-design.md) — Step 7.3 scoped context, retrieval, and grounding
 - [Azure AI Foundry and Document Intelligence architecture](docs/05-ai/azure-ai-foundry-and-document-intelligence.md)
 - [AI boundaries](.ai/policies/ai-boundaries.md)
 - [Security & Governance Architecture](docs/07-governance/security-governance-architecture.md)
