@@ -2,7 +2,7 @@
 
 ### Governed financial-crime risk assessment, prepared by AI and decided by humans.
 
-FULCRUM is a standalone financial-crime decision intelligence workbench. Its primary object is an **Initiative**: a proposed new product, feature, process, vendor, geography, or customer-segment change assessed across banking, payments, commercial banking, and wealth management.
+FULCRUM is a standalone financial-crime decision intelligence workbench. Its primary object is an **Initiative**: a proposed new product, feature, process, vendor, geography, or customer-segment change assessed across banking, payments, commercial banking, and wealth management. Azure AI Foundry is the primary AI platform direction, with Azure AI Document Intelligence providing document extraction and evidence provenance behind the AI Gateway.
 
 It turns a fragmented process of email, Word, Excel, SharePoint, and manually collected evidence into one traceable journey:
 
@@ -133,7 +133,8 @@ The repository currently contains the architecture foundation and the first exec
 - typed backend tools over a demo governed repository
 - FCRM Analyst and Product Owner authorization checks
 - deterministic demo risk values and linked Jira work items
-- OpenAI provider adapter with safe no-key demo mode
+- Provider-neutral AI Gateway with safe no-key demo mode; Azure AI Foundry is the primary platform direction
+- Azure AI Document Intelligence planned for document extraction and evidence provenance
 - AI interaction audit records
 - tests proving tool execution, access isolation, and decision non-mutation
 
@@ -150,11 +151,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). Use `npm run build && npm start` to run the production build locally. See the [Vercel deployment architecture](docs/09-deployment/vercel-nextjs-deployment.md) for the deployment path.
 
-Without an API key, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. To use the OpenAI adapter, create `.env` in the repository root:
+Without Azure configuration, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. The planned Azure configuration is server-only and deployment-specific:
 
 ```bash
-OPENAI_API_KEY=your_key
-OPENAI_MODEL=gpt-5
+AZURE_AI_FOUNDRY_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_AI_FOUNDRY_API_VERSION=your-approved-api-version
+AZURE_AI_FOUNDRY_FAST_DEPLOYMENT=your-fast-deployment
+AZURE_AI_FOUNDRY_REASONING_DEPLOYMENT=your-reasoning-deployment
+AZURE_AI_FOUNDRY_EMBEDDING_DEPLOYMENT=your-embedding-deployment
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-document-resource.cognitiveservices.azure.com/
 ```
 
 Then run `npm start`. `.env` is ignored by Git; never commit real credentials.
@@ -162,7 +167,7 @@ Then run `npm start`. `.env` is ignored by Git; never commit real credentials.
 Optional configuration:
 
 ```bash
-OPENAI_MODEL=gpt-5 PORT=3000 npm start
+AZURE_AI_FOUNDRY_FAST_DEPLOYMENT=your-fast-deployment PORT=3000 npm start
 ```
 
 Credentials are read by the backend only and must never be committed.
@@ -213,6 +218,7 @@ Start here:
 - [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
 - [Workflow self-review](docs/03-architecture/workflow-self-review.md)
 - [FCRM Copilot and Jira Assistant](docs/05-ai/fcrm-copilot-and-jira-assistant.md)
+- [Azure AI Foundry and Document Intelligence architecture](docs/05-ai/azure-ai-foundry-and-document-intelligence.md)
 - [AI boundaries](.ai/policies/ai-boundaries.md)
 - [Security & Governance Architecture](docs/07-governance/security-governance-architecture.md)
 - [Identity and RBAC](docs/07-governance/identity-and-rbac.md)
@@ -224,6 +230,7 @@ Start here:
 - [CI/CD and migrations](docs/09-deployment/ci-cd-and-migrations.md)
 - [Demo versus production deployment matrix](docs/09-deployment/demo-production-matrix.md)
 - [Architecture decision records](docs/11-decisions/README.md)
+- [ADR-026: Azure AI Foundry and Document Intelligence](docs/11-decisions/ADR-026-azure-ai-foundry-and-document-intelligence.md)
 - [Jira-ready roadmap](docs/01-requirements/jira-roadmap.md)
 
 ## Delivery roadmap

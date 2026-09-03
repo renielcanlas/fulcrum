@@ -6,6 +6,7 @@ No Jira issue creation is authorized by this bootstrap. The following is a plann
 |---|---|---|
 | Governed intake | case schema, lifecycle, RBAC, clarification UI | REQ-001, 002, 015 |
 | Evidence and research | upload sandbox, extraction artifact, policy index/citations | REQ-003, 004 |
+| Azure document pipeline | AI Gateway, Azure AI Foundry adapter, model routing, Document Intelligence extraction, normalized evidence, embeddings/indexing | REQ-003, 004, 012, 014 |
 | Risk workbench | factor taxonomy, controls, deterministic scoring/config versioning | REQ-006, 011 |
 | Analyst and committee | review, override, challenge, briefing, decision gates | REQ-005, 007, 008 |
 | Audit and assistant | append-only export, grounded Q&A, history | REQ-009, 010 |

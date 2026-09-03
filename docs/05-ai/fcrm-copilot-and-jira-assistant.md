@@ -43,7 +43,7 @@ The orchestrator invokes `jira-context.v1` for normalized, permission-filtered c
 
 ## Model strategy
 
-Use a lightweight model for Jira field normalization and classification, embeddings/reranking for retrieval, and a stronger reasoning model for synthesis and challenge. Keep score calculation, access checks, state transitions, source filtering, citation assembly, and audit deterministic. The model provider is selected through the existing `AIProvider` interface and recorded for every material output.
+Use Azure AI Foundry deployments through the AI Gateway: a lightweight route for Jira field normalization, extraction, classification, summaries, and routine chat; embeddings/reranking for retrieval; and a stronger reasoning route for risk synthesis and challenge. Keep score calculation, access checks, state transitions, source filtering, citation assembly, and audit deterministic. The model provider/deployment is selected through the existing `AIProvider` interface and recorded for every material output. Uploaded documents first pass through the separate Document Intelligence evidence pipeline.
 
 ## Human checkpoints
 

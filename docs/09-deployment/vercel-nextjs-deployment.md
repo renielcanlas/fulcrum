@@ -4,7 +4,7 @@
 
 FULCRUM uses Next.js App Router as the web framework and Vercel as the hackathon web/API deployment target. Keep domain logic, workflow state machine, AI provider, Jira adapter, authorization, and audit interfaces framework-neutral so they can move to a worker/service later if needed.
 
-**Implemented:** Next.js 16 App Router shell, server Route Handlers for health, sessions, demo users, and Copilot responses, server-only OpenAI access, and Vercel-compatible build scripts. **Not yet implemented:** durable database, external session store, production audit persistence, background queue, and live Jira OAuth sync. The current demo repository and session store are intentionally in-memory.
+**Implemented:** Next.js 16 App Router shell, server Route Handlers for health, sessions, demo users, and Copilot responses, provider-neutral AI boundaries, and Vercel-compatible build scripts. **Not yet implemented:** Azure AI Foundry adapter, Document Intelligence processing jobs, durable database, external session store, production audit persistence, background queue, and live Jira OAuth sync. The current demo repository and session store are intentionally in-memory.
 
 The current hand-rolled Node server is useful for local demonstration, but it assumes a long-lived process and in-memory state. Vercel Functions are request-oriented and can run on different instances; sessions, audit, conversations, assessment data, OAuth tokens, and jobs must not rely on process memory. Vercel’s guidance also recommends external state such as Redis for shared state. [Vercel Functions limits](https://vercel.com/docs/functions/limitations) [Vercel Fluid Compute](https://vercel.com/kb/guide/vercel-services-fluid-compute)
 
@@ -35,7 +35,7 @@ Recommended external dependencies: Supabase PostgreSQL or equivalent managed Pos
 
 ## Environment configuration
 
-Configure `OPENAI_API_KEY`, `OPENAI_MODEL`, database URL, session secret, Jira OAuth client ID/secret, and callback URLs in Vercel project environment variables for Development, Preview, and Production as appropriate. Vercel encrypts environment variables at rest; changes apply to new deployments, so rotate/redeploy deliberately. [Vercel environment variables](https://vercel.com/docs/environment-variables)
+Configure Azure AI Foundry endpoint/API version, deployment names for fast/reasoning/embedding routes, Azure credential mode, Document Intelligence endpoint, database URL, session secret, Jira OAuth client ID/secret, and callback URLs in Vercel project environment variables for Development, Preview, and Production as appropriate. Vercel encrypts environment variables at rest; changes apply to new deployments, so rotate/redeploy deliberately. [Vercel environment variables](https://vercel.com/docs/environment-variables)
 
 Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix. Never use that prefix for OpenAI, Jira, database, or session secrets.
 
@@ -44,11 +44,11 @@ Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix.
 1. Create the Next.js application and preserve existing domain modules/tests. **Current status:** complete; the repository has the Next.js App Router shell and route-handler equivalents for health, sessions, demo users, and Copilot responses.
 2. Move the UI into `app/` routes and the Copilot endpoint into a server Route Handler.
 3. Replace in-memory sessions, audit, repository, and conversations with external persistence interfaces; use a demo database adapter locally.
-4. Add health/readiness endpoints that do not reveal secrets and identify provider/database configuration state.
+4. Add health/readiness endpoints that do not reveal secrets and identify Azure AI Foundry, Document Intelligence, database, and configuration state.
 5. Add Vercel environment variables separately for Preview and Production.
 6. Configure Jira OAuth callback URLs for the Vercel Preview/Production domains; never use a wildcard callback in production.
 7. Deploy a Preview from a branch and run unit, integration, authorization, security, and smoke tests.
-8. Verify streaming, tool calls, audit persistence, session behavior across repeated requests, and Jira failure/reconciliation behavior.
+8. Verify streaming, tool calls, Azure model routing, Document Intelligence extraction/provenance, audit persistence, session behavior across repeated requests, and Jira failure/reconciliation behavior.
 9. Promote to Production only after secrets, data handling, security, and human-governance checks pass.
 10. Monitor function errors/duration, AI latency/tokens/cost, database health, queue lag, Jira sync health, authorization failures, and audit completeness.
 

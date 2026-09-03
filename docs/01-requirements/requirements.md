@@ -34,6 +34,7 @@ Status: bootstrap baseline. Product and control owners must validate before impl
 | REQ-028 | Deploy the web tier through a framework and hosting model that supports server-side integrations, streaming, durable external state, and Preview/Production separation. | Next.js build, Vercel Preview smoke test, environment/configuration checks, and persistence tests. | Platform/Delivery |
 | REQ-029 | Model Initiative as the primary FULCRUM domain object for business change, assessment, evidence, controls, decisions, conditions, and history. | Domain schema, API/tool, migration-alias, and traceability tests. | Product/Architecture |
 | REQ-030 | Maintain a canonical synthetic golden initiative that exercises the full lifecycle, risk traceability, AI artifacts, analyst override, committee decision, conditions, and linked Jira work. | Fixture validation, explainability-reference tests, workflow replay, and judge-facing demo documentation. | Product/FCRM/QA |
+| REQ-031 | Provide an AI Gateway with Azure AI Foundry as the primary configurable platform route and Azure AI Document Intelligence as a separate provenance-preserving document extraction capability. | Adapter contract tests, routing/configuration tests, extraction provenance tests, access/security tests, and evaluation results. | AI Platform/FCRM/Security |
 
 ## Traceability convention
 
