@@ -49,6 +49,7 @@ export default function DemoPage() {
 
   function navigateTo(view) {
     setActiveView(view);
+    if (view !== "initiative-detail") setTrace(null);
     router.replace(view === "board" ? "/demo" : `/demo?view=${view}`);
   }
 
@@ -91,7 +92,8 @@ export default function DemoPage() {
 
   async function loadTrace() {
     const response = await fetch("/api/initiatives/INIT-2026-0007/trace");
-    setTrace(await response.json());
+    const data = await response.json();
+    setTrace(response.ok && data.committee?.finalDecision ? data : null);
   }
 
   async function openInitiative() {
