@@ -6,7 +6,7 @@
 | Keep scoring deterministic | Numeric outputs must be reproducible and explainable | LLM-generated rating | Prevents score drift/hallucination; requires configuration governance |
 | Use one governed Copilot first | Clear tool boundaries and lower complexity | Many autonomous agents | Easier security/evaluation; less parallel specialization initially |
 | Use evidence-grounded retrieval | Policy and evidence claims need citations | Generic chatbot memory | Reduces hallucination; requires curated metadata and source snapshots |
-| Keep Jira as integration, not authority | Jira is excellent for execution context | Build full work management or make Jira master | Preserves FCRM ownership; requires reconciliation |
+| Keep Jira authoritative for initiative/collaboration and FULCRUM authoritative for FCRM | Jira already owns business execution; FULCRUM adds governed risk intelligence | Copy the complete Jira model into FULCRUM | Avoids dual masters while preserving assessment lineage; requires scoped references and evidence snapshots |
 | Use PostgreSQL | Relational integrity fits workflow, versions, votes, conditions, and audit metadata | Document-only or vector-only store | Strong consistency and queryability; migration/pooling work required |
 | Use Next.js/Vercel for the hackathon | Solo-developer speed, previews, server-side routes | Kubernetes/VM/GitHub Pages | Low infrastructure overhead; externalize durable state |
 | Require human gates and overrides | Material judgment is not deterministic | Fully automated progression | Strong governance; limits straight-through automation |

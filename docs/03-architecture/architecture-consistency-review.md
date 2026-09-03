@@ -4,7 +4,7 @@ Status: Accepted. Reviewed against the consolidated baseline and ADR index.
 
 ## Resolved contradictions
 
-- Jira is consistently an execution/context integration; FULCRUM owns risk decisions.
+- Jira is consistently authoritative for business-initiative and collaboration data; FULCRUM owns governed FCRM assessment and decision lineage. FULCRUM stores references or bounded snapshots, not a full Jira mirror.
 - AI is consistently advisory; only humans finalize, vote, waive, or decide.
 - Risk scoring is consistently deterministic and configuration-versioned; AI explains inputs/results.
 - Audit is append-only; corrections use compensating events or versions.
@@ -34,6 +34,8 @@ Status: Accepted. Reviewed against the consolidated baseline and ADR index.
 - **Stale Jira context:** explicit links, freshness metadata, webhook-triggered reconciliation.
 - **Audit failure during decision:** treat audit persistence as part of consequential command completion.
 - **Credential exposure:** server-only adapters, secret provider boundary, redaction, and secret scanning.
+
+The authority boundary is now explicit: Jira owns business-initiative and collaboration content; FULCRUM owns governed FCRM assessment and decision lineage. FULCRUM references Jira and stores bounded evidence metadata/snapshots only when required for traceability or replay.
 
 ## Architecture readiness
 

@@ -18,15 +18,15 @@ Use `ChangeRequest` as the user-facing object; use `Initiative` as the primary o
 
 ## Decision
 
-Use `Initiative` as the primary user-facing and domain aggregate. It owns the proposed business change and links assessment versions, evidence, controls, findings, decisions, conditions, participants, Jira references, and activity history. `ChangeRequest` remains a compatibility term during implementation migration and must not become a second source of truth.
+Use `Initiative` as the primary user-facing FULCRUM reference and navigation object. It correlates to the Jira-authoritative business initiative and links the FULCRUM assessment, evidence references, findings, decisions, conditions, participants, Jira references, and FCRM activity. The governed assessment aggregate owns risk and decision state; `ChangeRequest` remains a compatibility term during implementation migration and must not become a second source of truth. The Jira/FULCRUM authority boundary is refined by [ADR-028](ADR-028-jira-fulcrum-data-authority.md).
 
 ## Rationale
 
-Initiative better represents the full decision-intelligence lifecycle and keeps business context, assessment, and decision history discoverable in one place without turning FULCRUM into project-management software.
+Initiative remains the clearest product-facing entry point for decision intelligence while the authority split prevents FULCRUM from becoming a project-management duplicate of Jira.
 
 ## Consequences
 
-The data model, UI, APIs, tools, and glossary should converge on `Initiative`. Existing references require an explicit migration/alias plan. Jira issue links remain projections/integrations, not ownership of the Initiative or its decision.
+The data model, UI, APIs, and glossary should use `Initiative` as the navigation/reference object and `Assessment` as the governed FCRM aggregate. Existing references require an explicit migration/alias plan. Jira issue links are authoritative business-context correlations, not FULCRUM-owned issue copies; Jira does not own the FCRM assessment or decision.
 
 ## Production Evolution
 

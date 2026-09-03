@@ -8,4 +8,4 @@ Use Supabase PostgreSQL or equivalent managed PostgreSQL for FULCRUM business da
 
 ## Consequences
 
-The database needs migrations, pooling, backups, access controls, and an outbox/event strategy. Jira remains a projection/integration, not the risk authority.
+The database needs migrations, pooling, backups, access controls, and an outbox/event strategy. PostgreSQL is authoritative for FULCRUM assessment, risk, decision, condition, configuration, and audit state. Jira remains authoritative for initiative/collaboration content; PostgreSQL stores only FULCRUM references, selected metadata, and evidence snapshots/hashes required for governance or replay.

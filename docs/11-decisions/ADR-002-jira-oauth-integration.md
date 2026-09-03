@@ -8,7 +8,7 @@ FULCRUM needs a web experience that can connect a user’s Jira Cloud account fo
 
 ## Decision
 
-Implement a server-side Jira adapter using OAuth 2.0 3LO authorization code flow. Bind a one-time `state` to the authenticated FULCRUM session, exchange codes only server-side, encrypt tokens, request read-only scopes first, store cloud/site metadata and provenance, and use the Atlassian API gateway URL keyed by `cloudId`. Treat Jira as an external projection/integration, not a source of risk truth. Writes require a separately approved capability and explicit user confirmation.
+Implement a server-side Jira adapter using OAuth 2.0 3LO authorization code flow. Bind a one-time `state` to the authenticated FULCRUM session, exchange codes only server-side, encrypt tokens, request read-only scopes first, store cloud/site metadata and provenance, and use the Atlassian API gateway URL keyed by `cloudId`. Treat Jira as authoritative for the underlying business initiative and collaboration data, while FULCRUM remains authoritative for risk and FCRM decisions. FULCRUM stores references and selected evidence metadata rather than a full Jira mirror. Writes require a separately approved capability and explicit user confirmation.
 
 ## Alternatives
 

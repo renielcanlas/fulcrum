@@ -10,11 +10,11 @@ Vercel CI/CD
        └── Next.js Node.js Route Handlers / Functions
               │
               ├── FULCRUM domain + RBAC + workflow
-              ├── AI Gateway ───────► OpenAI API
-              ├── Jira Gateway ──────► Jira Cloud
-              ├── Managed PostgreSQL ◄── authoritative data/audit
-              ├── Object storage ◄────── evidence
+              ├── AI Gateway ───────► Azure AI Foundry
+              ├── Jira Gateway ◄────── Jira Cloud initiative authority
+              ├── Managed PostgreSQL ◄── FULCRUM FCRM data/audit authority
+              ├── Object/archive storage ◄── optional governed evidence snapshots
               └── Queue/worker ◄──────── long-running jobs
 ```
 
-The last four dependencies are target architecture, not current demo dependencies. Browser code can call FULCRUM routes; it cannot call OpenAI or Jira with privileged credentials. Vercel is the web/API tier, not the FULCRUM system of record.
+The last four dependencies are target architecture, not current demo dependencies. Browser code can call FULCRUM routes; it cannot call Azure AI, Jira, or other providers with privileged credentials. Jira remains authoritative for business initiative/collaboration data, while Vercel is only the web/API tier and FULCRUM PostgreSQL is authoritative for FCRM assessment/decision state.

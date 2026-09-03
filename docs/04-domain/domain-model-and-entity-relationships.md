@@ -2,7 +2,7 @@
 
 Status: Step 6.1 conceptual model. This document defines business entities, ownership, lifecycle, lineage, and versioning before physical PostgreSQL design. It does not define tables, indexes, migrations, or ORM mappings.
 
-The domain model preserves five distinct representations of a proposed change:
+The domain model preserves five distinct representations of a proposed change while keeping authority boundaries explicit:
 
 ```text
 Product Owner submission
@@ -15,15 +15,28 @@ Product Owner submission
 
 No later representation overwrites an earlier one.
 
+## Authority boundary
+
+The underlying initiative remains Jira-authoritative. FULCRUM references Jira initiative data and persists only the FCRM-specific state or historical snapshot needed for governed assessment and replay.
+
+| Classification | Meaning | Examples |
+|---|---|---|
+| `JIRA_AUTHORITATIVE` | Jira owns the current business/collaboration value | Initiative title, description, assignee, comments, attachments, due dates, Jira workflow/history |
+| `FULCRUM_AUTHORITATIVE` | FULCRUM owns the governed FCRM value | Assessment versions, accepted facts, risk, controls, scores, overrides, decisions, conditions, audit |
+| `REFERENCED_FROM_JIRA` | FULCRUM stores stable external identifiers and selected metadata | Jira issue/attachment/comment links, sync status, source locator, freshness |
+| `SNAPSHOTTED_FOR_AUDIT` | FULCRUM stores a bounded content hash or selected source snapshot because a finalized assessment relied on it | Jira attachment/comment evidence hash, extracted text/source span, retrieved policy content |
+
+The assessment, not the Jira issue, is the FULCRUM aggregate root for governed risk decisions. `Initiative` in this model means the FULCRUM-side reference/context boundary for a Jira initiative, not ownership of the full Jira issue model.
+
 ## 1. Domain entity catalogue
 
 ### Initiative and assessment
 
 | Entity | Purpose and key attributes | Lifecycle | Authority | Classification |
 |---|---|---|---|---|
-| `Initiative` | Primary business-change aggregate: `initiativeId`, name, type, description, justification, owner, participants, lifecycle, target date, tenant/scope | Draft → Active assessment → Decided → Closed/reassessment | FULCRUM; Product Owner supplies proposal, FULCRUM owns lifecycle | Mutable current projection; history preserved by events/versions |
+| `Initiative` | FULCRUM-side reference to Jira initiative: `initiativeId`, `jiraIssueId`, selected title/context projection, linked assessment, scope, and sync metadata | Linked → Context available/degraded → Unlinked | Jira for business initiative; FULCRUM for its link and FCRM context | Reference/projection; selected snapshots only |
 | `ChangeRequest` | Compatibility alias for legacy terminology; references an `initiativeId` and does not become a second record | N/A | FULCRUM naming compatibility | Value/alias, not a separate aggregate |
-| `Assessment` | Stable assessment identity associated with an Initiative; current version pointer and assessment purpose/type | Open → Versioned review → Final decision → Reassessment | FULCRUM | Mutable identity/current pointer; versions immutable |
+| `Assessment` | Stable FULCRUM assessment identity associated with a Jira-backed Initiative; current version pointer and purpose/type | Open → Versioned review → Final decision → Reassessment | FULCRUM | Mutable identity/current pointer; versions immutable |
 | `AssessmentVersion` | Complete historical assessment snapshot: `versionId`, parent version, state, accepted facts, findings, controls, scores, recommendations, package hash | Draft → Review → Decision ready → Final decision → Superseded/reassessed | FULCRUM, with human review gates | Immutable after finalization; draft may be mutable until gated |
 | `WorkflowState` | State value and transition configuration; current state is held by Initiative/AssessmentVersion | Configured states and valid transitions | Deterministic workflow service | Value/configuration; transition events immutable |
 | `WorkflowTransition` | Append-only record of from/to state, actor, reason, expected version, timestamp, and correlation ID | Created once | Deterministic system with authenticated actor | Immutable |
@@ -32,7 +45,7 @@ No later representation overwrites an earlier one.
 
 | Entity | Purpose and key attributes | Lifecycle | Authority | Classification |
 |---|---|---|---|---|
-| `SubmittedBusinessFact` | Product Owner-provided value from form or submission: field, value, source, submitted by, submitted at | Submitted → Accepted/clarified/superseded | Product Owner submission; FULCRUM records it | Immutable submission record |
+| `SubmittedBusinessFact` | Business fact submitted through Jira or FULCRUM intake: field, value, Jira issue/comment or form source, submitter, and time | Submitted → Accepted/clarified/superseded | Jira when submitted there; FULCRUM records the assessment-relevant submission/reference | Immutable submission record |
 | `ExtractedFact` | AI/document-processing interpretation: value, type, confidence, source evidence, extraction run, model metadata | Proposed → Accepted/corrected/rejected/superseded | AI proposes; source document remains authoritative | Immutable AI output |
 | `AssessmentFact` | Version-scoped fact used by assessment/scoring; value, normalized type, provenance, disposition, confidence/quality | Proposed → Accepted → Superseded by new version | FCRM Analyst accepts/corrects; FULCRUM stores | Versioned authoritative assessment input |
 | `FactDisposition` | Human action on an extracted/submitted fact: accepted, corrected, rejected, reason, actor, timestamp, replacement reference | Recorded once per action | FCRM Analyst | Immutable |
@@ -40,17 +53,19 @@ No later representation overwrites an earlier one.
 
 `AssessmentFact` is the authoritative fact representation for a particular assessment version. It may point to a direct Product Owner submission, an accepted AI extraction, or an analyst correction. It must never erase the original source or AI output.
 
+Jira comments, attachments, watchers, assignees, due dates, related issues, and general initiative history are external Jira concepts, not duplicated FULCRUM entities. The ERD shows `JIRA_INITIATIVE`, `JIRA_ATTACHMENT`, and `JIRA_COMMENT` only to make the authority boundary visible; Step 6.4 should represent them as external identifiers and selected metadata.
+
 ### Documents and evidence
 
 | Entity | Purpose and key attributes | Lifecycle | Authority | Classification |
 |---|---|---|---|---|
-| `SourceDocument` | Logical uploaded or referenced document: document ID, filename, classification, owner, Initiative link | Registered → Active → Retained/withdrawn | Original source owner; FULCRUM tracks reference | Mutable metadata; versions preserved |
-| `DocumentVersion` | Immutable bytes/content identity, version, checksum, upload actor/time, malware result, retention metadata | Uploaded → Validated → Processed → Superseded/retained | Original uploaded content | Immutable |
-| `EvidenceReference` | Claim-supporting pointer to a document version or direct submission, with page, section, table/cell, span, and quote/hash | Created → Validated → Retained | Source document/submission; FULCRUM maintains link | Immutable |
+| `SourceDocument` | FULCRUM reference to a Jira attachment or approved external document: Jira issue ID, attachment ID, filename, content type, classification, source timestamps | Referenced → Available/degraded → Retained reference | Jira attachment is authoritative; FULCRUM stores reference | Reference/projection; no binary copy by default |
+| `DocumentVersion` | Exact Jira attachment version or bounded archival snapshot metadata: source version/timestamps, content hash, extraction status, optional archive pointer | Referenced → Validated → Processed → Superseded/retained | Jira source; FULCRUM snapshot/hash when required | Immutable reference/snapshot |
+| `EvidenceReference` | Claim-supporting pointer to Jira issue/attachment/comment or direct submission, with source version, page, section, span, quote/hash, and extraction run | Created → Validated → Retained | Jira/source remains authoritative; FULCRUM owns FCRM use and lineage | Immutable |
 | `EvidenceAssessmentLink` | Version-scoped statement of how evidence supports, contradicts, or leaves a fact/risk/control unresolved | Proposed → Accepted/challenged | FCRM Analyst disposition | Versioned/immutable after finalization |
 | `DocumentProcessingRun` | Document Intelligence extraction status, method, service/model version, timestamps, confidence, errors | Queued → Processing → Completed/Failed | Processing service metadata; FULCRUM records result | Immutable execution record |
 
-Original document versions are authoritative. Extracted text, chunks, embeddings, summaries, and indexes are derived artifacts and can be regenerated without changing the source.
+Jira attachment and comment versions are authoritative for normal collaboration evidence. Extracted text, chunks, embeddings, summaries, and indexes are derived artifacts and can be regenerated without changing the source. A production banking implementation may archive a governed immutable copy when retention or replay requirements justify it; that is not a full Jira mirror.
 
 ### Risk and controls
 
@@ -114,12 +129,12 @@ Individual votes are not the final decision. The `FinalDecision` is a separate a
 | Entity | Purpose and key attributes | Lifecycle | Authority | Classification |
 |---|---|---|---|---|
 | `ApprovalCondition` | Conditional obligation: description, owner, due date, status, decision/version, Jira link | Open → In progress → Verified/Overdue/Waived | FULCRUM; owner supplies evidence, authorized reviewer verifies | Mutable operational status with immutable history |
-| `ConditionOwner` | User/team assignment and responsibility metadata | Assigned → Reassigned/closed | FULCRUM governance | Mutable with history |
+| `ConditionOwner` | FULCRUM user/team assignment; may reference a Jira assignee for execution | Assigned → Reassigned/closed | FULCRUM governance; Jira assignee is execution context | Mutable with history |
 | `ConditionEvidenceSubmission` | Evidence submitted for completion, source reference, submitter, timestamp | Submitted → Accepted/rejected | Condition owner submits; verifier decides | Immutable submission |
 | `ConditionVerification` | Verification outcome, reviewer, rationale, timestamp | Pending → Verified/rejected | Authorized FCRM reviewer | Immutable |
 | `ConditionWaiver` | Authorized waiver reason, authority, expiry, and evidence | Proposed → Approved/rejected/expired | Authorized governance role | Immutable |
 | `JiraConnection` | FULCRUM-side OAuth connection metadata, scopes, tenant/cloud identity, status, last sync | Connected → Degraded/disconnected/revoked | External Jira authorization plus FULCRUM connection owner | Mutable status; credential material external/secret-managed |
-| `JiraIssueLink` | Link between Initiative/Condition and Jira issue ID/key, correlation ID, sync status, freshness, last error | Linked → Synced/stale/unlinked | FULCRUM link; Jira owns issue content | Mutable projection with sync history |
+| `JiraIssueLink` | Correlation between FULCRUM assessment/condition and Jira issue ID/key, sync status, freshness, last error | Linked → Synced/stale/unlinked | Jira owns issue; FULCRUM owns link/usage metadata | Mutable projection with sync history |
 | `ConfigurationVersion` | Effective scoring, thresholds, weights, taxonomy, workflow, material-change, or quorum configuration | Draft → Approved → Effective → Superseded | Authorized configuration owner | Immutable once effective |
 | `MaterialChange` | Detected change, source fact/evidence, affected dimensions, materiality decision, reason, and resulting version | Detected → Reviewed → Applied/rejected | FCRM Analyst/governance policy | Immutable event/decision |
 | `AuditEvent` | Append-only event with actor, action, entity/version, before/after references, justification, correlation ID, AI run, and hash | Appended once | FULCRUM audit subsystem | Immutable |
@@ -129,8 +144,11 @@ Individual votes are not the final decision. The `FinalDecision` is a separate a
 ```mermaid
 erDiagram
   INITIATIVE ||--|| ASSESSMENT : "has stable assessment"
-  INITIATIVE ||--o{ SUBMITTED_BUSINESS_FACT : submits
-  INITIATIVE ||--o{ SOURCE_DOCUMENT : owns
+  JIRA_INITIATIVE ||--|| INITIATIVE : "backs FULCRUM reference"
+  JIRA_INITIATIVE ||--o{ JIRA_ATTACHMENT : owns
+  JIRA_INITIATIVE ||--o{ JIRA_COMMENT : contains
+  INITIATIVE ||--o{ SUBMITTED_BUSINESS_FACT : "records assessment-relevant input"
+  INITIATIVE ||--o{ SOURCE_DOCUMENT : references
   SOURCE_DOCUMENT ||--|{ DOCUMENT_VERSION : versions
   DOCUMENT_VERSION ||--o{ EVIDENCE_REFERENCE : anchors
   EVIDENCE_REFERENCE ||--o{ EXTRACTED_FACT : supports
@@ -167,7 +185,7 @@ erDiagram
   FINAL_DECISION ||--o{ APPROVAL_CONDITION : imposes
   APPROVAL_CONDITION ||--o{ CONDITION_EVIDENCE_SUBMISSION : receives
   APPROVAL_CONDITION ||--o{ CONDITION_VERIFICATION : receives
-  INITIATIVE ||--o{ JIRA_ISSUE_LINK : links
+  INITIATIVE ||--o{ JIRA_ISSUE_LINK : correlates
   APPROVAL_CONDITION ||--o{ JIRA_ISSUE_LINK : tracks
   INITIATIVE ||--o{ MATERIAL_CHANGE : detects
   ASSESSMENT_VERSION ||--o{ AUDIT_EVENT : records
@@ -176,9 +194,9 @@ erDiagram
 
 ## 3. Aggregate boundaries
 
-### Initiative aggregate
+### Initiative reference boundary
 
-Owns the business-change identity, lifecycle, participants, submitted facts, document references, assessment identity, linked conditions, and FULCRUM-side Jira links. Its invariants include stable identity, authorized ownership, and no silent lifecycle mutation.
+Jira owns the business-change identity, collaboration, attachments, assignees, due dates, general workflow, and history. FULCRUM stores an Initiative reference with stable Jira identifiers, selected context needed by the assessment, sync/freshness metadata, and any bounded historical snapshot required for finalized evidence. It does not own a parallel Jira issue aggregate.
 
 ### Assessment aggregate
 
@@ -186,7 +204,7 @@ Owns the business-change identity, lifecycle, participants, submitted facts, doc
 
 ### Evidence aggregate
 
-`SourceDocument` owns immutable document versions and processing metadata. Evidence references point into a specific version. It is separate because source retention, extraction retries, access control, and provenance have different lifecycles from assessment decisions.
+Jira normally owns the attachment binary and comment. FULCRUM owns the evidence reference, extraction/provenance metadata, accepted facts, and any bounded content hash or archive pointer required for finalized assessment replay. It does not copy the Jira attachment by default.
 
 ### Knowledge aggregate
 
@@ -208,9 +226,10 @@ Audit events are append-only records emitted by authoritative commands and are n
 
 | Data | Initial source | Authoritative representation | Human/system authority |
 |---|---|---|---|
-| Initiative proposal and business justification | Product Owner | `Initiative` submitted fields plus immutable submission event | Product Owner submits; FULCRUM records |
-| Document bytes and original content | Product Owner or approved source | `DocumentVersion` | Source document; FULCRUM preserves |
-| Extracted text/layout/tables | Document Intelligence | `DocumentProcessingRun` output linked to `DocumentVersion` | AI/service proposes; source remains authoritative |
+| Initiative title, description, business context | Jira/Product Owner | Jira issue fields; FULCRUM stores selected context or bounded snapshot only when required | Jira |
+| Initiative assignee, due dates, comments, watchers, general history | Jira users/collaborators | Jira references and selected provenance metadata | Jira |
+| Document bytes and original attachment | Jira attachment | Jira attachment ID/version; FULCRUM stores reference and optional hash/archive pointer | Jira |
+| Extracted text/layout/tables | Document Intelligence over Jira attachment | `DocumentProcessingRun` output linked to Jira attachment/version | AI/service proposes; Jira source remains authoritative |
 | Extracted fact | AI/document run | `ExtractedFact` | AI proposes; Analyst disposition determines usability |
 | Accepted assessment fact | Analyst review of submission/evidence | `AssessmentFact` for an `AssessmentVersion` | FCRM Analyst |
 | Risk taxonomy/dimension | FCRM configuration owner | Published `RiskDimension`/`RiskFactor` version | FCRM governance |
@@ -223,7 +242,7 @@ Audit events are append-only records emitted by authoritative commands and are n
 | Override | Analyst judgment against original value | `Override` | FCRM Analyst under policy |
 | Final decision | Committee vote/review | `FinalDecision` | Risk Committee |
 | Approval condition status | Owner submission and verifier action | `ApprovalCondition` plus verification history | FULCRUM workflow; authorized verifier |
-| Jira issue content/status | Jira | FULCRUM `JiraIssueLink` projection with freshness metadata | Jira owns external content; FULCRUM owns decision meaning |
+| Jira issue content/status | Jira | `JiraIssueLink` correlation, freshness, and selected snapshot/hash only | Jira owns external content; FULCRUM owns decision meaning |
 | Scoring/workflow parameters | Approved configuration change | Effective `ConfigurationVersion` | Authorized configuration owner |
 | Audit history | Authoritative FULCRUM commands/services | Append-only `AuditEvent` | FULCRUM audit subsystem |
 
@@ -301,6 +320,83 @@ These are the remaining genuine data-model decisions:
 | Separate Jira mirror of every issue field | Store only FULCRUM link/correlation/freshness metadata and selected evidence snapshots. Jira remains external authority for Jira content. |
 | Event-sourced entire domain | Use append-only audit/domain events plus versioned records; do not require full event sourcing for the hackathon. |
 
+## Revised Physical Schema Scope
+
+The Step 6.4 PostgreSQL design must be materially smaller and centered on governed FCRM state.
+
+### Persist in FULCRUM
+
+- `Assessment` and immutable `AssessmentVersion`
+- accepted `AssessmentFact`, extracted facts, and fact dispositions
+- Jira-backed `EvidenceReference` and required provenance/hash/snapshot metadata
+- risk dimensions/factors and version-scoped risk assessments
+- controls, applicability, control assessments, and effectiveness results
+- inherent/residual risk and immutable score calculations
+- scoring, taxonomy, control, workflow, material-change, and AI configuration versions
+- policy/regulatory references and exact citations used by assessments
+- AI runs, context references, output artifacts, evaluations, and human dispositions
+- analyst reviews, recommendations, overrides, committee reviews, votes, and final decisions
+- approval conditions, evidence submissions, verifications, and waivers
+- Jira connection/correlation/sync metadata
+- append-only audit events and reassessment impact records
+
+### Reference from Jira rather than duplicate
+
+- initiative title, description, general business context, assignee, due dates, watchers, and Jira workflow
+- general Jira comments and discussion
+- Jira attachment binaries and full attachment history
+- related Jira issue/task fields and general execution history
+- complete Jira user/collaborator model
+
+FULCRUM may store selected Jira metadata or a bounded content hash/snapshot when a finalized assessment relies on it for evidence, governance, performance, or historical replay. It must not become a general project-management database.
+
+## Updated Authority Matrix
+
+| Domain/Data | Authority | FULCRUM Storage Strategy | Reason |
+|---|---|---|---|
+| Initiative title/description/business context | Jira | Stable Jira issue ID plus selected projection; snapshot only when assessment-relevant | Avoid duplicate business-initiative master |
+| Attachments | Jira | Attachment ID, filename/type/timestamps/hash; optional governed snapshot for finalized evidence | Preserve source authority and replay where required |
+| Comments/discussion | Jira | No full mirror; reference exact comment only when used as evidence | Separate collaboration from FCRM record |
+| Users/assignees/watchers | Jira/enterprise identity | External IDs and FULCRUM user references for FCRM actors/owners | Avoid duplicate directory and assignment truth |
+| General workflow/history | Jira | Link and freshness metadata | Jira owns delivery execution |
+| FCRM workflow state | FULCRUM | Assessment state, transition records, and audit events | Governs risk review and human gates |
+| Assessment/AssessmentVersion | FULCRUM | Full governed records and immutable historical versions | FULCRUM owns FCRM methodology and decisions |
+| Accepted facts | FULCRUM | Version-scoped facts with source/disposition lineage | Analyst-approved scoring inputs |
+| Risk scoring/calculations | FULCRUM deterministic system | Inputs, configuration ID, intermediate outputs, and trace | Reproducibility and explainability |
+| Controls/control effectiveness | FULCRUM with source evidence | Versioned definitions and assessment results | FCRM mitigation authority |
+| AI outputs/provenance | FULCRUM AI Gateway | Runs, context refs, artifacts, model/instruction metadata, dispositions | Governance and human review |
+| Analyst overrides | FULCRUM | Original value, human value, rationale, evidence, actor, timestamp | Human accountability |
+| Committee votes/final decision | FULCRUM | Package/version, votes, decision, rationale, conditions | Authoritative FCRM outcome |
+| Approval conditions | FULCRUM | Condition status, owners, verification/waiver history; optional Jira work link | FCRM governance obligation; Jira may execute remediation |
+| Policy evidence | Approved source owner; FULCRUM governs use | Versioned citation and assessment link; synthetic sources labeled | Historical interpretation and grounding |
+| Audit history | FULCRUM | Append-only events | Examiner reconstruction |
+| Jira sync state | FULCRUM integration boundary | Connection, external IDs, freshness, sync status, errors, correlation IDs | Operational integration metadata only |
+
+## Schema Reduction Summary
+
+The corrected boundary removes FULCRUM ownership of the full Jira initiative, comment, attachment, task, watcher, assignee, and general workflow models. Those become external references and selected provenance metadata.
+
+FULCRUM retains the assessment and decision domain: accepted facts, risk, controls, scoring, policy links, AI provenance, human review, committee decisions, conditions, configuration, and audit. Jira attachments/comments used as evidence require stable source identifiers and exact source metadata; content hashes or bounded snapshots are added only when finalized replay or retention requirements justify them.
+
+## Architecture Consistency Check
+
+| Principle | Result |
+|---|---|
+| Human-in-the-loop | Consistent: Jira events and AI outputs cannot finalize FCRM decisions |
+| Deterministic scoring | Consistent: scoring remains FULCRUM-owned and configuration-versioned |
+| Immutable audit | Consistent: FULCRUM records governed actions; Jira history remains externally authoritative |
+| Jira OAuth | Consistent: OAuth grants access to Jira context; it does not grant FCRM authority |
+| Selective reassessment | Consistent: Jira source changes can create a FULCRUM MaterialChange and affected-dimension review |
+| Historical reproducibility | Consistent: finalized assessment versions pin Jira source IDs, timestamps/hashes/snapshots where required |
+| AI evidence grounding | Consistent: AI receives scoped Jira/FULCRUM context and cites source references |
+| Production readiness | Improved: smaller FULCRUM schema and clearer dependency; production archival remains policy-driven |
+
+## Ready to Redesign Step 6.4?
+
+### YES, CONDITIONALLY
+
+Step 6.4 can be redesigned against this smaller FCRM-focused scope. Before writing physical tables, confirm the minimum Jira metadata/snapshot retention needed for finalized evidence and the exact rule for when an attachment or comment must be archived rather than referenced.
+
 ## Domain Model Verdict
 
 ### READY WITH QUESTIONS
@@ -320,4 +416,3 @@ The conceptual model is coherent enough to proceed to physical design after the 
 ### YES, CONDITIONALLY
 
 Proceed to physical schema design once the five decisions above are recorded. No physical tables or migrations should be created until those decisions are resolved.
-

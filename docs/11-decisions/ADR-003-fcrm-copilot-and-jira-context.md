@@ -4,7 +4,7 @@ Status: Accepted. Requirements: REQ-005, REQ-009, REQ-010, REQ-016, REQ-017, REQ
 
 ## Context
 
-FCRM needs AI assistance for assessment preparation and a chatbot that can explain an initiative using both authoritative FULCRUM records and authorized Jira delivery context. Jira is useful context but is not the risk system of record.
+FCRM needs AI assistance for assessment preparation and a chatbot that can explain a Jira-backed initiative using FULCRUM assessment records and authorized Jira business/collaboration context. Jira owns the underlying initiative; FULCRUM owns the risk assessment and decision record.
 
 ## Decision
 

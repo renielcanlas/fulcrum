@@ -21,7 +21,7 @@ AI governance
 └── AI evaluation
 
 System integrity
-├── FULCRUM system of record
+├── Jira initiative authority / FULCRUM FCRM authority boundary
 ├── Explicit workflow state machine
 ├── Managed PostgreSQL persistence
 └── Event-driven integrations

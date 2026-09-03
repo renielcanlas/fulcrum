@@ -22,9 +22,9 @@ It never approves, rejects, defers, imposes conditions, changes a risk rating, c
 
 The `InitiativeContextAssembler` builds a scoped context package from:
 
-1. FULCRUM's authoritative initiative and assessment records.
+1. FULCRUM's authoritative assessment records and Jira-backed Initiative reference.
 2. Explicitly linked Jira issue/project IDs, not broad account-wide Jira search by default.
-3. A normalized Jira projection with source URL, issue ID/key, field name, retrieved-at timestamp, source version/hash where available, and permission/connection identity.
+3. Selected Jira context references with source URL, issue ID/key, field name, retrieved-at timestamp, source version/hash where available, and permission/connection identity; not a full Jira issue mirror.
 4. Evidence, policy references, assessment history, overrides, and unresolved questions.
 
 The assembler applies tenant, user, project, issue, and field-level access controls before retrieval. It filters stale/deleted Jira records and marks synchronization age. Every answer stores the context manifest and retrieved references needed for replay. Jira webhooks only invalidate or schedule refresh; the assistant reads the reconciled projection.

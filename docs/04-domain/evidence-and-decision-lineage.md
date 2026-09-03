@@ -6,12 +6,12 @@ The lineage rule is simple: every material conclusion points to a versioned asse
 
 ## 1. Lineage model
 
-The primary lineage entities are:
+The primary lineage entities are. Jira is the normal source for initiative attachments and collaboration; FULCRUM owns the evidence reference and its use in an FCRM assessment.
 
 | Lineage element | Required relationship | Historical rule |
 |---|---|---|
-| `SourceDocument` / `DocumentVersion` | Identifies original uploaded content and exact content version | Document bytes and checksum are immutable |
-| `EvidenceReference` | Points to a document version, direct form input, or approved policy citation and locator | Must include source ID and source version |
+| `SourceDocument` / `DocumentVersion` | Identifies a Jira attachment or approved source and exact external version/timestamp | Jira remains authoritative; FULCRUM stores a hash or bounded snapshot when finalized replay requires it |
+| `EvidenceReference` | Points to a Jira issue/attachment/comment, direct form input, or approved policy citation and locator | Must include source system, stable ID, source version/timestamp, and locator |
 | `SubmittedBusinessFact` | Preserves the Product Owner’s original submitted value | Never replaced by extraction or correction |
 | `ExtractedFact` | Preserves an AI/document-processing interpretation and its `AIRun`/processing run | Corrections create dispositions, not updates |
 | `FactDisposition` | Records accepted, corrected, rejected, or superseded action | Actor, reason, timestamp, and replacement are retained |
@@ -129,8 +129,8 @@ The physical design should enforce that a finalized version cannot reference a m
 
 The synthetic conclusion is: **sanctions exposure is high, with conditional approval because partner diligence and monitoring evidence remain incomplete**.
 
-1. `EV-006` identifies the synthetic Partner Due Diligence Evidence Pack. Its `EvidenceReference` points to the exact document version and Items 1–8 locator.
-2. The extraction run produces a fact stating that beneficial-ownership evidence is pending. The `ExtractedFact` retains its source document/version, locator, extraction method, timestamp, and confidence.
+1. Jira attachment `jiraAttachment-006` on the synthetic initiative represents the Partner Due Diligence Evidence Pack. FULCRUM `EvidenceReference EV-006` points to the Jira issue ID, attachment ID, source timestamp/hash, and Items 1–8 locator.
+2. Document Intelligence processes the Jira attachment and produces a fact stating that beneficial-ownership evidence is pending. The `ExtractedFact` retains its Jira source identifiers/version, locator, extraction method, timestamp, and confidence.
 3. Daniel Reyes accepts the fact into Assessment Version 1 as an `AssessmentFact`. The original extracted fact remains unchanged; the disposition records Daniel, rationale, and time.
 4. `RF-SAN-01` links the accepted fact and evidence to the sanctions risk factor version, synthetic policy citations, and `CTL-002`/`CTL-004` control assessments.
 5. The deterministic calculation references the complete validated factor/control input set and `FULCRUM-SYNTH-CONFIG-1.2`. It stores intermediate inherent score, control mitigation, residual score 78, threshold lookup, and residual rating `HIGH`.
@@ -218,4 +218,3 @@ The lineage model is complete enough to guide physical design, but several decis
 ### NO
 
 The lineage shape is ready, but the five blocking questions above should be answered before physical schema design. Once resolved, Step 6.3 can translate these concepts into PostgreSQL tables, constraints, indexes, and migration strategy without reopening the domain model.
-

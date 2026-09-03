@@ -13,7 +13,7 @@ Assessment
           └── pinned VersionBindingManifest           └── new pinned manifest
 ```
 
-An `AssessmentVersion` is the historical decision boundary. A finalized version is never rewritten. It retains or directly references the exact submitted/accepted facts, source document versions, taxonomy, control definitions/configuration, scoring configuration, policy citations, AI runs/instructions, analyst actions, committee package, decision, and conditions used for that version.
+An `AssessmentVersion` is the historical decision boundary. A finalized version is never rewritten. It retains or directly references the exact submitted/accepted facts, Jira-backed evidence references and any required source hash/snapshot, taxonomy, control definitions/configuration, scoring configuration, policy citations, AI runs/instructions, analyst actions, committee package, decision, and conditions used for that version.
 
 Configuration is versioned independently and bound explicitly to an AssessmentVersion. Historical replay follows the binding manifest, never the currently active configuration.
 
@@ -95,7 +95,8 @@ VersionBindingManifest
 ├── workflowConfigurationVersionId
 ├── materialChangeRuleVersionId
 ├── policyVersionIds[] / policy citation IDs
-├── sourceDocumentVersionIds[]
+├── Jira source IDs/attachment/comment IDs and source metadata
+├── source hashes/snapshot pointers where replay requires them
 ├── acceptedFact IDs and provenance references
 ├── retrievalConfigurationVersionIds where applicable
 └── bindingCreatedAt / bindingCreatedBy / contentHash
@@ -184,7 +185,7 @@ AssessmentVersion FA-2026-00124:v1
 ├── taxonomy: synthetic risk taxonomy version 1.0
 ├── controls: CTL-001..CTL-005 definitions/evaluation version 1.0
 ├── policies: POL-001/POL-002 exact synthetic content versions
-├── source: EV-006 → DOC-006 version 1, Items 1–8
+├── source: EV-006 → Jira attachment jiraAttachment-006, source version/hash, Items 1–8
 ├── accepted facts: version-1 fact set and analyst dispositions
 ├── AI: AIO-001/AIO-002 with AIRun/task/instruction/context references
 ├── analyst: Daniel Reyes recommendation and override OVR-001
@@ -274,4 +275,3 @@ The versioning strategy is coherent and provides a safe boundary for physical sc
 ### YES, CONDITIONALLY
 
 Proceed to Step 6.4 after recording the five decisions above. The physical schema can otherwise be derived from the immutable version boundary, binding manifest, effective-dated configuration lifecycle, and optimistic concurrency contract defined here.
-

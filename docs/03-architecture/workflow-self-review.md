@@ -4,7 +4,7 @@
 
 - `FINAL_DECISION` is distinct from its `decisionOutcome`, preventing state/outcome ambiguity.
 - `REQUEST_REASSESSMENT` creates a new version and is not treated as a final disposition.
-- Jira is a projection/integration boundary, not a second risk system of record.
+- Jira is authoritative for initiative/collaboration data; FULCRUM is authoritative for FCRM assessment and decision lineage. FULCRUM does not duplicate Jira’s full data model.
 - AI cannot advance gates or mutate authoritative state.
 - Corrections use events/versions, not destructive updates.
 

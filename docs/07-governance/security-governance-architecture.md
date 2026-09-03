@@ -36,7 +36,9 @@ FULCRUM authentication answers who is using the application. Atlassian OAuth ans
 
 ## Credential locations
 
-OpenAI and Jira secrets exist only in backend adapters or a managed secret provider. They must not appear in browser bundles, local storage, prompts, model context, issue content, database fields available to ordinary application access, audit events, or logs. The demo uses environment variables; production uses Azure Key Vault, AWS Secrets Manager, GCP Secret Manager, or an equivalent enterprise service behind the same secret-access interface.
+Azure AI Foundry/Document Intelligence and Jira secrets exist only in backend adapters or a managed secret provider. They must not appear in browser bundles, local storage, prompts, model context, issue content, database fields available to ordinary application access, audit events, or logs. The demo uses environment variables; production uses Azure Key Vault, AWS Secrets Manager, GCP Secret Manager, or an equivalent enterprise service behind the same secret-access interface.
+
+Jira-sourced initiative and collaboration data is treated as external authoritative content. FULCRUM stores only permission-checked references or bounded evidence snapshots/hashes required for an assessment. General Jira comments and attachments are not copied into ordinary FCRM records; a comment or attachment used as evidence must carry an exact source identifier and locator.
 
 ## Demo versus production
 

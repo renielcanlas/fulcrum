@@ -11,7 +11,7 @@ For a FULCRUM web app integrating with Jira Cloud as an external application, us
 - **Credential vault/repository:** encrypts refresh/access tokens using managed keys; stores token metadata, granted scopes, cloud ID, site URL, owner/tenant, timestamps, and revocation status. Never log token values.
 - **Jira adapter:** the only component permitted to call Jira; resolves cloud ID, attaches bearer tokens server-side, refreshes on expiry, enforces scopes and FULCRUM authorization, and normalizes Jira responses.
 - **Sync worker:** performs explicit read/write jobs with idempotency, rate-limit/backoff behavior, reconciliation, and audit events.
-- **Projection store:** stores only the Jira fields FULCRUM needs, with source IDs, source version/timestamps, retrieval time, and provenance. It is not the risk-case authority.
+- **Reference/projection store:** stores only stable Jira correlation IDs, selected metadata, source version/timestamps, retrieval time, and provenance needed by FULCRUM. It is not a copy of the Jira issue model and is not the FCRM decision authority.
 
 ## Connection flow
 
@@ -19,7 +19,7 @@ For a FULCRUM web app integrating with Jira Cloud as an external application, us
 2. Server generates state and stores a short-lived connection attempt; redirect to Atlassian authorization with only approved scopes and exact registered callback.
 3. Callback validates state, issuer/parameters, signed-in user, and one-time attempt; exchanges the code server-to-server at `https://auth.atlassian.com/oauth/token`.
 4. Server discovers accessible Jira containers, presents a site-selection step when needed, and stores the selected `cloudId` and consent metadata. Site/project permissions still constrain calls even when scopes exist; FULCRUM must handle 403 as an authorization result, not broaden scopes automatically. [Atlassian scopes](https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/)
-5. User explicitly chooses what to import or link. A sync job reads permitted issues/projects, validates response schemas, stores normalized projections, and emits audit/provenance.
+5. User explicitly chooses what to link or use as assessment context. A sync job reads permitted issues/projects, validates response schemas, stores only the selected reference/metadata or required historical evidence snapshot, and emits audit/provenance. It does not import the complete Jira issue, comment, attachment, or workflow model.
 
 ## Scope strategy
 
@@ -31,4 +31,4 @@ Handle consent denial, invalid/expired state, code reuse, token refresh failure,
 
 ## FULCRUM/Jira boundary
 
-The Jira integration is a controlled engineering-system adapter. It may link a FULCRUM requirement to a Jira issue, prepare a Jira-ready issue, or (when separately authorized) create/update an issue. It may not infer risk approval from Jira status, accept Jira comments as policy authority without provenance, or change FULCRUM workflow state from an unverified webhook.
+The Jira integration is a controlled business-initiative and engineering-system adapter. It may retrieve the Jira-backed initiative, link a FULCRUM assessment to Jira issues/attachments/comments, prepare a Jira-ready issue, or (when separately authorized) create/update an issue. It may not infer risk approval from Jira status, accept Jira comments as policy authority without provenance, or change FULCRUM workflow state from an unverified webhook.

@@ -6,7 +6,7 @@ The fixture is [golden-initiative.json](../../data/demo/golden-initiative.json).
 
 ## Scenario
 
-Maya Chen proposes **Launch U.S.–Philippines Instant Remittance**, a new product launch and geographic expansion. The service allows eligible U.S. customers to send funds through mobile and web channels to recipients in the Philippines using the synthetic local partner HarborBridge Payments Philippines. The forecast is 120,000 monthly transactions and $18 million monthly value, with a synthetic initial limit of $1,000.
+Maya Chen proposes **Launch U.S.–Philippines Instant Remittance** in the Jira-backed initiative. The service allows eligible U.S. customers to send funds through mobile and web channels to recipients in the Philippines using the synthetic local partner HarborBridge Payments Philippines. The forecast is 120,000 monthly transactions and $18 million monthly value, with a synthetic initial limit of $1,000. The fixture contains a synthetic Jira-backed context projection; it is not a second authoritative Jira issue model.
 
 The open information includes partner beneficial ownership, partner screening evidence, alert-handling ownership and SLA, and recipient-wallet limits. Daniel Reyes assesses the initiative. Helen Morgan makes the committee decision. The result is **Approved with Conditions**.
 

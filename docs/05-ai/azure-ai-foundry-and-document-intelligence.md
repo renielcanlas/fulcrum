@@ -5,7 +5,8 @@ FULCRUM uses Microsoft Azure AI Foundry as the primary AI platform and Azure AI 
 ```text
 FULCRUM Web App
       │
-      ├── Initiative / Workflow Services ── FULCRUM authority
+      ├── FCRM Assessment / Workflow Services ── FULCRUM authority
+      ├── Jira-backed Initiative Context ── Jira authority
       ├── FCRM Services ── scoring, controls, decisions
       ├── Jira Gateway ── linked work-management context
       │
@@ -61,4 +62,3 @@ Synthetic data is required for the hackathon fixture. Production onboarding requ
 ## Migration from the prior OpenAI assumption
 
 The prior implementation described OpenAI as the default external provider. No domain contract, workflow, scoring logic, or human-decision rule should change. Migration consists of configuring the AI Gateway to select an Azure AI Foundry adapter, mapping capability routes to Azure model deployments, moving secrets to Azure/Vercel configuration, and adding Azure contract/evaluation tests. The existing OpenAI-compatible adapter may remain as a local fallback or portability option, but it is no longer the primary platform direction.
-

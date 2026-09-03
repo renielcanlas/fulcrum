@@ -4,9 +4,9 @@ Status: Accepted for hackathon implementation. This is the consolidated baseline
 
 ## Business boundary and authority
 
-FULCRUM is the authoritative Financial Crime Risk Management assessment system. The primary domain aggregate is an `Initiative`, which owns the proposed business change and links assessment lifecycle and versions, submitted and accepted business facts, evidence lineage, risk factors, inherent/control/residual calculations, controls, analyst assessment, AI recommendations and provenance, overrides, policy references, committee votes, final decisions, conditions, configuration versions, Jira references, and audit history.
+Jira is the system of record for the underlying business Initiative and collaboration artifacts. FULCRUM is the authoritative Financial Crime Risk Management assessment system. FULCRUM’s primary governed aggregate is the `Assessment` associated with a Jira-backed Initiative, and it owns accepted assessment facts, evidence lineage, risk factors, inherent/control/residual calculations, controls, analyst assessment, AI recommendations and provenance, overrides, policy references, committee votes, final decisions, conditions, configuration versions, Jira correlation metadata, and audit history.
 
-Jira is an execution and collaboration integration. It may mirror initiatives, assignments, comments, workflow context, action/remediation items, conditions, and due dates through an explicit, auditable adapter. Jira is not the financial-crime decision store and cannot silently change FULCRUM state.
+Jira is an authoritative execution and collaboration platform, not merely a projection. FULCRUM retrieves and displays Jira initiative context through an explicit, auditable adapter. Selected Jira identifiers, freshness metadata, and evidence snapshots/hashes may be stored in FULCRUM when needed for governed traceability. Jira is not the financial-crime decision store and cannot silently change FULCRUM assessment state.
 
 ## Governing principle
 
@@ -16,7 +16,7 @@ Deterministic: authorization, validation, workflow transitions, scoring, control
 
 ## Application architecture
 
-The hackathon web tier is a Next.js App Router application deployed to Vercel. Server Route Handlers enforce sessions, RBAC, workflow commands, domain operations, AI gateway calls, Jira gateway calls, persistence, and audit. Domain/workflow modules remain framework- and cloud-portable. Managed PostgreSQL is the accepted persistence target; the current demo uses a fixture-backed in-memory adapter until persistence is implemented. Long-running extraction, embeddings, bulk synchronization, and retries evolve to external workers/queues.
+The hackathon web tier is a Next.js App Router application deployed to Vercel. Server Route Handlers enforce sessions, RBAC, workflow commands, FCRM domain operations, AI gateway calls, Jira gateway calls, persistence, and audit. Domain/workflow modules remain framework- and cloud-portable. Managed PostgreSQL is the accepted persistence target; the current demo uses a fixture-backed in-memory adapter until persistence is implemented. Long-running extraction, embeddings, bulk synchronization, and retries evolve to external workers/queues.
 
 ## AI architecture
 

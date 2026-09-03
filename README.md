@@ -2,7 +2,7 @@
 
 ### Governed financial-crime risk assessment, prepared by AI and decided by humans.
 
-FULCRUM is a standalone financial-crime decision intelligence workbench. Its primary object is an **Initiative**: a proposed new product, feature, process, vendor, geography, or customer-segment change assessed across banking, payments, commercial banking, and wealth management. Azure AI Foundry is the primary AI platform direction, with Azure AI Document Intelligence providing document extraction and evidence provenance behind the AI Gateway.
+FULCRUM is a financial-crime decision intelligence workbench for Jira-backed business initiatives. Jira remains authoritative for initiative and collaboration data; FULCRUM is authoritative for the governed assessment, risk methodology, human decisions, conditions, and audit lineage. Azure AI Foundry is the primary AI platform direction, with Azure AI Document Intelligence providing document extraction and evidence provenance behind the AI Gateway.
 
 It turns a fragmented process of email, Word, Excel, SharePoint, and manually collected evidence into one traceable journey:
 
@@ -112,9 +112,9 @@ The model cannot approve, reject, vote, change a rating, change scoring rules, b
 
 ## Jira integration
 
-Jira is FULCRUM’s integrated work-management context—not its risk system of record.
+Jira is the system of record for the underlying business initiative and collaboration artifacts. FULCRUM references that context and remains the system of record for the FCRM assessment and decision lineage.
 
-The planned integration uses server-side Atlassian OAuth 2.0 3LO with narrow scopes. The browser never receives Jira or OpenAI credentials. FULCRUM retrieves only explicitly linked, permission-checked Jira initiatives and stores a normalized projection with provenance and freshness metadata.
+The planned integration uses server-side Atlassian OAuth 2.0 3LO with narrow scopes. The browser never receives Jira or AI-provider credentials. FULCRUM retrieves only explicitly linked, permission-checked Jira initiatives and stores stable references, selected metadata, and provenance/freshness information; it does not mirror the full Jira issue model.
 
 ```text
 User → FULCRUM backend → JiraAdapter → Jira Cloud REST API
@@ -218,6 +218,7 @@ Start here:
 - [Domain model and entity relationships](docs/04-domain/domain-model-and-entity-relationships.md)
 - [Evidence and decision lineage](docs/04-domain/evidence-and-decision-lineage.md)
 - [Versioning and configuration model](docs/04-domain/versioning-and-configuration-model.md)
+- [Jira/FULCRUM data authority ADR](docs/11-decisions/ADR-028-jira-fulcrum-data-authority.md)
 - [Canonical golden fixture](data/demo/golden-initiative.json)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)
 - [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
