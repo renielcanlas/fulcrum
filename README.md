@@ -185,7 +185,7 @@ Start here:
 
 - [AGENTS.md](AGENTS.md) — canonical engineering and AI-agent instructions
 - [Project charter](docs/00-context/project-charter.md) — problem, scope, principles, and outcomes
-- [Requirements](docs/01-requirements/requirements.md) — traceable requirements `REQ-001` through `REQ-019`
+- [Requirements](docs/01-requirements/requirements.md) — traceable requirements `REQ-001` through `REQ-027`
 - [Architecture principles](docs/03-architecture/architecture-principles.md)
 - [Conceptual architecture](docs/03-architecture/conceptual-architecture.md)
 - [Conceptual data model](docs/03-architecture/conceptual-data-model.md)
@@ -194,6 +194,10 @@ Start here:
 - [Workflow self-review](docs/03-architecture/workflow-self-review.md)
 - [FCRM Copilot and Jira Assistant](docs/05-ai/fcrm-copilot-and-jira-assistant.md)
 - [AI boundaries](.ai/policies/ai-boundaries.md)
+- [Security & Governance Architecture](docs/07-governance/security-governance-architecture.md)
+- [Identity and RBAC](docs/07-governance/identity-and-rbac.md)
+- [AI security and provenance](docs/07-governance/ai-security-and-provenance.md)
+- [Audit and security events](docs/07-governance/audit-security-events.md)
 - [Architecture decision records](docs/11-decisions/README.md)
 - [Jira-ready roadmap](docs/01-requirements/jira-roadmap.md)
 

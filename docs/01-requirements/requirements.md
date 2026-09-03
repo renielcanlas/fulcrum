@@ -28,6 +28,9 @@ Status: bootstrap baseline. Product and control owners must validate before impl
 | REQ-022 | Create linked assessment versions for material changes with dependency-aware selective reassessment. | Version, invalidation, comparison, and impact tests. | FCRM/Platform |
 | REQ-023 | Emit versioned domain events for accepted material workflow transitions. | Event catalogue, outbox/retry, ordering, and idempotency tests. | Platform |
 | REQ-024 | Govern conditional approvals with owners, due dates, evidence, verification, waiver, and overdue states. | Condition lifecycle and authorization tests. | FCRM/Committee |
+| REQ-025 | Provide a demo-only persona selector with server-side sessions and explicit production identity boundaries. | Persona catalog, session, logout, and unauthorized API tests. | Platform/Security |
+| REQ-026 | Enforce application-owned RBAC separately from Jira OAuth authorization. | Role/capability matrix and cross-role negative tests. | Security |
+| REQ-027 | Protect provider/Jira credentials and preserve AI/security/business audit provenance without raw secrets. | Secret scanning, redaction, audit schema, and failure-path tests. | Platform/Security |
 
 ## Traceability convention
 
