@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
+  const repoDocs = "https://github.com/renielcanlas/fulcrum/blob/main";
   const [users, setUsers] = useState([]);
   const [userId, setUserId] = useState("");
   const [loginOpen, setLoginOpen] = useState(false);
@@ -31,6 +32,18 @@ export default function Home() {
             FULCRUM
           </a>
           <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 sm:flex">
+            <a
+              className="transition hover:text-[rgb(25,66,71)]"
+              href="#highlights"
+            >
+              Highlights
+            </a>
+            <a
+              className="transition hover:text-[rgb(25,66,71)]"
+              href="#demo-story"
+            >
+              Demo story
+            </a>
             <a className="transition hover:text-[rgb(25,66,71)]" href="#about">
               About
             </a>
@@ -61,7 +74,7 @@ export default function Home() {
       >
         <div>
           <p className="mb-5 text-xs font-bold uppercase tracking-[0.22em] text-[rgb(9,167,141)]">
-            Hackathon entry · Financial crime risk assessment
+            GeniusHacks entry · Financial crime risk assessment
           </p>
           <h1 className="max-w-2xl text-5xl font-bold leading-[1.05] tracking-[-0.04em] text-[rgb(25,66,71)] sm:text-6xl">
             Make every initiative decision-ready.
@@ -93,6 +106,148 @@ export default function Home() {
           className="flex min-h-[340px] items-center justify-center rounded-[2rem] border border-dashed border-[#6e888b] bg-[rgba(12,34,38,0.95)] p-8 shadow-2xl shadow-[#0c2226]/15 sm:min-h-[440px]"
         >
           <span className="sr-only">Diagram or vector video placeholder</span>
+        </div>
+      </section>
+      <section
+        id="highlights"
+        className="scroll-mt-20 bg-[#f5f7f7] px-6 py-20 lg:px-10"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[rgb(9,167,141)]">
+              What judges can explore
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight">
+              A complete decision journey, made inspectable.
+            </h2>
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              FULCRUM connects the practical workflow to the architecture behind
+              it. Every highlight below links to the deeper design record.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              [
+                "01",
+                "Jira-backed intake",
+                "Start with a business initiative and its authorized delivery context, without turning FULCRUM into a second Jira.",
+                "Jira integration",
+                "docs/03-architecture/jira-oauth-integration.md",
+              ],
+              [
+                "02",
+                "Evidence to decision",
+                "Follow the examiner-ready chain from source evidence and accepted facts through risk, controls, and outcome.",
+                "View lineage model",
+                "docs/04-domain/evidence-and-decision-lineage.md",
+              ],
+              [
+                "03",
+                "AI with boundaries",
+                "Use grounded Copilot assistance for interpretation, retrieval, drafting, and Q&A—never for approval or rejection.",
+                "Read AI boundary",
+                "docs/05-ai/ai-capability-map.md",
+              ],
+              [
+                "04",
+                "Deterministic risk",
+                "Keep formulas, thresholds, control mitigation, and residual risk reproducible and versioned.",
+                "Read risk model",
+                "docs/06-risk/risk-model-and-scoring.md",
+              ],
+              [
+                "05",
+                "Human governance",
+                "Let analysts accept, edit, or override recommendations, then let the committee make the final decision.",
+                "Read governance model",
+                "docs/07-governance/human-in-the-loop-and-audit.md",
+              ],
+              [
+                "06",
+                "Measured quality",
+                "Track grounding, citations, schema validity, human disposition, token use, and what is not yet measured.",
+                "Read evaluation plan",
+                "docs/08-testing/ai-evaluation-framework.md",
+              ],
+            ].map(([number, title, body, link, href]) => (
+              <article
+                key={number}
+                className="group rounded-2xl border border-[#d8e1e1] bg-white p-6 transition hover:-translate-y-1 hover:border-[rgb(9,167,141)] hover:shadow-lg"
+              >
+                <span className="text-xs font-bold text-[rgb(9,167,141)]">
+                  {number}
+                </span>
+                <h3 className="mt-7 text-xl font-bold text-[rgb(25,66,71)]">
+                  {title}
+                </h3>
+                <p className="mt-3 min-h-20 text-sm leading-6 text-slate-600">
+                  {body}
+                </p>
+                <a
+                  href={`${repoDocs}/${href}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-5 inline-flex text-sm font-bold text-[rgb(9,167,141)] group-hover:text-[rgb(25,66,71)]"
+                >
+                  {link} <span className="ml-1">→</span>
+                </a>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section id="demo-story" className="scroll-mt-20 px-6 py-16 lg:px-10">
+        <div className="mx-auto grid max-w-7xl gap-10 overflow-hidden rounded-[2rem] bg-[rgba(12,34,38,0.95)] p-8 text-[rgba(255,255,255,0.85)] sm:p-12 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[rgb(82,224,129)]">
+              Canonical hackathon scenario
+            </p>
+            <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-tight text-white">
+              Launch U.S.–Philippines Instant Remittance
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[rgba(255,255,255,0.85)]">
+              Maya Chen submits. Daniel Reyes reviews and overrides one AI
+              recommendation. Helen Morgan decides. The result: approved with
+              conditions, with every material conclusion linked back to
+              evidence.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => setLoginOpen(true)}
+                className="rounded-full bg-[rgb(82,224,129)] px-6 py-3 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)]"
+              >
+                Open interactive demo
+              </button>
+              <a
+                href={`${repoDocs}/docs/04-domain/golden-initiative-demo.md`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-white/30 px-6 py-3 text-center text-sm font-semibold text-white transition hover:border-[rgb(82,224,129)]"
+              >
+                Read the scenario
+              </a>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+            {[
+              ["11", "risk domains"],
+              ["8", "evidence records"],
+              ["78", "system score"],
+              ["4", "conditions"],
+            ].map(([value, label]) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-white/15 bg-white/5 p-4"
+              >
+                <p className="text-3xl font-bold text-[rgb(82,224,129)]">
+                  {value}
+                </p>
+                <p className="mt-1 text-xs uppercase tracking-wide text-[rgba(255,255,255,0.7)]">
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
       <section
@@ -128,7 +283,9 @@ export default function Home() {
               is the one that makes good judgment easier to apply.
             </p>
             <aside className="rounded-xl border-l-4 border-[rgb(82,224,129)] bg-[#f5f7f7] px-4 py-3 text-sm italic leading-6 text-[rgb(25,66,71)]">
-              A small side note from the build: <strong>FULCRUM</strong> was the first word I thought of when I saw FCRM—a fitting name for a tool designed to make difficult work easier to move.
+              A small side note from the build: <strong>FULCRUM</strong> was the
+              first word I thought of when I saw FCRM—a fitting name for a tool
+              designed to make difficult work easier to move.
             </aside>
           </div>
         </div>

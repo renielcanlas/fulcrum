@@ -20,7 +20,7 @@ Regulatory traceability, human accountability, deterministic correctness, AI gov
 
 ## Decision
 
-Adopt [FULCRUM architecture baseline](architecture-baseline.md) as the accepted source for application boundary, FULCRUM/Jira authority, deterministic/AI/human responsibilities, explicit workflow, evidence-grounded Copilot, bounded capabilities, versioning, immutable audit, Next.js/Vercel deployment, external persistence, and cloud portability. Existing ADRs remain in the repository and are indexed as supporting accepted decisions; this ADR resolves their common status and vocabulary without deleting their history.
+Adopt [FULCRUM architecture baseline](../03-architecture/architecture-baseline.md) as the accepted source for application boundary, FULCRUM/Jira authority, deterministic/AI/human responsibilities, explicit workflow, evidence-grounded Copilot, bounded capabilities, versioning, immutable audit, Next.js/Vercel deployment, external persistence, and cloud portability. Existing ADRs remain in the repository and are indexed as supporting accepted decisions; this ADR resolves their common status and vocabulary without deleting their history.
 
 ## Rationale
 
