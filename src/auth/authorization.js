@@ -4,6 +4,15 @@ const ROLE_PERMISSIONS = {
   RISK_COMMITTEE: new Set(["assessment:read", "risk:read", "evidence:read", "policy:read", "jira:read:linked", "override:read", "decision:read", "conditions:read"])
 };
 
+export const CAPABILITIES = Object.freeze({
+  PRODUCT_OWNER: ["change_request:create", "change_request:edit:own", "evidence:upload:own", "assessment:submit:own", "clarification:respond:own", "condition:evidence:own"],
+  FCRM_ANALYST: ["assessment:read", "intake:validate", "assessment:review", "assessment:decision-ready", "risk:override", "configuration:manage", "condition:verify"],
+  RISK_COMMITTEE: ["assessment:read:decision-ready", "committee:comment", "committee:vote", "committee:decide", "reassessment:request"]
+});
+
+export function can(user, capability) { return Boolean(user && CAPABILITIES[user.role]?.includes(capability)); }
+export function assertCapability(user, capability) { if (!can(user, capability)) throw new Error("FORBIDDEN"); }
+
 export function canRead(user, assessment, resource) {
   if (!user || !assessment || !ROLE_PERMISSIONS[user.role]) return false;
   if (user.role === "PRODUCT_OWNER" && assessment.ownerId !== user.id) return false;
