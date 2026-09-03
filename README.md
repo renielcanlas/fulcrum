@@ -42,6 +42,12 @@ FULCRUM is not a generic chatbot or an LLM wrapper. The embedded **FULCRUM Copil
 
 The Copilot uses the active assessment context, permission-checked FULCRUM records, and explicitly linked Jira initiative context. It does not receive the entire assessment in every prompt, does not access the database directly, and does not treat conversation history as authoritative.
 
+## How we used AI to build this project
+
+AI is part of both the FULCRUM product and its development lifecycle. We used a [ChatGPT Project for general research and discovery](https://chatgpt.com/g/g-p-6a986f8905ec8191af3c67f1f4f241c7-geniushacks/project), Codex for repository creation, architecture, requirements, ADRs, implementation, and testing, and the OpenAI API for the runtime Copilot’s governed reasoning, structured tool use, and chatbot behavior.
+
+For technical accuracy, the current work is OpenAI API model integration and FCRM behavior/orchestration design—not a claim that we trained a foundation model. FULCRUM’s authoritative decision logic remains deterministic code; the model explains and assists around those calculations, while humans decide. See [AI usage and hackathon methodology](docs/05-ai/ai-usage-and-hackathon-methodology.md) for the full approach and planned next steps.
+
 Every material answer distinguishes:
 
 | Label | Meaning |
