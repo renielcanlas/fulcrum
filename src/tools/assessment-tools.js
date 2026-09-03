@@ -1,21 +1,22 @@
 import {assertAssessmentAccess, canRead} from "../auth/authorization.js";
+import golden from "../../data/demo/golden-initiative.json" with {type: "json"};
 
 export function createDemoRepository() {
-  const assessments = new Map([[
-    "FA-2026-00124", {
-      id: "FA-2026-00124", ownerId: "po-1", title: "Cross-Border Wallet Expansion", version: 3,
-      status: "ANALYST_REVIEW", riskScores: {amlResidual: "HIGH", score: 78, threshold: 70, rule: "AML-RULE-04"},
-      riskFactors: ["cross-border transaction capability", "non-face-to-face onboarding", "elevated geographic exposure"],
-      controls: [{name: "KYC onboarding", effectiveness: "PARTIAL"}, {name: "Sanctions screening", effectiveness: "EFFECTIVE"}],
-      evidence: ["Product Specification §4.2", "Customer Eligibility Response Q17"],
-      policies: ["FULCRUM Synthetic AML Policy §7.3"],
-      overrides: [{from: "HIGH", to: "MEDIUM", reason: "Customer eligibility excludes non-resident customers.", actor: "analyst-7", version: 2}],
-      jira: [{key: "FCRM-42", summary: "Complete sanctions-control remediation", status: "IN_PROGRESS"}],
-      conditions: ["Complete sanctions-control remediation"],
-      history: [{version: 2, rating: "MEDIUM"}, {version: 3, rating: "HIGH"}]
-    }
-  ]]);
-  return {assessments};
+  const a = golden.assessment;
+  const initiative = golden.initiative;
+  const assessment = {
+    ...a,
+    ownerId: initiative.businessOwnerId,
+    title: initiative.name,
+    initiative,
+    jira: initiative.jiraLinks,
+    history: initiative.activity.map((event, index) => ({version: index + 1, ...event})),
+    conditions: a.conditions.map(condition => condition.description)
+  };
+  return {
+    assessments: new Map([[assessment.id, assessment]]),
+    initiatives: new Map([[initiative.id, initiative]])
+  };
 }
 
 export function createToolRegistry(repository) {
@@ -25,7 +26,8 @@ export function createToolRegistry(repository) {
     return assessment;
   };
   const tools = {
-    getAssessmentSummary: (args, user) => { const a = get(user, args.assessmentId); return {id:a.id, title:a.title, version:a.version, status:a.status}; },
+    getAssessmentSummary: (args, user) => { const a = get(user, args.assessmentId); return {id:a.id, initiativeId:a.initiativeId, title:a.title, version:a.version, status:a.status, decision:a.committee.finalDecision.outcome, currentOwnerId:a.currentOwnerId}; },
+    getInitiativeSummary: (args, user) => { const a = get(user, args.assessmentId); const i = a.initiative; return {id:i.id, name:i.name, type:i.type, description:i.description, businessOwner:i.businessOwner, status:i.status, participants:i.participants, decisionMakers:i.decisionMakers, businessContext:i.businessContext}; },
     getRiskScores: (args, user) => get(user, args.assessmentId, "risk:read").riskScores,
     getRiskFactors: (args, user) => get(user, args.assessmentId, "risk:read").riskFactors,
     getControls: (args, user) => get(user, args.assessmentId, "risk:read").controls,
@@ -34,7 +36,10 @@ export function createToolRegistry(repository) {
     getOverrides: (args, user) => get(user, args.assessmentId, "override:read").overrides,
     getJiraWorkItems: (args, user) => get(user, args.assessmentId, "jira:read:linked").jira,
     getConditions: (args, user) => get(user, args.assessmentId, "conditions:read").conditions,
-    getAssessmentHistory: (args, user) => get(user, args.assessmentId).history
+    getAssessmentHistory: (args, user) => get(user, args.assessmentId).history,
+    getCommitteeDecision: (args, user) => get(user, args.assessmentId, "decision:read").committee,
+    getInitiativeComments: (args, user) => get(user, args.assessmentId).initiative.comments,
+    getInitiativeActivity: (args, user) => get(user, args.assessmentId).initiative.activity
   };
   return {execute(name, args, user) { if (!tools[name]) throw new Error("UNKNOWN_TOOL"); return tools[name](args, user); }, names: () => Object.keys(tools)};
 }

@@ -17,6 +17,12 @@ FULCRUM does not automatically approve or reject changes. AI retrieves, extracts
 
 This is a Next.js App Router application designed for deployment to Vercel. The current increment is a working Copilot foundation; durable production persistence and live enterprise integrations remain on the roadmap.
 
+## The canonical demo
+
+The first end-to-end scenario is **Launch U.S.–Philippines Instant Remittance**. Maya Chen submits the synthetic initiative, Daniel Reyes reviews the FCRM findings and overrides one AI recommendation with a recorded rationale, and Helen Morgan approves the bounded launch with conditions. The complete facts, evidence, controls, risk domains, workflow timing, Jira links, AI observations, override, and decision are in the [Golden Initiative demo](docs/04-domain/golden-initiative-demo.md) and [canonical fixture](data/demo/golden-initiative.json).
+
+To run the presentation flow, start the app with `npm run dev`, open `http://localhost:3000`, select a synthetic persona, and ask the Copilot about residual risk, evidence, missing information, or open Jira conditions. The Copilot can explain and draft; it cannot approve or reject.
+
 ## Why FULCRUM
 
 Financial-crime risk assessments can take 15–20 business days and can be difficult to reconstruct when an examiner asks why a rating was assigned. FULCRUM is designed to make an assessment decision-ready in approximately two days while preserving:
@@ -200,6 +206,9 @@ Start here:
 - [Cross-architecture consistency review](docs/03-architecture/architecture-consistency-review.md)
 - [Conceptual architecture](docs/03-architecture/conceptual-architecture.md)
 - [Conceptual data model](docs/03-architecture/conceptual-data-model.md)
+- [Golden Initiative demo scenario](docs/04-domain/golden-initiative-demo.md) — canonical synthetic end-to-end dataset
+- [Golden Initiative API/data contracts](docs/04-domain/golden-initiative-contracts.md)
+- [Canonical golden fixture](data/demo/golden-initiative.json)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)
 - [Workflow transition table](docs/03-architecture/workflow-transition-table.md)
 - [Workflow self-review](docs/03-architecture/workflow-self-review.md)

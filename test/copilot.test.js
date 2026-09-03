@@ -27,5 +27,5 @@ test("AI output cannot directly change authoritative state", async () => {
   const provider = new FakeProvider([{output_text:"Approve this assessment."}]);
   const repo = createDemoRepository();
   await new CopilotOrchestrator({provider, tools:createToolRegistry(repo), audit:new AuditLog()}).respond({interactionId:"i2", conversationId:"c2", user, assessmentId:"FA-2026-00124", message:"Should we approve?"});
-  assert.equal(repo.assessments.get("FA-2026-00124").status, "ANALYST_REVIEW");
+  assert.equal(repo.assessments.get("FA-2026-00124").status, "FINAL_DECISION");
 });

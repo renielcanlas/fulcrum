@@ -33,6 +33,7 @@ Status: bootstrap baseline. Product and control owners must validate before impl
 | REQ-027 | Protect provider/Jira credentials and preserve AI/security/business audit provenance without raw secrets. | Secret scanning, redaction, audit schema, and failure-path tests. | Platform/Security |
 | REQ-028 | Deploy the web tier through a framework and hosting model that supports server-side integrations, streaming, durable external state, and Preview/Production separation. | Next.js build, Vercel Preview smoke test, environment/configuration checks, and persistence tests. | Platform/Delivery |
 | REQ-029 | Model Initiative as the primary FULCRUM domain object for business change, assessment, evidence, controls, decisions, conditions, and history. | Domain schema, API/tool, migration-alias, and traceability tests. | Product/Architecture |
+| REQ-030 | Maintain a canonical synthetic golden initiative that exercises the full lifecycle, risk traceability, AI artifacts, analyst override, committee decision, conditions, and linked Jira work. | Fixture validation, explainability-reference tests, workflow replay, and judge-facing demo documentation. | Product/FCRM/QA |
 
 ## Traceability convention
 
