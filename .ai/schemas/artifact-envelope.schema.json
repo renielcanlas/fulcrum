@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fulcrum/artifact-envelope/1.0",
+  "type": "object",
+  "required": ["schema_version", "artifact_type", "producer", "producer_version", "timestamp", "validation_status"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "artifact_type": {"type": "string"},
+    "producer": {"type": "string"},
+    "producer_version": {"type": "string"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "case_id": {"type": "string"},
+    "source_references": {"type": "array", "items": {"type": "string"}},
+    "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "validation_status": {"enum": ["pending", "validated", "rejected", "escalated"]},
+    "payload": {"type": "object"}
+  },
+  "additionalProperties": true
+}

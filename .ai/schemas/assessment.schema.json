@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fulcrum/assessment/1.0",
+  "type": "object",
+  "required": ["schema_version", "inherent_risk", "control_environment", "residual_risk", "confidence", "evidence_quality", "completeness", "calculation_trace", "validation_status"],
+  "properties": {
+    "schema_version": {"type": "string"}, "inherent_risk": {}, "control_environment": {}, "residual_risk": {}, "confidence": {}, "evidence_quality": {}, "completeness": {}, "calculation_trace": {"type": "array"}, "validation_status": {"enum": ["pending", "validated", "rejected", "escalated"]}
+  }
+}

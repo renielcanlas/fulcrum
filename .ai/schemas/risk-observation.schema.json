@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fulcrum/risk-observation/1.0",
+  "type": "object",
+  "required": ["schema_version", "producer", "observations", "validation_status"],
+  "properties": {
+    "schema_version": {"type": "string"}, "producer": {"type": "string"},
+    "observations": {"type": "array", "items": {"type": "object", "required": ["factor", "statement", "evidence_refs", "uncertainty"], "properties": {"factor": {"type": "string"}, "statement": {"type": "string"}, "evidence_refs": {"type": "array", "items": {"type": "string"}}, "uncertainty": {"type": "string"}}}},
+    "validation_status": {"enum": ["pending", "validated", "rejected", "escalated"]}
+  }
+}

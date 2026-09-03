@@ -1,0 +1,14 @@
+schema_version: "1.0"
+agent_id: "example.v1"
+purpose: "Replace with bounded purpose"
+inputs: []
+outputs: []
+context_allowlist: []
+tools: []
+permissions: ["read_scoped_context", "write_proposal_artifact"]
+prohibited_actions: ["approve_or_reject", "bypass_authorization", "mutate_authoritative_state", "change_scoring_rules", "fabricate_evidence"]
+model_requirements: {provider_independent: true, structured_output: true}
+evaluation_criteria: []
+validation: {schema: "required", source_citations: "required_when_asserting_facts"}
+fallback: "preserve partial output and escalate"
+escalation: "human_review"
