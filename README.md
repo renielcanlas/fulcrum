@@ -233,6 +233,11 @@ Start here:
 - [Agent and orchestration design](docs/05-ai/agent-and-orchestration-design.md) — Step 7.2 bounded coordination and human gates
 - [Context engineering and RAG design](docs/05-ai/context-engineering-and-rag-design.md) — Step 7.3 scoped context, retrieval, and grounding
 - [Agent and tool contracts](docs/05-ai/agent-and-tool-contracts.md) — Step 7.4 structured AI/task/tool boundaries
+- [Model routing and token strategy](docs/05-ai/model-routing-and-token-strategy.md) — Step 7.5 efficient model use
+- [AI evaluation framework](docs/08-testing/ai-evaluation-framework.md) — Step 7.6 measurable quality and regression gates
+- [AI harness red-team](docs/07-governance/ai-harness-red-team.md) — Step 7.7 adversarial review and mitigations
+- [Implementation and Jira execution plan](docs/08-testing/implementation-and-jira-execution-plan.md) — Step 8 delivery sequence
+- [Steps 7.5–10 completion report](docs/10-operations/step-10-completion-report.md) — implementation, tests, evaluation, and current readiness
 - [Azure AI Foundry and Document Intelligence architecture](docs/05-ai/azure-ai-foundry-and-document-intelligence.md)
 - [AI boundaries](.ai/policies/ai-boundaries.md)
 - [Security & Governance Architecture](docs/07-governance/security-governance-architecture.md)

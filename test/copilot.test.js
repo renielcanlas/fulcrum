@@ -29,3 +29,14 @@ test("AI output cannot directly change authoritative state", async () => {
   await new CopilotOrchestrator({provider, tools:createToolRegistry(repo), audit:new AuditLog()}).respond({interactionId:"i2", conversationId:"c2", user, assessmentId:"FA-2026-00124", message:"Should we approve?"});
   assert.equal(repo.assessments.get("FA-2026-00124").status, "FINAL_DECISION");
 });
+
+test("copilot rejects a tool call outside the active assessment scope", async () => {
+  const provider = new FakeProvider([{output:[{type:"function_call", name:"getRiskScores", call_id:"c3", arguments:JSON.stringify({assessmentId:"OTHER-ASSESSMENT"})}]}]);
+  await assert.rejects(() => new CopilotOrchestrator({provider, tools:createToolRegistry(createDemoRepository()), audit:new AuditLog()}).respond({interactionId:"i3", conversationId:"c3", user, assessmentId:"FA-2026-00124", message:"show risk"}), /ACTIVE_ASSESSMENT_SCOPE_VIOLATION/);
+});
+
+test("copilot bounds model tool calls", async () => {
+  const calls = Array.from({length:5}, (_, index) => ({type:"function_call", name:"getRiskScores", call_id:`c${index}`, arguments:JSON.stringify({assessmentId:"FA-2026-00124"})}));
+  const provider = new FakeProvider([{output:calls}]);
+  await assert.rejects(() => new CopilotOrchestrator({provider, tools:createToolRegistry(createDemoRepository()), audit:new AuditLog()}).respond({interactionId:"i4", conversationId:"c4", user, assessmentId:"FA-2026-00124", message:"show risk"}), /TOOL_CALL_LIMIT_EXCEEDED/);
+});
