@@ -2,6 +2,8 @@
 
 These contracts describe the minimum read and command boundaries needed to support the canonical demo. They are proposals for the production API; the current demo exposes equivalent read operations through the governed assessment tool registry.
 
+The current demo additionally exposes `GET /api/initiatives/:initiativeId/trace`, a read-only presentation endpoint for the Golden Initiative. It returns the initiative context, normalized synthetic source documents and facts, deterministic score calculation, risk traceability links, human dispositions, and committee decision. It is intended to make the vertical slice inspectable by judges; it is not a substitute for durable production persistence.
+
 ## Read contracts
 
 | Endpoint | Purpose | Permission boundary |
@@ -39,9 +41,8 @@ AI endpoints may create drafts or observations, but must not expose an approve/r
 
 ## Workflow and governance commands
 
-`POST /api/initiatives/:initiativeId/transitions` accepts `{ "to": "DECISION_READY", "expectedVersion": 1, "comment": "..." }` and returns the new state plus an append-only activity/audit event. The state machine validates actor capability and preconditions.
+`POST /api/initiatives/:initiativeId/transitions` accepts `{ "to": "DECISION_READY", "expectedVersion": 1, "idempotencyKey": "...", "comment": "..." }` and returns the new state plus an append-only activity/audit event. The state machine validates actor capability, initiative assignment, expected version, idempotency, and preconditions.
 
 `POST /api/initiatives/:initiativeId/overrides` accepts the original value, new value, reason, evidence references, and expected assessment version. Only an authorized analyst may create it; the original calculated value remains immutable.
 
 `POST /api/initiatives/:initiativeId/committee-decision` accepts the committee outcome, rationale, conditions, and expected version. Only an authorized committee member can finalize it. The command must reject AI-originated actors and must write a decision/audit event.
-

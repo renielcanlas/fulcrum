@@ -12,7 +12,7 @@
     "businessOwner": "Maya Chen",
     "createdAt": "2026-09-01T09:00:00Z",
     "targetDecisionDate": "2026-09-03",
-    "status": "CLOSED",
+    "status": "DECIDED",
     "currentOwnerId": "analyst-7",
     "participants": ["Maya Chen", "Daniel Reyes", "Helen Morgan"],
     "analysts": ["Daniel Reyes"],

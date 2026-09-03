@@ -1,6 +1,6 @@
 # FULCRUM architecture baseline
 
-Status: Accepted for hackathon implementation. This is the consolidated baseline for detailed design, implementation, testing, evaluation, deployment, and operations. Requirements: REQ-001 through REQ-028.
+Status: Accepted for hackathon implementation. This is the consolidated baseline for detailed design, implementation, testing, evaluation, deployment, and operations. Requirements: REQ-001 through REQ-031.
 
 ## Business boundary and authority
 
@@ -16,7 +16,7 @@ Deterministic: authorization, validation, workflow transitions, scoring, control
 
 ## Application architecture
 
-The hackathon web tier is a Next.js App Router application deployed to Vercel. Server Route Handlers enforce sessions, RBAC, workflow commands, domain operations, AI gateway calls, Jira gateway calls, persistence, and audit. Domain/workflow modules remain framework- and cloud-portable. Managed PostgreSQL is the accepted persistence target; the current demo uses an in-memory adapter until persistence is implemented. Long-running extraction, embeddings, bulk synchronization, and retries evolve to external workers/queues.
+The hackathon web tier is a Next.js App Router application deployed to Vercel. Server Route Handlers enforce sessions, RBAC, workflow commands, domain operations, AI gateway calls, Jira gateway calls, persistence, and audit. Domain/workflow modules remain framework- and cloud-portable. Managed PostgreSQL is the accepted persistence target; the current demo uses a fixture-backed in-memory adapter until persistence is implemented. Long-running extraction, embeddings, bulk synchronization, and retries evolve to external workers/queues.
 
 ## AI architecture
 
@@ -32,7 +32,7 @@ Scoring is deterministic, configurable, versioned, and explainable. It keeps inh
 
 ## Security, identity, and data
 
-The demo uses a clearly labeled synthetic persona selector with server-side opaque sessions. Production evolves to enterprise OIDC/SAML, MFA, IAM provisioning, and deprovisioning. FULCRUM RBAC is separate from Jira OAuth authorization. Jira/OpenAI credentials are server-only, encrypted/managed, redacted from logs, and never placed in public environment variables. Hackathon data is synthetic only.
+The demo uses a clearly labeled synthetic persona selector with server-side opaque sessions. Production evolves to enterprise OIDC/SAML, MFA, IAM provisioning, and deprovisioning. FULCRUM RBAC is separate from Jira OAuth authorization. Azure AI Foundry, Document Intelligence, and Jira credentials are server-only, encrypted/managed, redacted from logs, and never placed in public environment variables. Hackathon data is synthetic only.
 
 ## Deployment and delivery
 

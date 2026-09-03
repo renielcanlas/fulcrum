@@ -10,7 +10,7 @@ This project uses AI across both the project-development lifecycle and the FULCR
 
 ## What “model training” means in this project
 
-For hackathon accuracy, the current implementation should be described as **OpenAI API model integration and FCRM behavior/orchestration design**, not as training a foundation model. FULCRUM’s decision-making logic is encoded in deterministic scoring and workflow services; the model is instructed and evaluated to retrieve, explain, compare, challenge, and draft around those services. No claim of fine-tuning is made unless a separately documented fine-tuning job and dataset are added.
+For hackathon accuracy, the current implementation should be described as **provider-neutral AI Gateway design with Azure AI Foundry as the target platform**, not as training a foundation model. FULCRUM’s decision-making logic is encoded in deterministic scoring and workflow services; the model is instructed and evaluated to retrieve, explain, compare, challenge, and draft around those services. Azure AI Document Intelligence is an extraction/provenance service, not the risk reasoning engine. No claim of fine-tuning is made unless a separately documented fine-tuning job and dataset are added.
 
 This distinction matters: the model does not learn or invent the authoritative risk rules. It receives scoped context and calls typed tools; deterministic services calculate governed outputs; humans make material decisions.
 

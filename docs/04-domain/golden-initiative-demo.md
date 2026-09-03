@@ -45,13 +45,13 @@ The existing engine retains its canonical states and maps the presentation label
 | Committee Review | `COMMITTEE_REVIEW` |
 | Approved with Conditions | decision outcome plus `CONDITION_TRACKING` |
 
-The fixture records current status, owner, participants, decision maker, stage timestamps, activity, clarification cycles, overrides, and total turnaround. It intentionally contains one clarification cycle and one analyst override.
+The fixture records current owner, participants, decision maker, stage timestamps, activity, clarification cycles, overrides, and total turnaround. Its canonical lifecycle interpretation is `initiative=DECIDED`, `assessment=FINAL_DECISION`, `decision=APPROVED_WITH_CONDITIONS`, and `conditions=OPEN`; it is not closed while conditions remain unresolved. It intentionally contains one clarification cycle and one analyst override.
 
 ## Risk assessment
 
 The assessment includes findings for money laundering, terrorist financing, sanctions, fraud, geographic exposure, customer, product/service, transaction, delivery channel, third-party/vendor, and control effectiveness. Each finding has a rating, rationale, evidence references, and control references. Inherent risk, control environment, residual risk, scoring thresholds, rule identifier, and configuration version are separate fields.
 
-The system-calculated residual risk is synthetic `HIGH` (score 78). Daniel’s finalized recommendation is `MEDIUM` for a bounded launch because documented controls mitigate part of the exposure. The distinction is intentional: an analyst recommendation is not allowed to silently overwrite the deterministic calculation.
+The demo calculator uses versioned configuration `FULCRUM-SYNTH-CONFIG-1.2`: factor values produce an inherent score, control effectiveness produces a mitigation value, and thresholds produce the residual rating. The system-calculated residual risk is synthetic `HIGH` (score 78). Daniel’s finalized recommendation is `MEDIUM` for a bounded launch because documented controls mitigate part of the exposure. The distinction is intentional: an analyst recommendation is not allowed to silently overwrite the deterministic calculation.
 
 ## AI and human governance demonstration
 
@@ -66,4 +66,3 @@ The committee’s demo-only conditions are enhanced transaction monitoring, lowe
 ## Extensibility rule
 
 New initiative types should populate the same generic records and contracts: business context, facts, evidence, risk factors, controls, assessment versions, review, decision, and conditions. Type-specific fields belong in validated, versioned extensions or configuration. Do not add remittance-specific branches to workflow, authorization, scoring, or AI orchestration.
-

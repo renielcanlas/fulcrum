@@ -133,6 +133,8 @@ The repository currently contains the architecture foundation and the first exec
 - typed backend tools over a demo governed repository
 - FCRM Analyst and Product Owner authorization checks
 - deterministic demo risk values and linked Jira work items
+- deterministic score calculation and inspectable Risk → Fact → Evidence → Control → Decision trace
+- read-only decision trace at `/api/initiatives/INIT-2026-0007/trace`
 - Provider-neutral AI Gateway with safe no-key demo mode; Azure AI Foundry is the primary platform direction
 - Azure AI Document Intelligence planned for document extraction and evidence provenance
 - AI interaction audit records

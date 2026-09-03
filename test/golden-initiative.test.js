@@ -10,6 +10,7 @@ test("golden fixture is synthetic and covers the required risk domains", () => {
   assert.equal(golden.synthetic, true);
   assert.equal(golden.initiative.name, "Launch U.S.–Philippines Instant Remittance");
   assert.equal(golden.assessment.committee.finalDecision.outcome, "APPROVED_WITH_CONDITIONS");
+  assert.equal(golden.initiative.status, "DECIDED");
   assert.equal(golden.assessment.riskFactors.length, 11);
   assert.deepEqual(
     golden.assessment.riskFactors.map(factor => factor.domain),
