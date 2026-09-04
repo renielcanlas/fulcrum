@@ -543,7 +543,16 @@ export default function DemoPage() {
         <section className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           {activeView === "initiative-detail" && <InitiativeProgress />}
           {activeView === "work-item" && (
-            <JiraWorkItemProgress item={selectedWorkItem} />
+            <JiraWorkItemProgress
+              item={selectedWorkItem}
+              currentUser={signedIn}
+              onAssigned={async () => {
+                await refreshWorkItem(activeIssueKey);
+                const boardResponse = await fetch("/api/jira");
+                const boardData = await boardResponse.json();
+                if (boardResponse.ok) setBoardItems(boardData.items ?? []);
+              }}
+            />
           )}
           {activeView === "board" && (
             <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -1782,7 +1791,7 @@ function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
   );
 }
 
-function JiraWorkItemProgress({ item }) {
+function JiraWorkItemProgress({ item, currentUser, onAssigned }) {
   const statuses = [
     "Intake",
     "Context and Research",
@@ -1792,65 +1801,228 @@ function JiraWorkItemProgress({ item }) {
   ];
   const current = item?.statusName ?? "";
   const currentIndex = statuses.indexOf(current);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [personas, setPersonas] = useState([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState("");
+  const [assignBusy, setAssignBusy] = useState(false);
+  const [assignError, setAssignError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/demo-users")
+      .then((response) => response.json())
+      .then(setPersonas)
+      .catch(() => setPersonas([]));
+  }, []);
+
+  function openAssignment() {
+    const currentPersona = personas.find(
+      (persona) =>
+        persona.jiraIdentity?.jiraAccountId === item?.assigneeAccountId,
+    );
+    setSelectedPersonaId(currentPersona?.id ?? currentUser?.id ?? "");
+    setAssignError("");
+    setAssignOpen(true);
+  }
+
+  async function confirmAssignment() {
+    if (!item?.key || !selectedPersonaId || assignBusy) return;
+    setAssignBusy(true);
+    setAssignError("");
+    try {
+      const response = await fetch("/api/jira/assign", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          issueKey: item.key,
+          personaId: selectedPersonaId,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.hint || data.error || "jira_assignment_failed");
+      setAssignOpen(false);
+      await onAssigned?.();
+    } catch (error) {
+      setAssignError(error.message || "jira_assignment_failed");
+    } finally {
+      setAssignBusy(false);
+    }
+  }
   return (
-    <section
-      className="sticky top-16 z-20 -mt-6 mb-6 -ml-4 -mr-4 border-b border-slate-200 bg-white/95 pb-3 pt-3 shadow-sm backdrop-blur sm:-ml-6 sm:-mr-6 lg:-mt-8 lg:-ml-10 lg:-mr-10"
-      aria-label="Jira work item progress"
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5">
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="shrink-0 font-mono text-sm font-bold text-[rgb(9,167,141)]">
-              {item?.key ?? "Loading work item…"}
-            </span>
-            <span className="min-w-0 text-sm font-bold text-slate-950">
-              {item?.summary ?? ""}
-            </span>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-            <span>
-              Assignee:{" "}
-              <strong className="text-slate-700">
-                {item?.assignee ?? "Unassigned"}
-              </strong>
-            </span>
-          </div>
-        </div>
-        {item?.url && (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noreferrer"
-            className="shrink-0 cursor-pointer rounded px-1 text-xs font-semibold text-slate-500 transition hover:bg-[#eef8f2] hover:text-[#087f70] hover:underline focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
-          >
-            Open in Jira ↗
-          </a>
-        )}
-      </div>
-      <div className="overflow-x-auto pb-1">
-        <div className="flex min-w-[760px] items-stretch">
-          {statuses.map((status, index) => (
-            <div
-              key={status}
-              className={`min-w-[150px] flex-1 border-y border-r px-2 py-2 ${currentIndex >= index && currentIndex >= 0 ? "border-[rgba(82,224,129,0.45)] bg-[rgba(82,224,129,0.06)]" : "border-slate-200 bg-white"}`}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${currentIndex >= index && currentIndex >= 0 ? "bg-[rgb(82,224,129)] text-[rgb(12,34,38)]" : "bg-slate-100 text-slate-400"}`}
-                >
-                  {currentIndex >= index && currentIndex >= 0 ? "✓" : index + 1}
-                </span>
-                <span
-                  className={`text-[10px] font-bold leading-3 ${currentIndex >= index && currentIndex >= 0 ? "text-[rgb(25,66,71)]" : "text-slate-400"}`}
-                >
-                  {status}
-                </span>
-              </div>
+    <>
+      <section
+        className="sticky top-16 z-20 -mt-6 mb-6 -ml-4 -mr-4 border-b border-slate-200 bg-white/95 pb-3 pt-3 shadow-sm backdrop-blur sm:-ml-6 sm:-mr-6 lg:-mt-8 lg:-ml-10 lg:-mr-10"
+        aria-label="Jira work item progress"
+      >
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="shrink-0 font-mono text-sm font-bold text-[rgb(9,167,141)]">
+                {item?.key ?? "Loading work item…"}
+              </span>
+              <span className="min-w-0 text-sm font-bold text-slate-950">
+                {item?.summary ?? ""}
+              </span>
             </div>
-          ))}
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+              <span className="flex items-center gap-2">
+                Assignee:{" "}
+                <strong className="text-slate-700">
+                  {item?.assignee ?? "Unassigned"}
+                </strong>
+                <button
+                  type="button"
+                  onClick={openAssignment}
+                  className="cursor-pointer text-xs font-semibold text-[#087f70] transition hover:text-[#102f33] hover:underline focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
+                >
+                  Assign
+                </button>
+              </span>
+            </div>
+          </div>
+          {item?.url && (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 cursor-pointer rounded px-1 text-xs font-semibold text-slate-500 transition hover:bg-[#eef8f2] hover:text-[#087f70] hover:underline focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
+            >
+              Open in Jira ↗
+            </a>
+          )}
         </div>
-      </div>
-    </section>
+        <div className="overflow-x-auto pb-1">
+          <div className="flex min-w-[760px] items-stretch">
+            {statuses.map((status, index) => (
+              <div
+                key={status}
+                className={`min-w-[150px] flex-1 border-y border-r px-2 py-2 ${currentIndex >= index && currentIndex >= 0 ? "border-[rgba(82,224,129,0.45)] bg-[rgba(82,224,129,0.06)]" : "border-slate-200 bg-white"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${currentIndex >= index && currentIndex >= 0 ? "bg-[rgb(82,224,129)] text-[rgb(12,34,38)]" : "bg-slate-100 text-slate-400"}`}
+                  >
+                    {currentIndex >= index && currentIndex >= 0
+                      ? "✓"
+                      : index + 1}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold leading-3 ${currentIndex >= index && currentIndex >= 0 ? "text-[rgb(25,66,71)]" : "text-slate-400"}`}
+                  >
+                    {status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <JiraAssignmentDialog
+        open={assignOpen}
+        item={item}
+        currentUser={currentUser}
+        personas={personas}
+        selectedPersonaId={selectedPersonaId}
+        setSelectedPersonaId={setSelectedPersonaId}
+        assignBusy={assignBusy}
+        assignError={assignError}
+        onClose={() => setAssignOpen(false)}
+        onConfirm={confirmAssignment}
+      />
+    </>
+  );
+}
+
+function JiraAssignmentDialog({
+  open,
+  item,
+  currentUser,
+  personas,
+  selectedPersonaId,
+  setSelectedPersonaId,
+  assignBusy,
+  assignError,
+  onClose,
+  onConfirm,
+}) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[100] grid place-items-center bg-[#102f33]/55 p-5"
+      role="presentation"
+    >
+      <section
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assign-work-item-title"
+      >
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#087f70]">
+          Jira assignment
+        </p>
+        <h2
+          id="assign-work-item-title"
+          className="mt-2 text-xl font-bold text-[#102f33]"
+        >
+          Assign {item?.key}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Choose a verified Fulcrum persona. The change will be applied by the
+          FULCRUM service account and verified in Jira.
+        </p>
+        <label
+          htmlFor="work-item-assignee"
+          className="mt-5 block text-xs font-bold uppercase tracking-wide text-slate-500"
+        >
+          New assignee
+        </label>
+        <select
+          id="work-item-assignee"
+          value={selectedPersonaId}
+          onChange={(event) => setSelectedPersonaId(event.target.value)}
+          className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+        >
+          <option value="">Select a persona</option>
+          {personas.map((persona) => (
+            <option key={persona.id} value={persona.id}>
+              {persona.displayName} · {persona.role}
+            </option>
+          ))}
+        </select>
+        {currentUser && (
+          <button
+            type="button"
+            onClick={() => setSelectedPersonaId(currentUser.id)}
+            className="mt-2 cursor-pointer text-xs font-semibold text-[#087f70] hover:text-[#102f33] hover:underline"
+          >
+            Assign to me ({currentUser.displayName})
+          </button>
+        )}
+        {assignError && (
+          <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs leading-5 text-red-700">
+            {assignError}
+          </p>
+        )}
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={assignBusy}
+            className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!selectedPersonaId || assignBusy}
+            className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {assignBusy ? "Assigning…" : "Confirm assignment"}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -1957,205 +2129,211 @@ function IntakeAssessmentPanel({
   const canMove =
     canAdvance && !draft && assessment?.recommendation === "Proceed";
   return (
-    <section
-      className="mt-8 rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] p-5"
-      aria-label="FULCRUM Intake evaluation"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
-            FULCRUM evaluation
-          </p>
-          <h3 className="mt-1 text-lg font-bold text-[#102f33]">{stage}</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            Evaluate whether this Jira item is ready to proceed to the next
-            stage.
-          </p>
-        </div>
-        {published && !draft && (
-          <div className="flex flex-col items-end gap-1">
-            <span className="rounded-full bg-[#dcefe7] px-3 py-1 text-xs font-bold text-[#197443]">
-              Published by Fulcrum
-            </span>
-            {published.publishedAt && (
-              <time
-                dateTime={published.publishedAt}
-                className="text-[11px] text-slate-500"
-              >
-                {new Date(published.publishedAt).toLocaleString()}
-              </time>
-            )}
-          </div>
-        )}
-      </div>
-      {!assessment ? (
-        <button
-          type="button"
-          onClick={onAssessIntake}
-          disabled={assessmentBusy}
-          className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
-        >
-          {assessmentBusy ? "Evaluating " + stage + "…" : "Evaluate " + stage}
-        </button>
-      ) : (
-        <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg bg-white p-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                Score
-              </p>
-              <p className="mt-1 text-2xl font-bold text-[#102f33]">
-                {assessment.score}/{assessment.maxScore}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                Recommendation
-              </p>
-              <p className="mt-1 text-sm font-bold text-[#197443]">
-                {assessment.recommendation}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                Checks
-              </p>
-              <p className="mt-1 text-sm font-bold text-[#102f33]">
-                {
-                  assessment.checks.filter((check) => check.state === "pass")
-                    .length
-                }
-                /{assessment.checks.length} passed
-              </p>
-            </div>
-          </div>
-          {assessment.assessedAt && (
-            <p className="mt-3 text-xs text-slate-500">
-              Assessed{" "}
-              <time dateTime={assessment.assessedAt}>
-                {new Date(assessment.assessedAt).toLocaleString()}
-              </time>
+    <>
+      <section
+        className="mt-8 rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] p-5"
+        aria-label="FULCRUM Intake evaluation"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
+              FULCRUM evaluation
             </p>
-          )}
-          <ul className="mt-4 space-y-2 text-sm">
-            {assessment.checks.map((check) => (
-              <li
-                key={check.id}
-                className="flex gap-2 rounded-lg bg-white px-3 py-2"
-              >
-                <span
-                  className={
-                    check.state === "pass" ? "text-[#197443]" : "text-amber-700"
-                  }
-                >
-                  {check.state === "pass" ? "✓" : "!"}
-                </span>
-                <span>
-                  <strong className="text-slate-700">{check.label}</strong>
-                  {check.failure && (
-                    <span className="ml-1 text-slate-500">
-                      — {check.failure}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {history.length > 1 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-400">
-                Previous Evaluations
+            <h3 className="mt-1 text-lg font-bold text-[#102f33]">{stage}</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Evaluate whether this Jira item is ready to proceed to the next
+              stage.
+            </p>
+          </div>
+          {published && !draft && (
+            <div className="flex flex-col items-end gap-1">
+              <span className="rounded-full bg-[#dcefe7] px-3 py-1 text-xs font-bold text-[#197443]">
+                Published by Fulcrum
               </span>
-              {history.map((version, index) => (
-                <button
-                  key={version.commentId ?? index}
-                  type="button"
-                  onClick={() => {
-                    setSelectedVersion(index);
-                  }}
-                  className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition hover:bg-[#dcefe7] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] ${index === selectedVersion && !draft ? "bg-[#087f70] text-white hover:bg-[#087f70]" : "bg-white text-[#087f70]"}`}
+              {published.publishedAt && (
+                <time
+                  dateTime={published.publishedAt}
+                  className="text-[11px] text-slate-500"
                 >
-                  v{version.revision ?? history.length - index}
-                </button>
-              ))}
-            </div>
-          )}
-          {draft ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onPublishIntake}
-                disabled={assessmentBusy}
-                className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
-              >
-                {assessmentBusy ? "Publishing…" : "Publish evaluation to Jira"}
-              </button>
-              <span className="text-xs text-slate-500">
-                Publishing uses Fulcrum’s service account.
-              </span>
-            </div>
-          ) : (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onAssessIntake}
-                disabled={assessmentBusy}
-                className="cursor-pointer rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] disabled:cursor-wait disabled:opacity-40"
-              >
-                {assessmentBusy
-                  ? "Re-evaluating " + stage + "…"
-                  : "Re-evaluate " + stage}
-              </button>
-              {canAdvance && (
-                <span className="text-xs text-slate-500">
-                  A new published version will be added to Jira.
-                </span>
+                  {new Date(published.publishedAt).toLocaleString()}
+                </time>
               )}
             </div>
           )}
-          {canMove && !transitionOffer && (
-            <button
-              type="button"
-              onClick={onRequestMove}
-              disabled={assessmentBusy}
-              className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
-            >
-              Move to {nextStages[stage]}
-            </button>
-          )}
-        </>
-      )}
-      {transitionOffer && canMove && (
-        <div className="mt-4 rounded-lg border border-[#b9e4d1] bg-white p-4 text-sm text-slate-700">
-          <strong>Assessment published.</strong> It recommends proceeding
-          to&nbsp;
-          <strong>{nextStages[stage]}</strong>. Would you like to move this Jira
-          item now?
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={onMoveToNextStage}
-              disabled={assessmentBusy}
-              className="cursor-pointer rounded-lg bg-[#102f33] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
-            >
-              Yes, move it
-            </button>
-            <button
-              type="button"
-              onClick={onDismissTransition}
-              className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
-            >
-              Not now
-            </button>
-          </div>
         </div>
-      )}
-      {assessmentError && (
-        <p className="mt-3 text-xs font-semibold text-red-700" role="alert">
-          {assessmentError}
-        </p>
-      )}
-    </section>
+        {!assessment ? (
+          <button
+            type="button"
+            onClick={onAssessIntake}
+            disabled={assessmentBusy}
+            className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
+          >
+            {assessmentBusy ? "Evaluating " + stage + "…" : "Evaluate " + stage}
+          </button>
+        ) : (
+          <>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Score
+                </p>
+                <p className="mt-1 text-2xl font-bold text-[#102f33]">
+                  {assessment.score}/{assessment.maxScore}
+                </p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Recommendation
+                </p>
+                <p className="mt-1 text-sm font-bold text-[#197443]">
+                  {assessment.recommendation}
+                </p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Checks
+                </p>
+                <p className="mt-1 text-sm font-bold text-[#102f33]">
+                  {
+                    assessment.checks.filter((check) => check.state === "pass")
+                      .length
+                  }
+                  /{assessment.checks.length} passed
+                </p>
+              </div>
+            </div>
+            {assessment.assessedAt && (
+              <p className="mt-3 text-xs text-slate-500">
+                Assessed{" "}
+                <time dateTime={assessment.assessedAt}>
+                  {new Date(assessment.assessedAt).toLocaleString()}
+                </time>
+              </p>
+            )}
+            <ul className="mt-4 space-y-2 text-sm">
+              {assessment.checks.map((check) => (
+                <li
+                  key={check.id}
+                  className="flex gap-2 rounded-lg bg-white px-3 py-2"
+                >
+                  <span
+                    className={
+                      check.state === "pass"
+                        ? "text-[#197443]"
+                        : "text-amber-700"
+                    }
+                  >
+                    {check.state === "pass" ? "✓" : "!"}
+                  </span>
+                  <span>
+                    <strong className="text-slate-700">{check.label}</strong>
+                    {check.failure && (
+                      <span className="ml-1 text-slate-500">
+                        — {check.failure}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {history.length > 1 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Previous Evaluations
+                </span>
+                {history.map((version, index) => (
+                  <button
+                    key={version.commentId ?? index}
+                    type="button"
+                    onClick={() => {
+                      setSelectedVersion(index);
+                    }}
+                    className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition hover:bg-[#dcefe7] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] ${index === selectedVersion && !draft ? "bg-[#087f70] text-white hover:bg-[#087f70]" : "bg-white text-[#087f70]"}`}
+                  >
+                    v{version.revision ?? history.length - index}
+                  </button>
+                ))}
+              </div>
+            )}
+            {draft ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onPublishIntake}
+                  disabled={assessmentBusy}
+                  className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
+                >
+                  {assessmentBusy
+                    ? "Publishing…"
+                    : "Publish evaluation to Jira"}
+                </button>
+                <span className="text-xs text-slate-500">
+                  Publishing uses Fulcrum’s service account.
+                </span>
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onAssessIntake}
+                  disabled={assessmentBusy}
+                  className="cursor-pointer rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] disabled:cursor-wait disabled:opacity-40"
+                >
+                  {assessmentBusy
+                    ? "Re-evaluating " + stage + "…"
+                    : "Re-evaluate " + stage}
+                </button>
+                {canAdvance && (
+                  <span className="text-xs text-slate-500">
+                    A new published version will be added to Jira.
+                  </span>
+                )}
+              </div>
+            )}
+            {canMove && !transitionOffer && (
+              <button
+                type="button"
+                onClick={onRequestMove}
+                disabled={assessmentBusy}
+                className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
+              >
+                Move to {nextStages[stage]}
+              </button>
+            )}
+          </>
+        )}
+        {transitionOffer && canMove && (
+          <div className="mt-4 rounded-lg border border-[#b9e4d1] bg-white p-4 text-sm text-slate-700">
+            <strong>Assessment published.</strong> It recommends proceeding
+            to&nbsp;
+            <strong>{nextStages[stage]}</strong>. Would you like to move this
+            Jira item now?
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={onMoveToNextStage}
+                disabled={assessmentBusy}
+                className="cursor-pointer rounded-lg bg-[#102f33] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
+              >
+                Yes, move it
+              </button>
+              <button
+                type="button"
+                onClick={onDismissTransition}
+                className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        )}
+        {assessmentError && (
+          <p className="mt-3 text-xs font-semibold text-red-700" role="alert">
+            {assessmentError}
+          </p>
+        )}
+      </section>
+    </>
   );
 }
 
