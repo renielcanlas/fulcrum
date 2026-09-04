@@ -9,6 +9,8 @@ export default function Home() {
   const [users, setUsers] = useState([]);
   const [userId, setUserId] = useState("");
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginBusy, setLoginBusy] = useState(false);
+  const [loginError, setLoginError] = useState("");
   useEffect(() => {
     fetch("/api/demo-users")
       .then((r) => r.json())
@@ -18,16 +20,23 @@ export default function Home() {
     }
   }, []);
   async function startDemo() {
-    if (!userId) return;
-    const r = await fetch("/api/session", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ userId }),
-    });
-    const d = await r.json();
-    if (d.user) {
+    if (!userId || loginBusy) return;
+    setLoginBusy(true);
+    setLoginError("");
+    try {
+      const r = await fetch("/api/session", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.user) throw new Error(d.error ?? "demo_login_failed");
       const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next === "/sandbox" ? next : "/demo");
+      router.replace(next === "/sandbox" ? next : "/demo");
+    } catch (error) {
+      setLoginError(error.message ?? "demo_login_failed");
+      setLoginBusy(false);
     }
   }
   return (
@@ -574,8 +583,9 @@ export default function Home() {
               </div>
               <button
                 aria-label="Close demo login"
-                onClick={() => setLoginOpen(false)}
-                className="text-2xl leading-none text-slate-400 hover:text-[rgb(25,66,71)]"
+                onClick={() => { if (!loginBusy) setLoginOpen(false); }}
+                disabled={loginBusy}
+                className="cursor-pointer text-2xl leading-none text-slate-400 hover:text-[rgb(25,66,71)] disabled:cursor-wait disabled:opacity-40"
               >
                 ×
               </button>
@@ -606,11 +616,12 @@ export default function Home() {
             </label>
             <button
               onClick={startDemo}
-              disabled={!userId}
-              className="mt-6 min-h-11 w-full rounded-lg bg-[rgb(82,224,129)] px-4 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!userId || loginBusy}
+              className="mt-6 min-h-11 w-full cursor-pointer rounded-lg bg-[rgb(82,224,129)] px-4 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)] focus:outline-none focus:ring-2 focus:ring-[rgb(9,167,141)] disabled:cursor-wait disabled:opacity-50"
             >
-              Enter the synthetic demo
+              {loginBusy ? "Opening demo…" : "Enter the synthetic demo"}
             </button>
+            {loginError && <p className="mt-3 text-center text-xs font-semibold text-red-700" role="alert">Unable to open the demo. Please try again.</p>}
             <p className="mt-4 text-center text-xs text-slate-500">
               AI assists with explanation and drafting. Humans retain decision
               authority.
