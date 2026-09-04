@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
-import {assessIntake, formatIntakeAssessmentComment, parsePublishedIntakeAssessment} from "../src/integrations/intake-assessment.js";
+import {assessIntake, formatIntakeAssessmentComment, parsePublishedIntakeAssessment, parsePublishedIntakeAssessments} from "../src/integrations/intake-assessment.js";
 
 test("Intake assessment uses the checked-in weighted configuration", () => {
   const assessment = assessIntake({key: "FCRM-9", projectKey: "FCRM", summary: "A clear intake request for review", description: "This is enough business context to explain the requested change, its scope, intended outcome, affected users, operational impact, and the questions the assessment team must answer before work proceeds.", issueType: "Task", assignee: "Daniel Reyes", labels: ["synthetic"], comments: [{id: "c1", body: "Initial context"}]}, "2026-09-04T00:00:00.000Z");
@@ -16,6 +16,13 @@ test("Intake assessment marker can be recovered from Jira comments", () => {
   assert.equal(parsed.stage, "Intake");
   assert.equal(parsed.score, assessment.score);
   assert.equal(parsed.commentId, "c1");
+});
+
+test("Intake assessment history keeps the latest first", () => {
+  const first = assessIntake({key: "FCRM-9", projectKey: "FCRM", summary: "Request", description: "Short", issueType: "Task", assignee: null, labels: [], comments: []}, "2026-09-04T01:00:00.000Z");
+  const second = assessIntake({key: "FCRM-9", projectKey: "FCRM", summary: "Request", description: "Short", issueType: "Task", assignee: null, labels: [], comments: []}, "2026-09-04T02:00:00.000Z");
+  const history = parsePublishedIntakeAssessments([{id: "old", created: first.assessedAt, body: formatIntakeAssessmentComment(first)}, {id: "new", created: second.assessedAt, body: formatIntakeAssessmentComment(second)}]);
+  assert.deepEqual(history.map((item) => item.commentId), ["new", "old"]);
 });
 
 test("Jira sandbox scopes searches to a valid project key", () => {
