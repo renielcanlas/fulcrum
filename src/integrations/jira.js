@@ -59,8 +59,13 @@ export async function createJiraWorkItem({projectKey, summary, description = "",
 
 export async function updateJiraWorkItem({issueKey, fields, cloudId, accessToken, fetchImpl = fetch}) {
   if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !fields || typeof fields !== "object") throw new Error("invalid_update");
-  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {method: "PUT", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({fields})});
-  if (!response.ok) throw new Error(`jira_update_failed_${response.status}`);
+  const normalizedFields = {...fields};
+  if (typeof normalizedFields.description === "string") normalizedFields.description = {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: normalizedFields.description}]}]};
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {method: "PUT", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({fields: normalizedFields})});
+  if (!response.ok) {
+    const detail = await jiraResponseDetail(response);
+    throw new Error(`jira_update_failed_${response.status}${detail ? `: ${detail}` : ""}`);
+  }
   return {issueKey, updated: true};
 }
 
@@ -80,8 +85,19 @@ export async function transitionJiraWorkItem({issueKey, status, cloudId, accessT
 }
 
 export function jiraErrorStatus(error) {
-  const match = error.message?.match(/jira_[a-z_]+_(\d{3})$/);
+  const match = error.message?.match(/jira_[a-z_]+_(\d{3})(?:$|:)/);
   return match ? Number(match[1]) : null;
+}
+
+async function jiraResponseDetail(response) {
+  const body = await response.text();
+  try {
+    const payload = JSON.parse(body);
+    const errors = Object.entries(payload.errors ?? {}).map(([field, message]) => `${field}: ${message}`);
+    return [...(payload.errorMessages ?? []), ...errors, payload.message].filter(Boolean).join("; ").slice(0, 1000);
+  } catch {
+    return body.trim().slice(0, 1000);
+  }
 }
 
 export async function getJiraProjectPermissions({projectKey = JIRA_PROJECT_KEY, cloudId, accessToken, fetchImpl = fetch}) {
@@ -128,6 +144,13 @@ export async function deleteAllJiraWorkItems({projectKey = JIRA_PROJECT_KEY, clo
     deleted += 1;
   }
   return {deleted, matched: issues.length};
+}
+
+export async function deleteJiraWorkItem({issueKey, cloudId, accessToken, fetchImpl = fetch}) {
+  if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !issueKey.startsWith(`${JIRA_PROJECT_KEY}-`)) throw new Error("invalid_rollback_issue");
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {method: "DELETE", headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+  if (!response.ok) throw new Error(`jira_rollback_delete_failed_${response.status}`);
+  return {issueKey, rolledBack: true};
 }
 
 export async function fetchJiraWorkItems({projectKey, extraJql = "", cloudId = process.env.JIRA_CLOUD_ID, accessToken = process.env.JIRA_ACCESS_TOKEN, siteUrl = process.env.JIRA_SITE_URL, fetchImpl = fetch}) {

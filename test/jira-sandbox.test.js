@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, normalizeIssue, transitionJiraWorkItem} from "../src/integrations/jira.js";
+import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
 
 test("Jira sandbox scopes searches to a valid project key", () => {
   assert.equal(buildJql("FCRM", "statusCategory != Done"), "project = FCRM AND (statusCategory != Done)");
@@ -109,4 +109,17 @@ test("Jira sandbox matches localized workflow status aliases", async () => {
   assert.equal(result.status, "审查");
   assert.equal(requests[1].options.method, "POST");
   assert.match(requests[1].options.body, /31/);
+});
+
+test("Jira sandbox preserves update validation details", async () => {
+  await assert.rejects(() => updateJiraWorkItem({issueKey: "FCRM-9", fields: {priority: {name: "Invalid"}}, cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async () => new Response(JSON.stringify({errors: {priority: "Priority is not available"}}), {status: 400})}), /jira_update_failed_400: priority: Priority is not available/);
+});
+
+test("Jira sandbox converts plain descriptions to Atlassian Document Format", async () => {
+  let body;
+  await updateJiraWorkItem({issueKey: "FCRM-9", fields: {description: "Acceptance criteria"}, cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options) => {
+    body = JSON.parse(options.body);
+    return new Response(null, {status: 204});
+  }});
+  assert.deepEqual(body.fields.description, {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: "Acceptance criteria"}]}]});
 });
