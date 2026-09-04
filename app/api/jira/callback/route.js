@@ -8,7 +8,8 @@ const defaultDestination = request => new URL("/sandbox", request.url);
 export const dynamic = "force-dynamic";
 
 export async function GET(request) {
-  const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
+  const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
+  const user = runtime.sessions.get(sessionId);
   const params = new URL(request.url).searchParams;
   const destination = defaultDestination(request);
   if (!user) { destination.searchParams.set("jira", "authentication_required"); return Response.redirect(destination); }
@@ -26,7 +27,7 @@ export async function GET(request) {
     const resources = await getAccessibleResources(token.access_token);
     const selected = resources.find(resource => !process.env.JIRA_CLOUD_ID || resource.id === process.env.JIRA_CLOUD_ID) ?? resources[0];
     if (!selected) throw new Error("jira_site_not_found");
-    runtime.jiraConnections.set(user.id, {cloudId: selected.id, siteUrl: selected.url, siteName: selected.name, accessToken: token.access_token, refreshToken: token.refresh_token ?? null, expiresAt: Date.now() + (token.expires_in ?? 3600) * 1000});
+    runtime.jiraConnections.set(attempt.sessionId ?? user.id, {cloudId: selected.id, siteUrl: selected.url, siteName: selected.name, accessToken: token.access_token, refreshToken: token.refresh_token ?? null, expiresAt: Date.now() + (token.expires_in ?? 3600) * 1000});
     runtime.audit.record({eventType: "JiraConnected", actorId: user.id, actorType: "DEMO_PERSONA", userRole: user.role, entityId: selected.id, metadata: {siteName: selected.name, scopes: "read:jira-work write:jira-work read:jira-user offline_access"}});
     destination.searchParams.set("jira", "connected");
   } catch (error) {

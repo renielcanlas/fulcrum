@@ -8,9 +8,10 @@ const cookieName = "fulcrum_session";
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
-  const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
+  const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
+  const user = runtime.sessions.get(sessionId);
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
-  const connection = runtime.jiraConnections.get(user.id);
+  const connection = runtime.jiraConnections.get(sessionId);
   if (!connection) return Response.json({error: "jira_user_authorization_required"}, {status: 409});
   let body;
   try { body = await request.json(); } catch { return Response.json({error: "invalid_json"}, {status: 400}); }
