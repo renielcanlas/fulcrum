@@ -1,0 +1,16 @@
+{
+  "version": "intake-v1",
+  "stage": "Intake",
+  "title": "Intake completeness",
+  "description": "Deterministic checks for whether a Jira work item contains enough context to begin assessment.",
+  "recommendationThresholds": {"proceed": 80, "hold": 50},
+  "checks": [
+    {"id":"project","label":"FCRM project","weight":10,"kind":"equals","path":"projectKey","value":"FCRM","failure":"Work item is outside the FCRM project."},
+    {"id":"summary","label":"Clear summary","weight":15,"kind":"textLength","path":"summary","full":20,"partial":8,"failure":"Add a clear summary describing the requested change."},
+    {"id":"description","label":"Business context","weight":30,"kind":"textLength","path":"description","full":160,"partial":60,"failure":"Add business context, scope, and the intended outcome to the description."},
+    {"id":"issueType","label":"Issue type","weight":10,"kind":"present","path":"issueType","failure":"Set an issue type before assessment begins."},
+    {"id":"assignee","label":"Named owner","weight":15,"kind":"present","path":"assignee","failure":"Assign an accountable owner for the intake."},
+    {"id":"labels","label":"Useful classification","weight":10,"kind":"arrayMin","path":"labels","minimum":1,"failure":"Add at least one label to classify the work item."},
+    {"id":"collaboration","label":"Initial collaboration context","weight":10,"kind":"commentMin","path":"comments","minimum":1,"failure":"Add at least one non-FULCRUM Jira comment capturing initial context or questions."}
+  ]
+}
