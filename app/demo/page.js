@@ -35,6 +35,7 @@ const tones = {
   orange: "bg-orange-400",
   green: "bg-[rgb(82,224,129)]",
 };
+const jiraWorkflowStatuses = ["Intake", "Context and Research", "Risk Assessment", "Review", "Decision"];
 
 export default function DemoPage() {
   const router = useRouter();
@@ -47,6 +48,9 @@ export default function DemoPage() {
   const [trace, setTrace] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [activeView, setActiveView] = useState("board");
+  const [boardItems, setBoardItems] = useState(null);
+  const [boardError, setBoardError] = useState("");
+  const [selectedWorkItem, setSelectedWorkItem] = useState(null);
 
   function navigateTo(view) {
     if (view === "sandbox") {
@@ -68,9 +72,30 @@ export default function DemoPage() {
   }, [router]);
 
   useEffect(() => {
+    fetch("/api/sandbox/jira")
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "jira_board_load_failed");
+        setBoardItems(data.items ?? []);
+      })
+      .catch((error) => {
+        setBoardItems([]);
+        setBoardError(error.message ?? "jira_board_load_failed");
+      });
+  }, []);
+
+  useEffect(() => {
     const view = new URLSearchParams(window.location.search).get("view");
     if (view) setActiveView(view);
   }, []);
+
+  useEffect(() => {
+    const issueKey = new URLSearchParams(window.location.search).get("issue");
+    if (activeView !== "work-item" || !issueKey) return;
+    fetch(`/api/sandbox/jira?jql=${encodeURIComponent(`key = ${issueKey}`)}`)
+      .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "jira_work_item_load_failed"); const item = data.items?.find((candidate) => candidate.key === issueKey); if (!item) throw new Error("work_item_not_found"); setSelectedWorkItem(item); })
+      .catch((error) => setSelectedWorkItem({error: error.message ?? "jira_work_item_load_failed"}));
+  }, [activeView]);
 
   async function ask(event) {
     event.preventDefault();
@@ -198,6 +223,7 @@ export default function DemoPage() {
         </aside>
         <section className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           {activeView === "initiative-detail" && <InitiativeProgress />}
+          {activeView === "work-item" && <JiraWorkItemProgress item={selectedWorkItem} />}
           {activeView === "board" && (
             <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
@@ -224,10 +250,10 @@ export default function DemoPage() {
             <>
               <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
                 {[
-                  ["1", "Active initiative"],
-                  ["8", "Workflow stages"],
-                  ["11", "Risk areas"],
-                  ["100%", "Human decision gate"],
+                  [boardItems === null ? "—" : boardItems.length, "Jira work items"],
+                  [boardItems === null ? "—" : new Set([...jiraWorkflowStatuses, ...boardItems.map((item) => item.statusName ?? item.status)]).size, "Jira statuses"],
+                  ["FCRM", "Connected project"],
+                  [boardItems === null ? "—" : "Live", "Board source"],
                 ].map(([value, label]) => (
                   <div
                     key={label}
@@ -247,59 +273,51 @@ export default function DemoPage() {
                 <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="font-bold text-slate-950">
-                      All initiatives{" "}
+                      Jira work items{" "}
                       <span className="ml-1 text-sm font-medium text-slate-400">
-                        1
+                        {boardItems === null ? "—" : boardItems.length}
                       </span>
                     </h2>
                     <p className="mt-1 text-xs text-slate-500">
-                      Canonical Golden Initiative demo
+                      Live status and work-item view from Jira project FCRM
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
-                      All owners
-                    </span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
-                      All risk levels
-                    </span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">Service account data</span>
                   </div>
                 </div>
                 <div className="overflow-x-auto p-4">
-                  <div className="flex min-w-[1500px] gap-3">
-                    {workflow.map(([label, tone]) => (
+                  <div className="flex min-w-[900px] gap-3">
+                    {(boardItems === null ? [] : [...new Set([...jiraWorkflowStatuses, ...boardItems.map((item) => item.statusName ?? item.status ?? "Unknown")])]).map((label, index) => (
                       <div
                         key={label}
-                        className="w-[178px] shrink-0 rounded-xl bg-slate-50 p-2.5"
+                        className="min-w-[178px] flex-1 rounded-xl bg-slate-50 p-2.5"
                       >
                         <div className="mb-3 flex items-start justify-between gap-2 px-1">
                           <div className="flex items-center gap-2">
                             <span
-                              className={`mt-0.5 h-2 w-2 rounded-full ${tones[tone]}`}
+                              className={`mt-0.5 h-2 w-2 rounded-full ${Object.values(tones)[index % Object.values(tones).length]}`}
                             />
                             <h3 className="text-xs font-bold leading-4 text-slate-700">
                               {label}
                             </h3>
                           </div>
                           <span className="text-xs font-semibold text-slate-400">
-                            {label === "Approved with Conditions" ? 1 : 0}
+                            {boardItems?.filter((item) => (item.statusName ?? item.status ?? "Unknown") === label).length ?? "—"}
                           </span>
                         </div>
-                        {label === "Approved with Conditions" ? (
-                          <InitiativeCard onOpen={openInitiative} />
-                        ) : (
-                          <div className="rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center text-[11px] text-slate-400">
-                            No initiatives
-                          </div>
-                        )}
+                        <div className="space-y-2">
+                          {boardItems?.filter((item) => (item.statusName ?? item.status ?? "Unknown") === label).map((item) => <JiraBoardCard key={item.id ?? item.key} item={item} />)}
+                        </div>
                       </div>
                     ))}
+                    {boardItems?.length === 0 && <div className="flex min-h-40 w-full items-center justify-center rounded-xl border border-dashed border-slate-200 px-5 text-center text-sm text-slate-500">{boardError ? `Unable to load Jira board: ${boardError}` : "No work items found in Jira project FCRM."}</div>}
                   </div>
                 </div>
               </section>
               {trace && <TracePanel trace={trace} />}
             </>
-          ) : (
+          ) : activeView === "work-item" ? <JiraWorkItemView item={selectedWorkItem} onBack={() => { setSelectedWorkItem(null); setActiveView("board"); router.push("/demo"); }} /> : (
             <WorkspaceScreen
               view={activeView}
               onOpenTrace={loadTrace}
@@ -848,6 +866,34 @@ function InfoCard({ title, children }) {
     </section>
   );
 }
+
+function JiraWorkItemProgress({item}) {
+  const statuses = ["Intake", "Context and Research", "Risk Assessment", "Review", "Decision"];
+  const current = item?.statusName ?? "";
+  const currentIndex = statuses.indexOf(current);
+  return <section className="sticky top-16 z-20 -mt-6 mb-6 -ml-4 -mr-4 border-b border-slate-200 bg-white/95 pb-3 pt-3 shadow-sm backdrop-blur sm:-ml-6 sm:-mr-6 lg:-mt-8 lg:-ml-10 lg:-mr-10" aria-label="Jira work item progress"><div className="mb-3 px-4 sm:px-5"><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(9,167,141)]">Work item progress</p><p className="mt-1 text-sm font-bold text-slate-950">{item?.key ?? "Loading work item…"}</p></div><div className="overflow-x-auto pb-1"><div className="flex min-w-[760px] items-stretch">{statuses.map((status, index) => <div key={status} className={`min-w-[150px] flex-1 border-y border-r px-2 py-2 ${currentIndex >= index && currentIndex >= 0 ? "border-[rgba(82,224,129,0.45)] bg-[rgba(82,224,129,0.06)]" : "border-slate-200 bg-white"}`}><div className="flex items-center gap-2"><span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${currentIndex >= index && currentIndex >= 0 ? "bg-[rgb(82,224,129)] text-[rgb(12,34,38)]" : "bg-slate-100 text-slate-400"}`}>{currentIndex >= index && currentIndex >= 0 ? "✓" : index + 1}</span><span className={`text-[10px] font-bold leading-3 ${currentIndex >= index && currentIndex >= 0 ? "text-[rgb(25,66,71)]" : "text-slate-400"}`}>{status}</span></div></div>)}</div></div></section>;
+}
+
+function JiraWorkItemView({item, onBack}) {
+  if (!item) return <p className="text-sm text-slate-500">Loading Jira work item…</p>;
+  if (item.error) return <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700">Unable to load this work item: {item.error}</div>;
+  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div><button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline">← Back to board</button><h1 className="mt-3 font-mono text-2xl font-bold text-[rgb(9,167,141)]">{item.key}</h1><h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{item.summary}</h2></div><dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 text-sm sm:grid-cols-2"><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Assignee</dt><dd className="mt-1 font-semibold text-slate-700">{item.assignee ?? "Unassigned"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Issue type</dt><dd className="mt-1 font-semibold text-slate-700">{item.issueType ?? "Issue"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Project</dt><dd className="mt-1 font-semibold text-slate-700">{item.projectKey ?? "FCRM"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Updated</dt><dd className="mt-1 font-semibold text-slate-700">{item.updated ? new Date(item.updated).toLocaleString() : "Not available"}</dd></div></dl><div className="mt-8 flex justify-end">{item.url && <a href={item.url} target="_blank" rel="noreferrer" className="rounded-lg bg-[rgb(16,47,51)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[rgb(25,66,71)]">Open actual Jira item ↗</a>}</div></section>;
+}
+
+function JiraBoardCard({ item }) {
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <a href={`/demo?view=work-item&issue=${encodeURIComponent(item.key)}`} className="font-mono text-[10px] font-bold text-[rgb(9,167,141)] hover:underline" title={`View ${item.key} in FULCRUM`}>{item.key}</a>
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{item.issueType ?? "Issue"}</span>
+      </div>
+      <h4 className="mt-2 text-sm font-bold leading-5 text-slate-900">{item.summary}</h4>
+      <p className="mt-2 text-[11px] leading-4 text-slate-500">{item.assignee ?? "Unassigned"}</p>
+      {item.updated && <p className="mt-1 text-[10px] text-slate-400">Updated {new Date(item.updated).toLocaleDateString()}</p>}
+    </article>
+  );
+}
+
 
 function InitiativeCard({ onOpen }) {
   return (

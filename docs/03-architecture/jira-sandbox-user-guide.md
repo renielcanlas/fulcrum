@@ -12,6 +12,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 - **Connection indicators**: Jira service-account status and Azure AI status in the app bar.
 - **Scenario source selector**: checked-in JSON scenarios plus **Custom scenario**.
 - **Scenario details**: description, ordered steps, action names, and validation indicators.
+- **FULCRUM work-item view**: selecting a Jira key opens an independent FULCRUM detail page; the external Jira link is available from that detail page.
 - **JSON view**: the current scenario JSON for inspection.
 - **AI scenario assistant**: a prompt area for creating or revising a scenario.
 - **Ciel chat**: the read-only FULCRUM AI Assistant used in the demo, available from the floating ✦ button without signing in. It answers against the synthetic Golden Initiative context; it does not execute Jira scenarios.

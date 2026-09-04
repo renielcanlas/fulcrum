@@ -4,6 +4,23 @@ const STATUS_ALIASES = {
   review: ["审查"],
   decision: ["决策"]
 };
+const DISPLAY_STATUS_NAMES = new Map([
+  ["审查", "Review"], ["决策", "Decision"],
+  ["上下文和研究", "Context and Research"], ["背景和研究", "Context and Research"],
+  ["风险评估", "Risk Assessment"], ["接收", "Intake"], ["受理", "Intake"]
+]);
+const DISPLAY_ISSUE_TYPES = new Map([["任务", "Task"]]);
+const JIRA_LANGUAGE_HEADERS = {"accept-language": "en-US", "x-force-accept-language": "true"};
+
+function displayStatusName(status, category) {
+  const name = status?.trim();
+  if (!name) return "Unknown";
+  if (DISPLAY_STATUS_NAMES.has(name)) return DISPLAY_STATUS_NAMES.get(name);
+  if (/^[\u3400-\u9fff\u3040-\u30ff]+$/.test(name)) {
+    return {new: "Intake", indeterminate: "In Progress", done: "Done"}[category] ?? "Unknown";
+  }
+  return name;
+}
 
 export const demoWorkItems = [
   {key: "FCRM-101", id: "jira-101", summary: "Implement enhanced remittance monitoring rules", status: "IN_PROGRESS", assignee: "Daniel Reyes", dueDate: "2026-09-05", projectKey: "FCRM", projectName: "Fulcrum", issueType: "Task", updated: null, url: null, synthetic: true},
@@ -24,11 +41,12 @@ export function normalizeIssue(issue, baseUrl = "") {
     id: issue.id,
     summary: fields.summary ?? "Untitled issue",
     status: fields.status?.statusCategory?.key ?? fields.status?.name ?? "UNKNOWN",
+    statusName: displayStatusName(fields.status?.name, fields.status?.statusCategory?.key),
     assignee: fields.assignee?.displayName ?? null,
     dueDate: fields.duedate ?? null,
     projectKey,
     projectName: fields.project?.name ?? null,
-    issueType: fields.issuetype?.name ?? null,
+    issueType: DISPLAY_ISSUE_TYPES.get(fields.issuetype?.name) ?? fields.issuetype?.name ?? null,
     updated: fields.updated ?? null,
     url: baseUrl && issue.key ? `${baseUrl.replace(/\/$/, "")}/browse/${issue.key}` : null,
     synthetic: false
@@ -49,7 +67,7 @@ export async function createJiraWorkItem({projectKey, summary, description = "",
   const url = `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue`;
   const response = await fetchImpl(url, {
     method: "POST",
-    headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`},
+    headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: `Bearer ${accessToken}`},
     body: JSON.stringify({fields: {project: {key: projectKey}, summary: summary.trim(), description: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: description}]}]}, issuetype: {name: issueType}, labels}})
   });
   if (!response.ok) throw new Error(`jira_create_failed_${response.status}`);
@@ -61,7 +79,7 @@ export async function updateJiraWorkItem({issueKey, fields, cloudId, accessToken
   if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !fields || typeof fields !== "object") throw new Error("invalid_update");
   const normalizedFields = {...fields};
   if (typeof normalizedFields.description === "string") normalizedFields.description = {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: normalizedFields.description}]}]};
-  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {method: "PUT", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({fields: normalizedFields})});
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {method: "PUT", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({fields: normalizedFields})});
   if (!response.ok) {
     const detail = await jiraResponseDetail(response);
     throw new Error(`jira_update_failed_${response.status}${detail ? `: ${detail}` : ""}`);
@@ -72,14 +90,14 @@ export async function updateJiraWorkItem({issueKey, fields, cloudId, accessToken
 export async function transitionJiraWorkItem({issueKey, status, cloudId, accessToken, fetchImpl = fetch}) {
   if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !status?.trim()) throw new Error("invalid_transition");
   const base = `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`;
-  const transitionsResponse = await fetchImpl(`${base}/transitions`, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+  const transitionsResponse = await fetchImpl(`${base}/transitions`, {headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
   if (!transitionsResponse.ok) throw new Error(`jira_transitions_failed_${transitionsResponse.status}`);
   const availableTransitions = (await transitionsResponse.json()).transitions ?? [];
   const requestedStatus = status.trim();
   const candidates = [requestedStatus, ...(STATUS_ALIASES[requestedStatus.toLowerCase()] ?? [])].map(value => value.toLowerCase());
   const transition = availableTransitions.find(item => candidates.includes(item.to?.name?.trim().toLowerCase()));
   if (!transition) throw new Error(`jira_transition_unavailable: ${availableTransitions.map(item => item.to?.name).filter(Boolean).join(", ") || "no available transitions"}`);
-  const response = await fetchImpl(`${base}/transitions`, {method: "POST", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({transition: {id: transition.id}})});
+  const response = await fetchImpl(`${base}/transitions`, {method: "POST", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({transition: {id: transition.id}})});
   if (!response.ok) throw new Error(`jira_transition_failed_${response.status}`);
   return {issueKey, status: transition.to.name, transitioned: true};
 }
@@ -105,14 +123,14 @@ export async function getJiraProjectPermissions({projectKey = JIRA_PROJECT_KEY, 
   const url = new URL(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/mypermissions`);
   url.searchParams.set("projectKey", projectKey);
   url.searchParams.set("permissions", "BROWSE_PROJECTS,CREATE_ISSUES,EDIT_ISSUES,ADD_COMMENTS,ASSIGN_ISSUES,DELETE_ISSUES,TRANSITION_ISSUES");
-  const response = await fetchImpl(url, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+  const response = await fetchImpl(url, {headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
   if (!response.ok) throw new Error(`jira_permissions_failed_${response.status}`);
   return (await response.json()).permissions ?? {};
 }
 
 export async function commentJiraWorkItem({issueKey, body, cloudId, accessToken, fetchImpl = fetch}) {
   if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !body?.trim()) throw new Error("invalid_comment");
-  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}/comment`, {method: "POST", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: body.trim()}]}]}})});
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}/comment`, {method: "POST", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: body.trim()}]}]}})});
   if (!response.ok) throw new Error(`jira_comment_failed_${response.status}`);
   const comment = await response.json();
   return {issueKey, commentId: comment.id, commented: true};
@@ -130,7 +148,7 @@ export async function deleteAllJiraWorkItems({projectKey = JIRA_PROJECT_KEY, clo
     searchUrl.searchParams.set("fields", "key");
     searchUrl.searchParams.set("maxResults", "100");
     if (nextPageToken) searchUrl.searchParams.set("nextPageToken", nextPageToken);
-    const searchResponse = await fetchImpl(searchUrl, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+    const searchResponse = await fetchImpl(searchUrl, {headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
     if (!searchResponse.ok) throw new Error(`jira_cleanup_search_failed_${searchResponse.status}`);
     const page = await searchResponse.json();
     issues.push(...(page.issues ?? []));
@@ -139,7 +157,7 @@ export async function deleteAllJiraWorkItems({projectKey = JIRA_PROJECT_KEY, clo
   let deleted = 0;
   for (const issue of issues) {
     if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issue.key) || !issue.key.startsWith(`${JIRA_PROJECT_KEY}-`)) throw new Error("invalid_cleanup_issue");
-    const deleteResponse = await fetchImpl(`${base}/rest/api/3/issue/${encodeURIComponent(issue.key)}`, {method: "DELETE", headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+    const deleteResponse = await fetchImpl(`${base}/rest/api/3/issue/${encodeURIComponent(issue.key)}`, {method: "DELETE", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
     if (!deleteResponse.ok) throw new Error(`jira_delete_failed_${deleteResponse.status}`);
     deleted += 1;
   }
@@ -148,7 +166,7 @@ export async function deleteAllJiraWorkItems({projectKey = JIRA_PROJECT_KEY, clo
 
 export async function deleteJiraWorkItem({issueKey, cloudId, accessToken, fetchImpl = fetch}) {
   if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !issueKey.startsWith(`${JIRA_PROJECT_KEY}-`)) throw new Error("invalid_rollback_issue");
-  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {method: "DELETE", headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}`, {method: "DELETE", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
   if (!response.ok) throw new Error(`jira_rollback_delete_failed_${response.status}`);
   return {issueKey, rolledBack: true};
 }
@@ -161,7 +179,7 @@ export async function fetchJiraWorkItems({projectKey, extraJql = "", cloudId = p
   url.searchParams.set("jql", jql);
   url.searchParams.set("fields", DEFAULT_FIELDS.join(","));
   url.searchParams.set("maxResults", "50");
-  const response = await fetchImpl(url, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+  const response = await fetchImpl(url, {headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
   if (!response.ok) throw new Error(`jira_request_failed_${response.status}`);
   const payload = await response.json();
   return {mode: "live", jql, total: payload.total ?? payload.issues?.length ?? 0, items: (payload.issues ?? []).map(issue => normalizeIssue(issue, siteUrl))};

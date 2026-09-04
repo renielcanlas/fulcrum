@@ -39,8 +39,14 @@ test("Jira responses are normalized to the sandbox contract", () => {
     }
   }, "https://example.atlassian.net");
   assert.deepEqual(item, {
-    key: "ABC-7", id: "10001", summary: "Review controls", status: "indeterminate", assignee: "A. Reviewer", dueDate: "2026-09-10", projectKey: "ABC", projectName: "Alpha", issueType: "Task", updated: "2026-09-03T10:00:00.000Z", url: "https://example.atlassian.net/browse/ABC-7", synthetic: false
+    key: "ABC-7", id: "10001", summary: "Review controls", status: "indeterminate", statusName: "In Progress", assignee: "A. Reviewer", dueDate: "2026-09-10", projectKey: "ABC", projectName: "Alpha", issueType: "Task", updated: "2026-09-03T10:00:00.000Z", url: "https://example.atlassian.net/browse/ABC-7", synthetic: false
   });
+});
+
+test("Jira localizes known workflow labels to stable English display names", () => {
+  const item = normalizeIssue({key: "FCRM-8", fields: {summary: "Decision item", status: {name: "决策"}, issuetype: {name: "任务"}}});
+  assert.equal(item.statusName, "Decision");
+  assert.equal(item.issueType, "Task");
 });
 
 test("live Jira search sends bearer auth and requested fields", async () => {
