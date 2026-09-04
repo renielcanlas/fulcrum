@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {renderCielMessage} from "../../src/components/ciel-chat.js";
 
 const workflow = [
   ["Draft", "slate"],
@@ -108,7 +109,7 @@ export default function DemoPage() {
       const response = await fetch("/api/ciel", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ assessmentId: "FA-2026-00124", message: text }),
+        body: JSON.stringify({ assessmentId: "FA-2026-00124", message: text, currentUrl: window.location.href, context: buildCielContext(text, activeView, boardItems, selectedWorkItem) }),
       });
       const data = await response.json();
       setMessages((current) => [
@@ -345,6 +346,13 @@ export default function DemoPage() {
       )}
     </main>
   );
+}
+
+function buildCielContext(message, view, items, selectedItem) {
+  if (!/(jira|board|work item|issue|status|assignee|fcrm|delivery|linked|current|this|here)/i.test(message)) return "";
+  if (view === "work-item" && selectedItem) return `Current FULCRUM work item context:\n- ${selectedItem.key}: ${selectedItem.summary}\n- Status: ${selectedItem.statusName ?? selectedItem.status ?? "Unknown"}\n- Assignee: ${selectedItem.assignee ?? "Unassigned"}\n- FULCRUM view: /demo?view=work-item&issue=${selectedItem.key}\n- Jira item: ${selectedItem.url ?? "unavailable"}`;
+  if (view === "board" && Array.isArray(items)) return `Current FULCRUM Jira board context (use only if relevant):\n${items.map((item) => `- ${item.key} | ${item.statusName ?? item.status ?? "Unknown"} | ${item.summary} | assignee: ${item.assignee ?? "Unassigned"} | FULCRUM: /demo?view=work-item&issue=${item.key} | Jira: ${item.url ?? "unavailable"}`).join("\n")}`.slice(0, 5000);
+  return "";
 }
 
 function InitiativeProgress() {
@@ -964,7 +972,7 @@ function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
                 : "border-b border-slate-800 pb-2 last:border-0"
             }
           >
-            {message}
+            {renderCielMessage(message)}
           </p>
         ))}
         {busy && (

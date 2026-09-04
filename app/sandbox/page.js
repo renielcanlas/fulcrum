@@ -62,7 +62,7 @@ export default function SandboxPage() {
     setCielMessages((current) => [...current, `You: ${message}`]);
     setCielBusy(true);
     try {
-      const response = await fetch("/api/ciel", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({message})});
+      const response = await fetch("/api/ciel", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({message, currentUrl: window.location.href})});
       const data = await response.json();
       setCielMessages((current) => [...current, `Ciel: ${data.answer ?? data.error ?? "No answer returned."}`]);
     } catch (error) {

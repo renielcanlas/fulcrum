@@ -38,7 +38,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 
 ## Ask Ciel from the sandbox
 
-Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about the synthetic assessment, its evidence, risk findings, decision trail, or linked work. The sandbox uses a fixed synthetic analyst identity and assessment scope so the chat can be demonstrated without a FULCRUM login. Ciel remains read-only: it can explain retrieved facts and system calculations, but it cannot change the scenario, Jira, scores, workflow, or decisions.
+Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about the synthetic assessment, its evidence, risk findings, decision trail, or linked work. In the demo board, Jira context is attached only when the question appears related to the board or a work item; unrelated questions do not receive the board payload. Relevant answers can link to the FULCRUM work-item view and the remote Jira issue. The sandbox uses a fixed synthetic analyst identity and assessment scope so the chat can be demonstrated without a FULCRUM login. Ciel remains read-only: it can explain retrieved facts and system calculations, but it cannot change the scenario, Jira, scores, workflow, or decisions.
 
 ## Persona assignment format
 

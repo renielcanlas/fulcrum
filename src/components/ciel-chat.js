@@ -7,7 +7,7 @@ export default function CielChat({question, setQuestion, messages, busy, onAsk, 
       <button onClick={onClose} aria-label="Close Ciel chat" className="text-xl text-white/60 hover:text-white">×</button>
     </div>
     <div className="min-h-40 flex-1 space-y-2 overflow-y-auto bg-slate-950 p-4 text-sm leading-6 text-slate-100" aria-live="polite">
-      {messages.map((message, index) => <p key={index} className={index === 0 ? "text-slate-400" : "border-b border-slate-800 pb-2 last:border-0"}>{message}</p>)}
+      {messages.map((message, index) => <p key={index} className={index === 0 ? "text-slate-400" : "border-b border-slate-800 pb-2 last:border-0"}>{renderCielMessage(message)}</p>)}
       {busy && <div className="flex justify-start"><div className="w-fit rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-300"><p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[rgb(82,224,129)]">Ciel</p><span className="flex items-center gap-1" aria-label="Ciel is typing"><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[rgb(82,224,129)] [animation-delay:-0.3s]" /><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[rgb(82,224,129)] [animation-delay:-0.15s]" /><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[rgb(82,224,129)]" /></span></div></div>}
     </div>
     <form onSubmit={onAsk} className="flex gap-2 border-t border-slate-200 bg-white p-3">
@@ -16,4 +16,13 @@ export default function CielChat({question, setQuestion, messages, busy, onAsk, 
       <button className="min-h-11 rounded-lg bg-[rgb(82,224,129)] px-3 text-xs font-bold text-[rgb(12,34,38)] disabled:cursor-not-allowed disabled:bg-slate-300" disabled={busy || !question.trim()}>{busy ? "…" : "Ask"}</button>
     </form>
   </div>;
+}
+
+export function renderCielMessage(message) {
+  return String(message).split(/(\[[^\]]+\]\([^\)]+\)|https?:\/\/\S+)/g).map((part, index) => {
+    const markdown = part.match(/^\[([^\]]+)\]\((https?:\/\/[^\)]+|\/[^\)]*)\)$/);
+    const href = markdown?.[2] ?? (part.startsWith("http://") || part.startsWith("https://") ? part : null);
+    if (!href) return <span key={index}>{part}</span>;
+    return <a key={index} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="font-semibold text-[rgb(82,224,129)] underline">{markdown?.[1] ?? part}</a>;
+  });
 }
