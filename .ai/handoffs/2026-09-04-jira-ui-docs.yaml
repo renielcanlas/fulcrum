@@ -1,0 +1,32 @@
+schema_version: "1.0"
+task: "Update repository documentation for the implemented landing page, FCRM demo UI, and Jira experimentation sandbox"
+requirements: ["REQ-016", "REQ-017", "REQ-025", "REQ-026", "REQ-027", "REQ-028"]
+files_changed:
+  - "README.md"
+  - "docs/03-architecture/jira-sandbox.md"
+  - "docs/03-architecture/architecture-baseline.md"
+  - "docs/03-architecture/workflow-and-integrations.md"
+  - "docs/09-deployment/demo-production-matrix.md"
+  - "docs/10-operations/step-10-completion-report.md"
+  - "docs/01-requirements/traceability.md"
+  - "docs/00-context/hackathon-journey.md"
+  - "docs/00-context/personas-and-journeys.md"
+  - "app/page.js"
+artifacts_changed: []
+decisions:
+  - "Document the Jira sandbox as a bounded synthetic integration experiment, separate from FULCRUM assessment authority and workflow."
+  - "Describe Jira OAuth connectivity as implemented for the demo while retaining durable token custody, sync, reconciliation, and production write-back as deferred."
+unresolved_questions:
+  - "Should production OAuth site selection be explicit when multiple accessible Jira resources are returned?"
+  - "Which production Jira write-back actions, if any, will be approved after security and FCRM review?"
+tests_performed:
+  - "npm test: 31 passed"
+  - "npm run build: passed"
+  - "git diff --check: passed"
+  - "handoff YAML parse: passed"
+known_risks:
+  - "Jira connections, sessions, and audit records are currently in-memory."
+  - "The cleanup scenario permanently deletes all work items returned by the fixed FCRM project search."
+recommended_next_action: "Run npm test, npm run build, and git diff --check; then review the sandbox scope and cleanup warning with the integration owner."
+producer: "Codex"
+timestamp: "2026-09-04T00:00:00+08:00"

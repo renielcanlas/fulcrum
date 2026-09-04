@@ -16,7 +16,7 @@ Deterministic: authorization, validation, workflow transitions, scoring, control
 
 ## Application architecture
 
-The hackathon web tier is a Next.js App Router application deployed to Vercel. Server Route Handlers enforce sessions, RBAC, workflow commands, FCRM domain operations, AI gateway calls, Jira gateway calls, persistence, and audit. Domain/workflow modules remain framework- and cloud-portable. Managed PostgreSQL is the accepted persistence target; the current demo uses a fixture-backed in-memory adapter until persistence is implemented. Long-running extraction, embeddings, bulk synchronization, and retries evolve to external workers/queues.
+The hackathon web tier is a Next.js App Router application deployed to Vercel. The current UI surfaces are the public landing page (`/`), the judge-facing FCRM workbench (`/demo`), and the authenticated Jira experimentation sandbox (`/sandbox`). Server Route Handlers enforce sessions, RBAC, workflow commands, FCRM domain operations, AI gateway calls, Jira gateway calls, persistence, and audit. Domain/workflow modules remain framework- and cloud-portable. Managed PostgreSQL is the accepted persistence target; the current demo uses fixture-backed in-memory adapters for assessment, sessions, Jira connections, and audit until persistence is implemented. Long-running extraction, embeddings, bulk synchronization, and retries evolve to external workers/queues.
 
 ## AI architecture
 
@@ -40,4 +40,4 @@ GitHub is source control; Vercel provides Preview and stable Demo/Production-sha
 
 ## Non-goals and current gaps
 
-This baseline does not claim production IAM, durable persistence, a live regulatory corpus, live Jira OAuth sync, background workers, or a bank-approved deployment. Those are explicitly staged implementation increments, not hidden assumptions.
+This baseline does not claim production IAM, durable persistence, a live regulatory corpus, durable Jira OAuth token custody, linked-initiative reconciliation, background workers, or a bank-approved deployment. The current Jira OAuth connection and sandbox writes are an explicitly bounded synthetic experiment; they are not live FULCRUM risk-state synchronization. These are staged implementation increments, not hidden assumptions. See [Jira sandbox and experimentation surface](jira-sandbox.md).

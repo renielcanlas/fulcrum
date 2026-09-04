@@ -112,6 +112,12 @@ export default function Home() {
           <p className="mt-5 text-xs text-slate-500">
             AI prepares. Deterministic systems explain. Humans decide.
           </p>
+          <a
+            href="/sandbox"
+            className="mt-4 inline-flex text-sm font-bold text-[rgb(9,167,141)] hover:text-[rgb(25,66,71)]"
+          >
+            Explore the Jira sandbox →
+          </a>
         </div>
         <div
           aria-label="Future FULCRUM system diagram or vector video placeholder"
@@ -180,6 +186,13 @@ export default function Home() {
                 "Track grounding, citations, schema validity, human disposition, token use, and what is not yet measured.",
                 "Read evaluation plan",
                 "docs/08-testing/ai-evaluation-framework.md",
+              ],
+              [
+                "07",
+                "Jira sandbox",
+                "Connect a synthetic Jira account, search the fixed FCRM project, and run confirmed JSON experiments without changing FULCRUM decisions.",
+                "Read sandbox guide",
+                "docs/03-architecture/jira-sandbox.md",
               ],
             ].map(([number, title, body, link, href]) => (
               <article
@@ -250,7 +263,7 @@ export default function Home() {
               [
                 "03",
                 "Development",
-                "Built the Next.js/Vercel foundation, synthetic data, governed Ciel copilot, tool contracts, and demo experience.",
+                "Built the Next.js/Vercel foundation, landing page, synthetic data, governed Ciel copilot, tool contracts, demo experience, and Jira sandbox.",
               ],
               [
                 "04",
@@ -266,6 +279,11 @@ export default function Home() {
                 "06",
                 "Operations",
                 "Documented observability, evaluation, failure handling, auditability, and the feedback loop for continuous improvement.",
+              ],
+              [
+                "07",
+                "Jira experimentation",
+                "Added a separate sandbox journey for OAuth connection, fixed-project search, synthetic scenario automation, and controlled cleanup.",
               ],
             ].map(([number, title, body]) => (
               <article

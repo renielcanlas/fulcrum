@@ -16,9 +16,9 @@ See the [architecture baseline](../03-architecture/architecture-baseline.md), [a
 
 ## Stage 03 — Development
 
-We built the Next.js and Vercel foundation, synthetic domain data, the governed Ciel copilot, typed read tools, audit seams, initiative detail screens, Jira integration guidance, and the interactive demo flow.
+We built the Next.js and Vercel foundation, polished landing page, synthetic domain data, the governed Ciel copilot, typed read tools, audit seams, initiative detail screens, Jira integration guidance, and the interactive demo flow. We then added a separate `/sandbox` surface so Jira connectivity and synthetic work-item experiments could be exercised without confusing those experiments with the FULCRUM assessment workflow.
 
-See the [deployment architecture](../09-deployment/vercel-nextjs-deployment.md), [AI orchestration](../05-ai/fcrm-copilot-and-jira-assistant.md), and [Golden Initiative fixture](../../data/demo/golden-initiative.json).
+See the [deployment architecture](../09-deployment/vercel-nextjs-deployment.md), [AI orchestration](../05-ai/fcrm-copilot-and-jira-assistant.md), [Jira sandbox guide](../03-architecture/jira-sandbox.md), and [Golden Initiative fixture](../../data/demo/golden-initiative.json).
 
 ## Stage 04 — Testing
 
@@ -37,6 +37,28 @@ See the [Vercel deployment guide](../09-deployment/vercel-nextjs-deployment.md) 
 We documented the operating model for audit, observability, failure handling, model evaluation, token usage, Jira freshness, and continuous improvement. The next evolution is to replace in-memory demo seams with durable services and production controls.
 
 See the [operations strategy](../10-operations/operations-strategy.md), [failure and observability plan](../09-deployment/failure-observability-scaling.md), and [AI usage methodology](../05-ai/ai-usage-and-hackathon-methodology.md).
+
+## How I use the sandbox
+
+The working journey now has two connected but deliberately separate tracks:
+
+```text
+Landing page → synthetic persona → /demo FCRM workbench → decision trace/Ciel
+                                      \
+                                       → /sandbox → Connect Jira → Search or Automate
+```
+
+1. I start from the landing page and enter through a synthetic persona so the demo identity is explicit.
+2. I use `/demo` to show the FULCRUM decision journey: initiative context, evidence, deterministic risk, Copilot explanation, analyst override, and committee outcome.
+3. I open `/sandbox` when I want to test the Jira connection independently of the assessment decision flow.
+4. I connect the dedicated synthetic Jira account through Atlassian OAuth, then use **Jira search** to inspect normalized work items from the fixed `FCRM` project.
+5. I use **Scenario automator** to inspect a checked-in JSON scenario or paste a custom scenario, confirm it, and watch each Jira step execute in order.
+6. I use the create, comment, transition, assignment, update, and cleanup actions only for synthetic test-account experiments. The cleanup scenario is destructive and is limited to the configured `FCRM` project.
+7. I return to `/demo` to explain FULCRUM’s governed assessment path. Jira activity provides integration context; it does not approve, reject, score, or advance a FULCRUM assessment.
+
+This sandbox makes the integration tangible for the demo while preserving a clear next step: durable connections, explicit linked-initiative selection, reconciliation, freshness, and production write-back governance.
+
+See the [Jira sandbox and experimentation surface](../03-architecture/jira-sandbox.md) for the route-level behavior, synthetic-data rules, and limitations.
 
 ## Future improvements — Jira Forge companion
 

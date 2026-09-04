@@ -9,6 +9,8 @@
 | Secrets | Vercel environment secrets | Enterprise secret manager/KMS |
 | CI/CD | GitHub + Vercel | Enterprise pipeline and approvals |
 | Identity | Demo persona selector | Enterprise SSO/MFA/IAM |
+| Product UI | Landing page, `/demo` FCRM workbench, `/sandbox` Jira experimentation surface | Governed assessment workbench and approved integration/admin surfaces |
+| Jira | Server-side OAuth demo connection; fixed-project search and synthetic sandbox scenarios; in-memory connection store | Durable token vault, explicit site/link selection, read reconciliation, freshness, revocation, observability, and approved write-back only |
 | Audit | Application records/demo store | Immutable governed archive |
 | Logs | Vercel structured logs | Enterprise observability/SIEM |
 | Monitoring | Basic telemetry | SRE/SOC/SIEM operations |

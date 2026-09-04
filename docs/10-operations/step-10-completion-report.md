@@ -21,6 +21,8 @@ Status: **READY WITH FIXES**
 - Tool calls are limited and must target the active assessment.
 - Metrics distinguish measured, simulated, and not measured results.
 - Live Jira, Azure, PostgreSQL, queues, and enterprise identity remain behind adapters or documented production evolution.
+- The presentation increment now includes the landing page, judge-facing `/demo` workbench, and authenticated `/sandbox` Jira experimentation surface.
+- The Jira sandbox supports fixed-project search and explicitly confirmed synthetic test-account scenarios; it is not FULCRUM assessment synchronization.
 
 ## What was implemented
 
@@ -63,16 +65,18 @@ Not measured because external services or labeled datasets are not configured:
 6. Ask whether AI can approve; the governed Copilot refuses.
 7. Review Helen Morgan's conditional committee decision and open conditions.
 
+The current presentation also includes a public landing page and an authenticated Jira sandbox at `/sandbox`. The sandbox can connect through Atlassian OAuth, search the fixed synthetic `FCRM` project, and execute confirmed JSON scenarios against the dedicated test account. These operations are audit-recorded and isolated from FULCRUM assessment state. They do not demonstrate durable synchronization or production Jira write-back governance.
+
 ## Deferred scope
 
-Physical PostgreSQL persistence, live Jira OAuth/sync, Azure adapters, Document Intelligence jobs, production RAG/embeddings, durable orchestration, full Step 6.5 scenario set, write-back agents, autonomous decisions, enterprise identity, and production audit archival are intentionally deferred because they require external resources or are not necessary for the current hackathon vertical slice.
+Physical PostgreSQL persistence, durable Jira OAuth token custody and sync/reconciliation, Azure adapters, Document Intelligence jobs, production RAG/embeddings, durable orchestration, full Step 6.5 scenario set, governed production write-back, autonomous decisions, enterprise identity, and production audit archival are intentionally deferred because they require external resources or are not necessary for the current hackathon vertical slice. The synthetic Jira sandbox and its controlled test-account mutations are implemented.
 
 ## Known risks
 
 - In-memory repository and sessions are not reliable as durable Vercel production state.
 - Current live provider path is OpenAI-compatible; Azure AI Foundry remains the documented target adapter.
 - Retrieval and document extraction quality cannot be claimed until labeled corpora and services are configured.
-- The UI currently demonstrates read-oriented Copilot/trace behavior more fully than mutation workflows.
+- The FCRM UI demonstrates read-oriented Copilot/trace behavior more fully than mutation workflows; Jira mutation experiments are isolated to the sandbox.
 
 ## Judging rubric coverage
 

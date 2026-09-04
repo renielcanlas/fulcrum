@@ -15,7 +15,7 @@ INTAKE → UNDERSTAND → EXTRACT → RESEARCH → DECOMPOSE RISK → SCORE
 
 FULCRUM does not automatically approve or reject changes. AI retrieves, extracts, explains, compares, drafts, and challenges. Deterministic services calculate governed outputs. Authorized FCRM analysts and Risk Committee members retain decision authority.
 
-This is a Next.js App Router application designed for deployment to Vercel. The current increment is a working Copilot foundation; durable production persistence and live enterprise integrations remain on the roadmap.
+This is a Next.js App Router application designed for deployment to Vercel. The current increment includes a polished landing page, a judge-facing FCRM demo workbench, a governed Copilot foundation, and a separate Jira experimentation sandbox. Durable production persistence and full enterprise synchronization remain on the roadmap.
 
 ## The canonical demo
 
@@ -114,7 +114,7 @@ The model cannot approve, reject, vote, change a rating, change scoring rules, b
 
 Jira is the system of record for the underlying business initiative and collaboration artifacts. FULCRUM references that context and remains the system of record for the FCRM assessment and decision lineage.
 
-The planned integration uses server-side Atlassian OAuth 2.0 3LO with narrow scopes. The browser never receives Jira or AI-provider credentials. FULCRUM retrieves only explicitly linked, permission-checked Jira initiatives and stores stable references, selected metadata, and provenance/freshness information; it does not mirror the full Jira issue model.
+The implemented demo connection uses server-side Atlassian OAuth 2.0 3LO. The browser never receives Jira or AI-provider credentials. The current sandbox can search the configured synthetic `FCRM` project and run explicitly confirmed JSON scenarios against that project. This proves the connection and adapter boundary; it is not yet the governed linked-initiative synchronization path.
 
 ```text
 User → FULCRUM backend → JiraAdapter → Jira Cloud REST API
@@ -124,11 +124,18 @@ User → FULCRUM backend → JiraAdapter → Jira Cloud REST API
 
 Jira webhooks trigger reconciliation; they do not directly change FULCRUM risk state. See [Jira OAuth integration](docs/03-architecture/jira-oauth-integration.md) and [ADR-002](docs/11-decisions/ADR-002-jira-oauth-integration.md).
 
+See the [Jira sandbox guide](docs/03-architecture/jira-sandbox.md) for the available experiments, route boundary, synthetic-data rules, and current limitations.
+
 ## Current demo
 
 The repository currently contains the architecture foundation and the first executable Copilot increment:
 
+- public product landing page at `/`
+- judge-facing FCRM workbench at `/demo`
 - embedded chat page for an assessment workspace
+- Jira experimentation sandbox at `/sandbox`
+- live Jira OAuth connection and status flow when Atlassian environment variables are configured
+- fixed-project Jira search and sequential JSON scenario automation for synthetic work items
 - active assessment context (`FA-2026-00124`)
 - typed backend tools over a demo governed repository
 - FCRM Analyst and Product Owner authorization checks
@@ -140,7 +147,7 @@ The repository currently contains the architecture foundation and the first exec
 - AI interaction audit records
 - tests proving tool execution, access isolation, and decision non-mutation
 
-The broader assessment application, persistent datastore, live Jira OAuth connection, and production knowledge corpus are staged for subsequent increments.
+The broader assessment workflow, persistent datastore, durable Jira connection/sync services, and production knowledge corpus are staged for subsequent increments.
 
 ## Run it locally
 
@@ -173,6 +180,28 @@ AZURE_AI_FOUNDRY_FAST_DEPLOYMENT=your-fast-deployment PORT=3000 npm start
 ```
 
 Credentials are read by the backend only and must never be committed.
+
+For the Jira sandbox, configure the server-side Atlassian OAuth values in `.env`:
+
+```bash
+ATLASSIAN_CLIENT_ID=your-atlassian-client-id
+ATLASSIAN_CLIENT_SECRET=your-atlassian-client-secret
+ATLASSIAN_REDIRECT_URI=http://localhost:3000/api/jira/callback
+JIRA_CLOUD_ID=optional-fixed-cloud-id
+JIRA_SITE_URL=https://your-site.atlassian.net
+```
+
+The Atlassian app redirect URL must match `ATLASSIAN_REDIRECT_URI`. `JIRA_CLOUD_ID` is optional locally; when omitted, the callback selects the first accessible Jira site. The sandbox project is fixed to `FCRM` by `data/config/jira-integration.json`.
+
+## Jira sandbox walkthrough
+
+1. Start the app with `npm run dev` and enter the synthetic demo through the landing page.
+2. Open `/sandbox` and select **Connect Jira** when Atlassian OAuth configuration is available.
+3. Use **Jira search** to query the fixed `FCRM` project.
+4. Use **Scenario automator** to inspect a checked-in scenario or paste custom JSON, then confirm execution.
+5. Use only the dedicated synthetic Jira account. The cleanup scenario permanently deletes all work items returned from the `FCRM` project search.
+
+The sandbox is an integration experiment and does not create, approve, reject, or otherwise mutate FULCRUM assessment state.
 
 ## Judge walkthrough
 
@@ -223,6 +252,7 @@ Start here:
 - [Physical schema scope](docs/04-domain/physical-schema-scope.md)
 - [Golden fixture mapping](docs/04-domain/golden-fixture-mapping.md)
 - [Jira/FULCRUM data authority ADR](docs/11-decisions/ADR-028-jira-fulcrum-data-authority.md)
+- [Jira sandbox and experimentation surface](docs/03-architecture/jira-sandbox.md)
 - [Data model resolution ADR](docs/11-decisions/ADR-029-data-model-resolution.md)
 - [Canonical golden fixture](data/demo/golden-initiative.json)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)
@@ -255,13 +285,15 @@ Start here:
 
 ## Delivery roadmap
 
-1. **Copilot foundation — current:** embedded UI, backend orchestration, typed read tools, demo context, authorization, and audit.
-2. **Workflow foundation — current:** centralized state machine, explicit human gates, immutable event intent, conditions, and reassessment/versioning paths.
-3. **Deployment foundation — current:** Next.js App Router, Vercel-compatible route handlers, build scripts, and environment configuration. Durable persistence and Vercel Preview deployment remain next.
-4. **Governed knowledge:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
-5. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
-6. **Jira Cloud connection:** OAuth 2.0 3LO, token vault, linked-initiative sync, reconciliation, and integration observability.
-7. **Production-shaped delivery:** deployment controls, operational runbooks, security testing, regression gates, and model/provider evaluation.
+1. **Presentation foundation — current:** public landing page, judge-facing FCRM workbench, synthetic persona entry, decision trace, and embedded Copilot.
+2. **Copilot foundation — current:** backend orchestration, typed read tools, demo context, authorization, and audit.
+3. **Jira experimentation — current:** server-side OAuth connection, fixed-project search, and explicitly confirmed JSON scenario automation for synthetic work items.
+4. **Workflow foundation — current:** centralized state machine, explicit human gates, immutable event intent, conditions, and reassessment/versioning paths.
+5. **Deployment foundation — current:** Next.js App Router, Vercel-compatible route handlers, build scripts, and environment configuration. Durable persistence and Vercel Preview deployment remain next.
+6. **Governed knowledge:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
+7. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
+8. **Governed Jira synchronization:** token vault, explicit linked-initiative selection, read reconciliation, freshness/provenance, and integration observability.
+9. **Production-shaped delivery:** deployment controls, operational runbooks, security testing, regression gates, and model/provider evaluation.
 
 ## Design decisions and guardrails
 
