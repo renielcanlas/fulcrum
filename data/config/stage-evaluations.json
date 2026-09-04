@@ -1,0 +1,61 @@
+{
+  "version": "stage-evaluations-v1",
+  "stages": {
+    "Intake": {
+      "title": "Intake completeness",
+      "recommendationThresholds": { "proceed": 80 },
+      "checks": [
+        {"id":"project","label":"FCRM project","weight":10,"kind":"equals","path":"projectKey","value":"FCRM","failure":"Work item is outside the FCRM project."},
+        {"id":"summary","label":"Clear summary","weight":15,"kind":"textLength","path":"summary","full":20,"partial":8,"failure":"Add a clear summary describing the requested change."},
+        {"id":"description","label":"Business context","weight":30,"kind":"textLength","path":"description","full":160,"partial":60,"failure":"Add business context, scope, and the intended outcome."},
+        {"id":"assignee","label":"Named owner","weight":15,"kind":"present","path":"assignee","failure":"Assign an accountable owner."},
+        {"id":"labels","label":"Useful classification","weight":10,"kind":"arrayMin","path":"labels","minimum":1,"failure":"Add at least one classification label."},
+        {"id":"collaboration","label":"Collaboration context","weight":20,"kind":"commentMin","path":"comments","minimum":1,"failure":"Add a non-FULCRUM Jira comment with initial context or questions."}
+      ]
+    },
+    "Context and Research": {
+      "title": "Context and research readiness",
+      "recommendationThresholds": {"proceed":75},
+      "checks": [
+        {"id":"description","label":"Research scope","weight":25,"kind":"textLength","path":"description","full":240,"partial":100,"failure":"Describe the scope, affected users, constraints, and research questions."},
+        {"id":"assignee","label":"Research owner","weight":15,"kind":"present","path":"assignee","failure":"Assign an owner for research and context gathering."},
+        {"id":"comments","label":"Research discussion","weight":25,"kind":"commentMin","path":"comments","minimum":2,"failure":"Add at least two collaboration comments documenting research context."},
+        {"id":"labels","label":"Research classification","weight":15,"kind":"arrayMin","path":"labels","minimum":2,"failure":"Add at least two labels describing the work."},
+        {"id":"summary","label":"Specific objective","weight":20,"kind":"textLength","path":"summary","full":30,"partial":15,"failure":"Make the objective specific enough to guide research."}
+      ]
+    },
+    "Risk Assessment": {
+      "title": "Risk assessment readiness",
+      "recommendationThresholds": {"proceed":75},
+      "checks": [
+        {"id":"description","label":"Risk-relevant context","weight":30,"kind":"textLength","path":"description","full":240,"partial":120,"failure":"Document the product change, users, geographies, data, and operational impact."},
+        {"id":"assignee","label":"Named risk owner","weight":15,"kind":"present","path":"assignee","failure":"Assign a named risk owner."},
+        {"id":"comments","label":"Risk discussion","weight":25,"kind":"commentMin","path":"comments","minimum":3,"failure":"Capture at least three collaboration comments supporting the risk review."},
+        {"id":"labels","label":"Risk classification","weight":15,"kind":"arrayMin","path":"labels","minimum":2,"failure":"Add labels that identify the relevant risk domains."},
+        {"id":"priority","label":"Prioritized work","weight":15,"kind":"present","path":"priority","failure":"Set a Jira priority before risk assessment."}
+      ]
+    },
+    "Review": {
+      "title": "Analyst review readiness",
+      "recommendationThresholds": {"proceed":75},
+      "checks": [
+        {"id":"description","label":"Complete review context","weight":25,"kind":"textLength","path":"description","full":240,"partial":120,"failure":"Ensure the issue description contains the complete decision context."},
+        {"id":"assignee","label":"Review owner","weight":20,"kind":"present","path":"assignee","failure":"Assign the accountable reviewer."},
+        {"id":"comments","label":"Review evidence","weight":30,"kind":"commentMin","path":"comments","minimum":4,"failure":"Record enough collaboration context for an informed review."},
+        {"id":"priority","label":"Review priority","weight":10,"kind":"present","path":"priority","failure":"Set a Jira priority."},
+        {"id":"labels","label":"Review classification","weight":15,"kind":"arrayMin","path":"labels","minimum":2,"failure":"Maintain useful classification labels."}
+      ]
+    },
+    "Decision": {
+      "title": "Decision readiness",
+      "recommendationThresholds": {"proceed":75},
+      "checks": [
+        {"id":"description","label":"Decision context","weight":25,"kind":"textLength","path":"description","full":240,"partial":120,"failure":"Provide the complete context needed for a decision."},
+        {"id":"assignee","label":"Decision owner","weight":15,"kind":"present","path":"assignee","failure":"Assign the accountable decision owner."},
+        {"id":"comments","label":"Decision discussion","weight":35,"kind":"commentMin","path":"comments","minimum":4,"failure":"Capture the discussion and open questions supporting the decision."},
+        {"id":"priority","label":"Prioritized decision","weight":10,"kind":"present","path":"priority","failure":"Set a Jira priority."},
+        {"id":"labels","label":"Decision classification","weight":15,"kind":"arrayMin","path":"labels","minimum":2,"failure":"Maintain useful classification labels."}
+      ]
+    }
+  }
+}

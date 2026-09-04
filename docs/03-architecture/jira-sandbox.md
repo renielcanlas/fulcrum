@@ -29,6 +29,8 @@ The checked-in scenarios demonstrate creating an initiative, provisioning a synt
 
 Intake is the first stage-gated FULCRUM evaluation. The work-item page offers **Evaluate Intake** only while the Jira status is `Intake` and no FULCRUM Intake evaluation marker is present. The deterministic evaluator checks project, summary, description, issue type, owner, classification labels, and initial collaboration context. Each check has a configurable weight and produces a pass, partial, or fail result. A score of 80 or more recommends `Proceed`; otherwise the recommendation is `Hold for remediation`.
 
+The same evaluation flow now applies to `Context and Research`, `Risk Assessment`, `Review`, and `Decision`. Stage-specific weighted checks and proceed thresholds live in [`data/config/stage-evaluations.json`](../../data/config/stage-evaluations.json). Evaluations are computed deterministically from the live Jira work item, published explicitly as versioned Jira comments by `fulcrum-bot`, and can recommend—but never silently perform—the next workflow transition. A user must be the current Jira assignee to see and confirm the move action.
+
 The assessment remains in Jira for this increment. Publishing adds a human-readable comment plus a machine-readable marker and JSON payload. After publication, a `Proceed` recommendation asks the user whether to transition the item to `Context and Research`. The transition is explicit, uses the service account, and is followed by a fresh Jira read so the page reflects the new status. No database persistence is required yet.
 
 ## AI scenario builder

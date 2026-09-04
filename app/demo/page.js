@@ -205,7 +205,11 @@ export default function DemoPage() {
       const response = await fetch("/api/jira/assessment", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "assess", issueKey: activeIssueKey }),
+        body: JSON.stringify({
+          action: "assess",
+          issueKey: activeIssueKey,
+          stage: selectedWorkItem?.statusName,
+        }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -213,7 +217,7 @@ export default function DemoPage() {
       setIntakeAssessment((current) => ({
         ...(current ?? {}),
         issueKey: activeIssueKey,
-        stage: "Intake",
+          stage: selectedWorkItem?.statusName,
         assessment: data.assessment,
       }));
     } catch (error) {
@@ -234,6 +238,7 @@ export default function DemoPage() {
         body: JSON.stringify({
           action: "publish",
           issueKey: activeIssueKey,
+          stage: selectedWorkItem?.statusName,
           assessment: intakeAssessment.assessment,
         }),
       });
@@ -261,6 +266,7 @@ export default function DemoPage() {
         body: JSON.stringify({
           action: "transition",
           issueKey: activeIssueKey,
+          stage: selectedWorkItem?.statusName,
         }),
       });
       const data = await response.json();
@@ -1410,7 +1416,9 @@ function IntakeAssessmentPanel({
 }) {
   const [selectedVersion, setSelectedVersion] = useState(0);
   useEffect(() => setSelectedVersion(0), [item?.key]);
-  if (item?.statusName !== "Intake") return null;
+  const nextStages = {Intake: "Context and Research", "Context and Research": "Risk Assessment", "Risk Assessment": "Review", Review: "Decision"};
+  const stage = item?.statusName;
+  if (!stage || !nextStages[stage]) return null;
   const canAdvance = Boolean(
     item.assigneeAccountId &&
     currentUser?.jiraIdentity?.jiraAccountId === item.assigneeAccountId,
@@ -1431,9 +1439,9 @@ function IntakeAssessmentPanel({
           <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
             FULCRUM evaluation
           </p>
-          <h3 className="mt-1 text-lg font-bold text-[#102f33]">Intake</h3>
+          <h3 className="mt-1 text-lg font-bold text-[#102f33]">{stage}</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Check whether this Jira item has enough context to begin fulcrum checks.
+            Evaluate whether this Jira item is ready to proceed to the next stage.
           </p>
         </div>
         {published && !draft && (
@@ -1459,7 +1467,7 @@ function IntakeAssessmentPanel({
           disabled={assessmentBusy}
           className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
         >
-          {assessmentBusy ? "Evaluating Intake…" : "Evaluate Intake"}
+          {assessmentBusy ? "Evaluating " + stage + "…" : "Evaluate " + stage}
         </button>
       ) : (
         <>
@@ -1566,7 +1574,7 @@ function IntakeAssessmentPanel({
                 disabled={assessmentBusy}
                 className="cursor-pointer rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] disabled:cursor-wait disabled:opacity-40"
               >
-                {assessmentBusy ? "Re-evaluate Intake…" : "Re-evaluate Intake"}
+                {assessmentBusy ? "Re-evaluating " + stage + "…" : "Re-evaluate " + stage}
               </button>
               {canAdvance && (
                 <span className="text-xs text-slate-500">
@@ -1582,15 +1590,15 @@ function IntakeAssessmentPanel({
               disabled={assessmentBusy}
               className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
             >
-              Move to Context and Research
+              Move to {nextStages[stage]}
             </button>
           )}
         </>
       )}
       {transitionOffer && canMove && (
         <div className="mt-4 rounded-lg border border-[#b9e4d1] bg-white p-4 text-sm text-slate-700">
-          <strong>Assessment published.</strong> It recommends proceeding to
-          Context and Research. Would you like to move this Jira item now?
+          <strong>Assessment published.</strong> It recommends proceeding to&nbsp;
+            <strong>{nextStages[stage]}</strong>. Would you like to move this Jira item now?
           <div className="mt-3 flex gap-2">
             <button
               type="button"
@@ -1620,7 +1628,22 @@ function IntakeAssessmentPanel({
 }
 
 function PreviousAssessmentSummary({ item, intakeAssessment }) {
-  const history = intakeAssessment?.allHistory ?? [];
+  const latestByStage = new Map();
+  for (const evaluation of intakeAssessment?.allHistory ?? []) {
+    const stage = evaluation.stage ?? "Assessment";
+    if (!latestByStage.has(stage)) latestByStage.set(stage, evaluation);
+  }
+  const stageOrder = [
+    "Intake",
+    "Context and Research",
+    "Risk Assessment",
+    "Review",
+    "Decision",
+  ];
+  const history = [...latestByStage.values()].sort(
+    (left, right) =>
+      stageOrder.indexOf(left.stage) - stageOrder.indexOf(right.stage),
+  );
   if (item?.statusName === "Intake" || history.length === 0) return null;
   return (
     <section
