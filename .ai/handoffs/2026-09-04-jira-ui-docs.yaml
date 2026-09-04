@@ -12,6 +12,7 @@ files_changed:
   - "docs/00-context/hackathon-journey.md"
   - "docs/00-context/personas-and-journeys.md"
   - "app/page.js"
+  - "app/sandbox/page.js"
 artifacts_changed: []
 decisions:
   - "Document the Jira sandbox as a bounded synthetic integration experiment, separate from FULCRUM assessment authority and workflow."
@@ -29,6 +30,7 @@ tests_performed:
   - "Scenario execution route now returns structured errors for Jira/network failures"
   - "Localized Jira workflow transition aliases covered for Review → 审查"
   - ".github/agents/jira-sandbox-scenario-builder.agent.md updated for service-account auth, localized transitions, and cleanup permission prerequisites"
+  - "Sandbox custom scenario UI now includes a JSON editor and non-functional AI scenario assistant placeholder"
 known_risks:
   - "Jira connections, sessions, and audit records are currently in-memory."
   - "The cleanup scenario permanently deletes all work items returned by the fixed FCRM project search."
