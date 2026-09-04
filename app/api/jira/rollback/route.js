@@ -1,6 +1,6 @@
-import {deleteJiraWorkItem, jiraErrorStatus} from "../../../../../src/integrations/jira.js";
-import {runtime} from "../../../../../src/server/runtime.js";
-import {resolveJiraConnection} from "../../../../../src/integrations/jira-connection.js";
+import {deleteJiraWorkItem, jiraErrorStatus} from "../../../../src/integrations/jira.js";
+import {runtime} from "../../../../src/server/runtime.js";
+import {resolveJiraConnection} from "../../../../src/integrations/jira-connection.js";
 
 export async function POST(request) {
   try {

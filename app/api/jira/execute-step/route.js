@@ -1,8 +1,8 @@
-import {commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, jiraErrorStatus, transitionJiraWorkItem, updateJiraWorkItem} from "../../../../../src/integrations/jira.js";
-import {runtime} from "../../../../../src/server/runtime.js";
-import {JIRA_PROJECT_KEY} from "../../../../../src/integrations/jira-config.js";
-import {resolveJiraConnection} from "../../../../../src/integrations/jira-connection.js";
-import {findDemoUser} from "../../../../../src/auth/demo-users.js";
+import {commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, jiraErrorStatus, transitionJiraWorkItem, updateJiraWorkItem} from "../../../../src/integrations/jira.js";
+import {runtime} from "../../../../src/server/runtime.js";
+import {JIRA_PROJECT_KEY} from "../../../../src/integrations/jira-config.js";
+import {resolveJiraConnection} from "../../../../src/integrations/jira-connection.js";
+import {findDemoUser} from "../../../../src/auth/demo-users.js";
 
 const SANDBOX_ACTOR_ID = "fulcrum-sandbox";
 const ACTION_ALIASES = {create_issue: "create", add_comment: "comment", move: "transition", delete_all_issues: "delete_all"};

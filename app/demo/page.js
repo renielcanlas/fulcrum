@@ -87,7 +87,7 @@ export default function DemoPage() {
   }, [messages, chatReady]);
 
   useEffect(() => {
-    fetch("/api/sandbox/jira")
+    fetch("/api/jira")
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "jira_board_load_failed");
@@ -108,7 +108,7 @@ export default function DemoPage() {
     const issueKey = new URLSearchParams(window.location.search).get("issue");
     setActiveIssueKey(issueKey ?? "");
     if (activeView !== "work-item" || !issueKey) return;
-    fetch(`/api/sandbox/jira?issue=${encodeURIComponent(issueKey)}`)
+    fetch(`/api/jira?issue=${encodeURIComponent(issueKey)}`)
       .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "jira_work_item_load_failed"); if (!data.item) throw new Error("work_item_not_found"); setSelectedWorkItem(data.item); })
       .catch((error) => setSelectedWorkItem({error: error.message ?? "jira_work_item_load_failed"}));
   }, [activeView]);

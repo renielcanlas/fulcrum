@@ -1,4 +1,4 @@
-import {validateJiraScenario} from "../../../../../src/integrations/jira-scenario.js";
+import {validateJiraScenario} from "../../../../src/integrations/jira-scenario.js";
 
 export async function POST(request) {
   try {

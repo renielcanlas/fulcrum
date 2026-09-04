@@ -1,7 +1,7 @@
-import {fetchJiraWorkItems, getJiraWorkItem} from "../../../../src/integrations/jira.js";
-import {runtime} from "../../../../src/server/runtime.js";
-import {JIRA_PROJECT_KEY} from "../../../../src/integrations/jira-config.js";
-import {resolveJiraConnection} from "../../../../src/integrations/jira-connection.js";
+import {fetchJiraWorkItems, getJiraWorkItem} from "../../../src/integrations/jira.js";
+import {runtime} from "../../../src/server/runtime.js";
+import {JIRA_PROJECT_KEY} from "../../../src/integrations/jira-config.js";
+import {resolveJiraConnection} from "../../../src/integrations/jira-connection.js";
 
 const SANDBOX_ACTOR_ID = "fulcrum-sandbox";
 

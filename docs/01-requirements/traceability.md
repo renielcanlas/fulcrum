@@ -7,7 +7,7 @@ The authoritative matrix is maintained as implementation begins. Required column
 | Requirement | User-facing evidence | Implementation | Tests | Status |
 |---|---|---|---|---|
 | REQ-016 | Connect Jira from `/sandbox`; server-side OAuth callback and status | `app/api/jira/connect/route.js`, `app/api/jira/callback/route.js`, `app/api/jira/status/route.js`, `src/integrations/jira-oauth.js` | `test/jira-oauth.test.js`, `test/security.test.js` | Demo connection implemented; durable custody/revocation deferred |
-| REQ-017 | Search fixed `FCRM` project and run bounded Jira experiments | `app/api/sandbox/jira/route.js`, `app/api/sandbox/jira/execute-step/route.js`, `src/integrations/jira.js`, `data/sandbox/` | `test/jira-sandbox.test.js` | Sandbox adapter implemented; governed sync/reconciliation deferred |
+| REQ-017 | Search fixed `FCRM` project and run bounded Jira experiments | `app/api/jira/route.js`, `app/api/jira/execute-step/route.js`, `src/integrations/jira.js`, `data/sandbox/` | `test/jira-sandbox.test.js` | Jira adapter has its own API boundary; governed sync/reconciliation deferred |
 | REQ-025 | Synthetic persona entry to `/demo` and `/sandbox` | `app/page.js`, `app/api/session/route.js`, `app/sandbox/page.js` | `test/security.test.js` | Implemented for demo only |
 | REQ-026/027 | Session gate, backend-only credentials, audit events for Jira actions | Sandbox route handlers and `src/audit/audit.js` | `test/security.test.js`, `test/jira-sandbox.test.js` | Implemented for current demo boundary |
 | REQ-028 | Next.js App Router landing, demo, and sandbox surfaces | `app/page.js`, `app/demo/page.js`, `app/sandbox/page.js` | `npm run build` | Implemented locally; durable deployment state deferred |

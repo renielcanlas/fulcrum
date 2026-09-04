@@ -1,8 +1,8 @@
-import {createJiraWorkItem} from "../../../../../src/integrations/jira.js";
-import {jiraErrorStatus} from "../../../../../src/integrations/jira.js";
-import {runtime} from "../../../../../src/server/runtime.js";
-import {JIRA_PROJECT_KEY} from "../../../../../src/integrations/jira-config.js";
-import {resolveJiraConnection} from "../../../../../src/integrations/jira-connection.js";
+import {createJiraWorkItem} from "../../../../src/integrations/jira.js";
+import {jiraErrorStatus} from "../../../../src/integrations/jira.js";
+import {runtime} from "../../../../src/server/runtime.js";
+import {JIRA_PROJECT_KEY} from "../../../../src/integrations/jira-config.js";
+import {resolveJiraConnection} from "../../../../src/integrations/jira-connection.js";
 
 const SANDBOX_ACTOR_ID = "fulcrum-sandbox";
 
