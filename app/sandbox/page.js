@@ -372,6 +372,8 @@ export default function SandboxPage() {
                 setCustomJson={setCustomJson}
                 aiPrompt={aiPrompt}
                 setAiPrompt={setAiPrompt}
+                scenarioResponseId={scenarioResponseId}
+                setScenarioResponseId={setScenarioResponseId}
                 tab={tab}
                 setTab={setTab}
                 connection={connection}
@@ -510,6 +512,8 @@ function Automator({
   setCustomJson,
   aiPrompt,
   setAiPrompt,
+  scenarioResponseId,
+  setScenarioResponseId,
   tab,
   setTab,
   connection,
