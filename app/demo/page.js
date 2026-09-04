@@ -1424,16 +1424,16 @@ function IntakeAssessmentPanel({
   return (
     <section
       className="mt-8 rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] p-5"
-      aria-label="FULCRUM Intake assessment"
+      aria-label="FULCRUM Intake evaluation"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
-            FULCRUM assessment
+            FULCRUM evaluation
           </p>
           <h3 className="mt-1 text-lg font-bold text-[#102f33]">Intake</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Check whether this Jira item has enough context to begin assessment.
+            Check whether this Jira item has enough context to begin fulcrum checks.
           </p>
         </div>
         {published && !draft && (
@@ -1459,7 +1459,7 @@ function IntakeAssessmentPanel({
           disabled={assessmentBusy}
           className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
         >
-          {assessmentBusy ? "Assessing Intake…" : "Assess Intake"}
+          {assessmentBusy ? "Evaluating Intake…" : "Evaluate Intake"}
         </button>
       ) : (
         <>
@@ -1528,7 +1528,7 @@ function IntakeAssessmentPanel({
           {history.length > 1 && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-400">
-                Previous assessments
+                Previous Evaluations
               </span>
               {history.map((version, index) => (
                 <button
@@ -1552,7 +1552,7 @@ function IntakeAssessmentPanel({
                 disabled={assessmentBusy}
                 className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
               >
-                {assessmentBusy ? "Publishing…" : "Publish assessment to Jira"}
+                {assessmentBusy ? "Publishing…" : "Publish evaluation to Jira"}
               </button>
               <span className="text-xs text-slate-500">
                 Publishing uses Fulcrum’s service account.
@@ -1566,7 +1566,7 @@ function IntakeAssessmentPanel({
                 disabled={assessmentBusy}
                 className="cursor-pointer rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] disabled:cursor-wait disabled:opacity-40"
               >
-                {assessmentBusy ? "Reassessing…" : "Reassess Intake"}
+                {assessmentBusy ? "Re-evaluate Intake…" : "Re-evaluate Intake"}
               </button>
               {canAdvance && (
                 <span className="text-xs text-slate-500">
@@ -1625,12 +1625,12 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
   return (
     <section
       className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4"
-      aria-label="Previous Fulcrum assessments"
+      aria-label="Previous Fulcrum evaluations"
     >
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-            Assessment history
+            Evaluation history
           </p>
           <h3 className="mt-1 text-base font-bold text-[#102f33]">
             Previous stage summaries

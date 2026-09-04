@@ -21,13 +21,13 @@ The sandbox is scoped to the configured `FCRM` Jira project (`data/config/jira-i
 - AI scenario builder: describe a synthetic experiment, receive an initial JSON draft immediately, then allow deterministic validation and a bounded Azure AI refinement pass to improve it before execution.
 - Persona-code assignment: scenarios use readable codes such as `analyst-7` or `committee-1`; the server resolves those codes to verified Atlassian account IDs immediately before Jira assignment.
 - Preflight preview: the sandbox validates the complete scenario before Jira mutation and shows step-level status, warnings, and errors in the confirmation dialog.
-- Intake assessment: an Intake-stage work item can be assessed against the checked-in weighted configuration in [`data/config/intake-assessment.json`](../../data/config/intake-assessment.json). The result is reviewable in the work-item view and, after explicit confirmation, published as a structured Jira comment by the FULCRUM service account.
+- Intake evaluation: an Intake-stage work item can be evaluated against the checked-in weighted configuration in [`data/config/intake-assessment.json`](../../data/config/intake-assessment.json). The result is reviewable in the work-item view and, after explicit confirmation, published as a structured Jira comment by the FULCRUM service account.
 
 The checked-in scenarios demonstrate creating an initiative, provisioning a synthetic FCRM board, and cleaning up FCRM test work items. Scenario files are data, not executable JavaScript; unsupported actions fail at the server boundary. Cleanup remains available as an explicit scenario, but the AI builder does not generate destructive cleanup steps automatically.
 
-## Intake assessment increment
+## Intake evaluation increment
 
-Intake is the first stage-gated FULCRUM assessment. The work-item page offers **Assess Intake** only while the Jira status is `Intake` and no FULCRUM Intake assessment marker is present. The deterministic evaluator checks project, summary, description, issue type, owner, classification labels, and initial collaboration context. Each check has a configurable weight and produces a pass, partial, or fail result. A score of 80 or more recommends `Proceed`; otherwise the recommendation is `Hold for remediation`.
+Intake is the first stage-gated FULCRUM evaluation. The work-item page offers **Evaluate Intake** only while the Jira status is `Intake` and no FULCRUM Intake evaluation marker is present. The deterministic evaluator checks project, summary, description, issue type, owner, classification labels, and initial collaboration context. Each check has a configurable weight and produces a pass, partial, or fail result. A score of 80 or more recommends `Proceed`; otherwise the recommendation is `Hold for remediation`.
 
 The assessment remains in Jira for this increment. Publishing adds a human-readable comment plus a machine-readable marker and JSON payload. After publication, a `Proceed` recommendation asks the user whether to transition the item to `Context and Research`. The transition is explicit, uses the service account, and is followed by a fresh Jira read so the page reflects the new status. No database persistence is required yet.
 

@@ -136,7 +136,7 @@ The repository currently contains the architecture foundation and the first exec
 - Jira experimentation sandbox at `/sandbox`
 - live Jira OAuth connection and status flow when Atlassian environment variables are configured
 - fixed-project Jira search and sequential JSON scenario automation for synthetic work items
-- first-stage Intake assessment with configurable weighted checks, Jira-only publication, and explicit next-stage transition confirmation
+- first-stage Intake evaluation with configurable weighted checks, Jira-only publication, and explicit next-stage transition confirmation
 - active assessment context (`FA-2026-00124`)
 - typed backend tools over a demo governed repository
 - FCRM Analyst and Product Owner authorization checks
