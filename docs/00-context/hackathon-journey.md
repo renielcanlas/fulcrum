@@ -51,14 +51,15 @@ Landing page → synthetic persona → /demo FCRM workbench → decision trace/C
 1. I start from the landing page and enter through a synthetic persona so the demo identity is explicit.
 2. I use `/demo` to show the FULCRUM decision journey: initiative context, evidence, deterministic risk, Copilot explanation, analyst override, and committee outcome.
 3. I open `/sandbox` in a new browser tab when I want to test the Jira connection independently of the assessment decision flow; the sandbox authenticates to Jira with the server-side service account, so the active FULCRUM demo remains available.
-4. I connect the dedicated synthetic Jira account through Atlassian OAuth, then use **Jira search** to inspect normalized work items from the fixed `FCRM` project.
-5. I use **Scenario automator** to inspect a checked-in JSON scenario or paste a custom scenario, confirm it, and watch each Jira step execute in order.
-6. I use the create, comment, transition, assignment, update, and cleanup actions only for synthetic test-account experiments. The cleanup scenario is destructive and is limited to the configured `FCRM` project.
-7. I return to `/demo` to explain FULCRUM’s governed assessment path. Jira activity provides integration context; it does not approve, reject, score, or advance a FULCRUM assessment.
+4. I use the service-account connection status and **Jira search** to inspect normalized work items from the fixed `FCRM` project.
+5. I use **Scenario automator** to inspect a checked-in JSON scenario, import/paste custom JSON, or ask the AI scenario builder for a synthetic draft.
+6. I review the initial AI JSON immediately, watch deterministic validation and bounded AI refinement, then confirm the preflight preview before Jira changes execute.
+7. I use the create, comment, transition, assignment, update, and cleanup actions only for synthetic test-account experiments. The cleanup scenario is destructive and is limited to the configured `FCRM` project; AI does not generate cleanup steps.
+8. I return to `/demo` to explain FULCRUM’s governed assessment path. Jira activity provides integration context; it does not approve, reject, score, or advance a FULCRUM assessment.
 
 This sandbox makes the integration tangible for the demo while preserving a clear next step: durable connections, explicit linked-initiative selection, reconciliation, freshness, and production write-back governance.
 
-See the [Jira sandbox and experimentation surface](../03-architecture/jira-sandbox.md) for the route-level behavior, synthetic-data rules, and limitations.
+See the [Jira sandbox and experimentation surface](../03-architecture/jira-sandbox.md) and [Jira sandbox user guide](../03-architecture/jira-sandbox-user-guide.md) for the route-level behavior, AI builder, validation, synthetic-data rules, and limitations.
 
 ## Future improvements — Jira Forge companion
 

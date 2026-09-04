@@ -4,6 +4,7 @@ requirements: ["REQ-016", "REQ-017", "REQ-025", "REQ-026", "REQ-027", "REQ-028"]
 files_changed:
   - "README.md"
   - "docs/03-architecture/jira-sandbox.md"
+  - "docs/03-architecture/jira-sandbox-user-guide.md"
   - "docs/03-architecture/architecture-baseline.md"
   - "docs/03-architecture/workflow-and-integrations.md"
   - "docs/09-deployment/demo-production-matrix.md"
@@ -30,7 +31,7 @@ tests_performed:
   - "Scenario execution route now returns structured errors for Jira/network failures"
   - "Localized Jira workflow transition aliases covered for Review → 审查"
   - ".github/agents/jira-sandbox-scenario-builder.agent.md updated for service-account auth, localized transitions, and cleanup permission prerequisites"
-  - "Sandbox custom scenario UI now includes a JSON editor and non-functional AI scenario assistant placeholder"
+  - "Sandbox custom scenario UI includes AI generation, immediate draft display, deterministic preflight validation, bounded Azure refinement, import/save/clear controls, and execution feedback"
 known_risks:
   - "Jira connections, sessions, and audit records are currently in-memory."
   - "The cleanup scenario permanently deletes all work items returned by the fixed FCRM project search."

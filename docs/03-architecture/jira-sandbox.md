@@ -18,8 +18,26 @@ The sandbox is scoped to the configured `FCRM` Jira project (`data/config/jira-i
 - Step-by-step scenario execution with explicit confirmation and visible progress.
 - Synthetic Jira work-item operations: create, update, transition, assign, comment, and delete all work items matched in the fixed `FCRM` project.
 - Custom JSON scenarios for experimentation, validated in the browser and constrained by the server-side action allowlist and fixed project boundary.
+- AI scenario builder: describe a synthetic experiment, receive an initial JSON draft immediately, then allow deterministic validation and a bounded Azure AI refinement pass to improve it before execution.
+- Persona-code assignment: scenarios use readable codes such as `analyst-7` or `committee-1`; the server resolves those codes to verified Atlassian account IDs immediately before Jira assignment.
+- Preflight preview: the sandbox validates the complete scenario before Jira mutation and shows step-level status, warnings, and errors in the confirmation dialog.
 
-The checked-in scenarios demonstrate creating an initiative, provisioning a synthetic FCRM board, and cleaning up FCRM test work items. Scenario files are data, not executable JavaScript; unsupported actions fail at the server boundary.
+The checked-in scenarios demonstrate creating an initiative, provisioning a synthetic FCRM board, and cleaning up FCRM test work items. Scenario files are data, not executable JavaScript; unsupported actions fail at the server boundary. Cleanup remains available as an explicit scenario, but the AI builder does not generate destructive cleanup steps automatically.
+
+## AI scenario builder
+
+The **Custom scenario** option splits the editor into two panels. The AI assistant accepts a plain-language request, while the JSON editor remains the reviewable source of truth. A request with existing JSON asks Azure AI to revise that JSON; an empty editor asks for a new scenario.
+
+The builder uses a bounded two-stage flow:
+
+1. Azure AI returns an initial draft, which is placed in the JSON editor immediately so the user can see the output.
+2. FULCRUM validates the draft against the sandbox contract and displays step indicators. Valid steps are green, the first invalid step is red, and later steps remain gray.
+3. The draft is sent back to Azure AI with the validation errors for refinement. The server allows up to three repair attempts and never sends an unvalidated AI response to Jira.
+4. The refined JSON replaces the draft only when it passes deterministic validation. If refinement fails, the initial draft remains visible for correction or download.
+
+The builder supplies Azure with the six synthetic persona codes and the supported FCRM action/field contract. It must not invent Jira custom fields, raw Atlassian account IDs, localized field names, arbitrary URLs, credentials, or unsupported actions. Persona codes are resolved server-side; names alone are not Jira assignees.
+
+See the [Jira sandbox user guide](jira-sandbox-user-guide.md) for the screen-by-screen workflow, JSON examples, validation indicators, failure handling, and cleanup procedure.
 
 ## Request and authorization boundary
 

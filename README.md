@@ -197,8 +197,9 @@ The client ID and secret are used server-side with Atlassian's service-account c
 1. Start the app with `npm run dev`.
 2. Open `/sandbox` directly, or use the landing-page link. No FULCRUM persona login is required.
 3. Use **Jira search** to query the fixed `FCRM` project.
-4. Use **Scenario automator** to inspect a checked-in scenario or paste custom JSON, then confirm execution.
-5. Use only the dedicated synthetic Jira account. The cleanup scenario permanently deletes all work items returned from the `FCRM` project search.
+4. Use **Scenario automator** to inspect a checked-in scenario, import/paste custom JSON, or choose **Custom scenario** to ask Azure AI for a synthetic draft.
+5. Review the initial draft, validation indicators, and bounded AI refinement before confirming execution.
+6. Use only the dedicated synthetic Jira account. The cleanup scenario remains manual and permanently deletes all work items returned from the `FCRM` project search.
 
 The sandbox authenticates to Jira with the server-side service account and does not create, approve, reject, or otherwise mutate FULCRUM assessment state.
 
@@ -252,6 +253,7 @@ Start here:
 - [Golden fixture mapping](docs/04-domain/golden-fixture-mapping.md)
 - [Jira/FULCRUM data authority ADR](docs/11-decisions/ADR-028-jira-fulcrum-data-authority.md)
 - [Jira sandbox and experimentation surface](docs/03-architecture/jira-sandbox.md)
+- [Jira sandbox user guide](docs/03-architecture/jira-sandbox-user-guide.md) — AI scenario builder, validation, execution, and cleanup
 - [Data model resolution ADR](docs/11-decisions/ADR-029-data-model-resolution.md)
 - [Canonical golden fixture](data/demo/golden-initiative.json)
 - [Workflow architecture](docs/03-architecture/workflow-architecture.md)

@@ -31,10 +31,11 @@ The sandbox is used by the builder or demo operator as an integration test surfa
 
 1. Enter through the landing page and select a synthetic persona.
 2. Open `/sandbox` and confirm the displayed project is `FCRM`.
-3. Connect or reconnect the dedicated synthetic Jira account through Atlassian OAuth.
+3. Confirm the server-side service-account Jira and Azure AI status indicators.
 4. Search Jira with an optional JQL filter, or select a JSON scenario and inspect its details before execution.
-5. Confirm the scenario and review the step-by-step results, including any Jira error or permission response.
-6. Use `cleanup-fcrm` only when the connected account is the dedicated test account and all returned `FCRM` work items may be permanently deleted.
-7. Use the resulting Jira context to support the FULCRUM demo, while keeping Jira status and comments distinct from FULCRUM risk calculations and human decisions.
+5. For a custom scenario, ask the AI builder for a synthetic draft or import/paste JSON, review validation indicators, and correct any unsupported configuration.
+6. Confirm the scenario and review the step-by-step results, including any Jira error or permission response.
+7. Use `cleanup-fcrm` only when the connected account is the dedicated test account and all returned `FCRM` work items may be permanently deleted.
+8. Use the resulting Jira context to support the FULCRUM demo, while keeping Jira status and comments distinct from FULCRUM risk calculations and human decisions.
 
-The operator journey is intentionally bounded by a server-side session, a fixed project key, an allowlist of scenario actions, explicit execution confirmation, synthetic-only data, and audit events. See the [Jira sandbox guide](../03-architecture/jira-sandbox.md).
+The operator journey is intentionally bounded by a fixed project key, an allowlist of scenario actions and fields, persona-code mapping, deterministic preflight validation, bounded AI refinement, explicit execution confirmation, synthetic-only data, and audit events. See the [Jira sandbox guide](../03-architecture/jira-sandbox.md) and [user guide](../03-architecture/jira-sandbox-user-guide.md).

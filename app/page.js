@@ -124,7 +124,7 @@ export default function Home() {
             rel="noreferrer"
             className="mt-4 inline-flex text-sm font-bold text-[rgb(9,167,141)] hover:text-[rgb(25,66,71)]"
           >
-            Explore the Jira sandbox →
+            Explore the sandbox →
           </a>
         </div>
         <div
@@ -264,7 +264,7 @@ export default function Home() {
               [
                 "03",
                 "Development",
-                "Built the Next.js/Vercel foundation, landing page, synthetic data, governed Ciel copilot, tool contracts, demo experience, and a separate Jira sandbox for integration experiments.",
+                "Built the Next.js/Vercel foundation, landing page, synthetic data, governed Ciel copilot, tool contracts, demo experience, and a separate sandbox with an AI scenario builder for safe integration experiments.",
               ],
               [
                 "04",
@@ -295,6 +295,24 @@ export default function Home() {
                 <p className="mt-4 text-sm leading-6 text-slate-600">{body}</p>
               </article>
             ))}
+          </div>
+          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-[rgba(9,167,141,0.25)] bg-[rgba(9,167,141,0.06)] p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-[rgb(25,66,71)]">
+                Explore the AI scenario builder
+              </p>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                Describe a synthetic Jira experiment, see the first JSON draft immediately, and review deterministic validation before any confirmed Jira change.
+              </p>
+            </div>
+            <a
+              href="/sandbox"
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 text-sm font-bold text-[rgb(9,167,141)] hover:text-[rgb(25,66,71)]"
+            >
+              Open sandbox →
+            </a>
           </div>
           <div
             id="ai-usage"
