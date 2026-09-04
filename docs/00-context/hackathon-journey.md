@@ -50,7 +50,7 @@ Landing page → synthetic persona → /demo FCRM workbench → decision trace/C
 
 1. I start from the landing page and enter through a synthetic persona so the demo identity is explicit.
 2. I use `/demo` to show the FULCRUM decision journey: initiative context, evidence, deterministic risk, Copilot explanation, analyst override, and committee outcome.
-3. I open `/sandbox` in a new browser tab when I want to test the Jira connection independently of the assessment decision flow, so the active FULCRUM demo remains available.
+3. I open `/sandbox` in a new browser tab when I want to test the Jira connection independently of the assessment decision flow; the sandbox authenticates to Jira with the server-side service account, so the active FULCRUM demo remains available.
 4. I connect the dedicated synthetic Jira account through Atlassian OAuth, then use **Jira search** to inspect normalized work items from the fixed `FCRM` project.
 5. I use **Scenario automator** to inspect a checked-in JSON scenario or paste a custom scenario, confirm it, and watch each Jira step execute in order.
 6. I use the create, comment, transition, assignment, update, and cleanup actions only for synthetic test-account experiments. The cleanup scenario is destructive and is limited to the configured `FCRM` project.

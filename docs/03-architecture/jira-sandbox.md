@@ -6,14 +6,14 @@ Status: implemented hackathon increment. This page documents the experimental Ji
 
 The Jira sandbox gives the team a safe, visible place to validate the Atlassian connection and experiment with synthetic work items before building the governed FULCRUM/Jira synchronization path. It is intentionally separate from the FULCRUM assessment workflow and decision authority.
 
-Open it at `/sandbox` after starting a local or deployed application and selecting a synthetic demo persona. The landing page remains the public product introduction; `/demo` is the judge-facing FCRM workbench; `/sandbox` is the engineering and integration experiment surface.
+Open it at `/sandbox` directly after starting a local or deployed application. The landing page remains the public product introduction; `/demo` is the judge-facing FCRM workbench; `/sandbox` is the engineering and integration experiment surface.
 
 ## Current capabilities
 
 The sandbox is scoped to the configured `FCRM` Jira project (`data/config/jira-integration.json`). It currently provides:
 
 - Jira search with an optional JQL clause. The backend always adds `project = FCRM` and returns normalized issue fields such as key, summary, status, assignee, due date, type, updated time, and Jira URL.
-- Atlassian OAuth 2.0 3LO connection and reconnect flow through `/api/jira/connect` and `/api/jira/callback`, with connection status available from `/api/jira/status`.
+- Atlassian service-account OAuth 2.0 connection using client credentials, with a server-side cached access token and connection status available from `/api/jira/status`.
 - Scenario inspection from JSON files under `data/sandbox/`, including the execution plan and raw JSON.
 - Step-by-step scenario execution with explicit confirmation and visible progress.
 - Synthetic Jira work-item operations: create, update, transition, assign, comment, and delete all work items matched in the fixed `FCRM` project.
@@ -24,21 +24,21 @@ The checked-in scenarios demonstrate creating an initiative, provisioning a synt
 ## Request and authorization boundary
 
 ```text
-Synthetic persona session
+Public sandbox page
           |
           v
 Next.js sandbox route handlers
-  session check + fixed FCRM project
+  fixed FCRM project
           |
           v
 Jira adapter
-  Atlassian OAuth bearer token
+  Atlassian service-account OAuth bearer token
           |
           v
 Atlassian Jira Cloud REST API
 ```
 
-The browser does not receive Jira client secrets, access tokens, or refresh tokens. The application requires a valid FULCRUM demo session before connection, search, or mutation routes can be used. Jira authorization remains separate from FULCRUM role authorization; Jira can still deny an operation with 401/403 based on the connected account, project permission, or granted scope.
+The browser does not receive Jira client secrets, access tokens, or refresh tokens. The sandbox has no FULCRUM persona login gate; Jira authentication is performed only by the server-side service-account credential. Jira can still deny an operation with 401/403 based on the service account's product access, project permission, or granted scope.
 
 Each sandbox search and scenario step records an audit event with the synthetic actor, project or issue identifier, action, and result metadata. Credentials are not included in audit records.
 
@@ -50,14 +50,15 @@ The `cleanup-fcrm` scenario is destructive: it searches the entire configured `F
 
 ## Current limitations
 
-- OAuth connections, sessions, and audit records use the current in-memory stores; they are not durable across process restarts or reliable as-is on multi-instance serverless deployment.
-- The callback currently selects the first accessible Jira site, unless `JIRA_CLOUD_ID` is configured; a production UX should present an explicit site-selection step.
+- Service-account access tokens are cached in memory and reacquired when they expire; audit records use an in-memory store, so the current implementation is not reliable as-is on multi-instance serverless deployment.
+- The service-account flow uses the configured `JIRA_CLOUD_ID` and `JIRA_SITE_URL`; it does not perform interactive site selection.
 - The sandbox has no durable sync, webhook reconciliation, token vault, background refresh worker, rate-limit queue, or production observability.
 - Scenario execution is sequential and stops on the first failed step. It is not a general workflow engine and does not advance FULCRUM assessment state.
-- The current OAuth scope request includes read and write Jira scopes because the sandbox demonstrates controlled write experiments. Production scope review must minimize permissions and separate read-only integration from any approved write-back feature.
+- Scenario transition labels use the checked-in English workflow names, with aliases for the configured Jira workflow's localized `审查` (Review) and `决策` (Decision) statuses. Other workflow-specific labels must be added deliberately.
+- The service-account credential must be granted only the Jira scopes and project permissions required by the sandbox. Production scope review must minimize permissions and separate read-only integration from any approved write-back feature.
 
 ## Traceability
 
-The increment provides executable evidence for the connection and adapter direction in `REQ-016`, `REQ-017`, `REQ-025`, `REQ-026`, and `REQ-027`. Contract coverage is in `test/jira-oauth.test.js`, `test/jira-sandbox.test.js`, and `test/security.test.js`. Production completion still requires the acceptance evidence defined in [requirements](../01-requirements/requirements.md), including durable token custody, revocation, reconciliation, and negative security tests.
+The increment provides executable evidence for the connection and adapter direction in `REQ-016`, `REQ-017`, `REQ-026`, and `REQ-027`. Contract coverage is in `test/jira-oauth.test.js`, `test/jira-sandbox.test.js`, and `test/security.test.js`. Production completion still requires the acceptance evidence defined in [requirements](../01-requirements/requirements.md), including durable token custody, revocation, reconciliation, and negative security tests.
 
 Related: [Jira OAuth integration](jira-oauth-integration.md), [Jira/FULCRUM data authority](../11-decisions/ADR-028-jira-fulcrum-data-authority.md), [demo versus production matrix](../09-deployment/demo-production-matrix.md), and [sandbox scenario data](../../data/sandbox/).

@@ -1,12 +1,13 @@
 import {runtime} from "../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../src/auth/session.js";
-import {buildAuthorizationUrl, jiraOAuthConfigured} from "../../../../src/integrations/jira-oauth.js";
+import {buildAuthorizationUrl, jiraOAuthConfigured, jiraServiceAccountConfigured} from "../../../../src/integrations/jira-oauth.js";
 
 const cookieName = "fulcrum_session";
 
 export const dynamic = "force-dynamic";
 
 export function GET(request) {
+  if (jiraServiceAccountConfigured()) return Response.redirect(new URL("/sandbox?jira=service_account", request.url));
   const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   if (runtime.jiraConnections.get(user.id)) return Response.redirect(new URL("/sandbox?jira=connected", request.url));

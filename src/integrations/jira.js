@@ -1,5 +1,9 @@
 import {JIRA_PROJECT_KEY} from "./jira-config.js";
 const DEFAULT_FIELDS = ["summary", "status", "assignee", "updated", "duedate", "project", "issuetype"];
+const STATUS_ALIASES = {
+  review: ["审查"],
+  decision: ["决策"]
+};
 
 export const demoWorkItems = [
   {key: "FCRM-101", id: "jira-101", summary: "Implement enhanced remittance monitoring rules", status: "IN_PROGRESS", assignee: "Daniel Reyes", dueDate: "2026-09-05", projectKey: "FCRM", projectName: "Fulcrum", issueType: "Task", updated: null, url: null, synthetic: true},
@@ -66,7 +70,9 @@ export async function transitionJiraWorkItem({issueKey, status, cloudId, accessT
   const transitionsResponse = await fetchImpl(`${base}/transitions`, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
   if (!transitionsResponse.ok) throw new Error(`jira_transitions_failed_${transitionsResponse.status}`);
   const availableTransitions = (await transitionsResponse.json()).transitions ?? [];
-  const transition = availableTransitions.find(item => item.to?.name?.toLowerCase() === status.trim().toLowerCase());
+  const requestedStatus = status.trim();
+  const candidates = [requestedStatus, ...(STATUS_ALIASES[requestedStatus.toLowerCase()] ?? [])].map(value => value.toLowerCase());
+  const transition = availableTransitions.find(item => candidates.includes(item.to?.name?.trim().toLowerCase()));
   if (!transition) throw new Error(`jira_transition_unavailable: ${availableTransitions.map(item => item.to?.name).filter(Boolean).join(", ") || "no available transitions"}`);
   const response = await fetchImpl(`${base}/transitions`, {method: "POST", headers: {accept: "application/json", "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({transition: {id: transition.id}})});
   if (!response.ok) throw new Error(`jira_transition_failed_${response.status}`);
@@ -76,6 +82,16 @@ export async function transitionJiraWorkItem({issueKey, status, cloudId, accessT
 export function jiraErrorStatus(error) {
   const match = error.message?.match(/jira_[a-z_]+_(\d{3})$/);
   return match ? Number(match[1]) : null;
+}
+
+export async function getJiraProjectPermissions({projectKey = JIRA_PROJECT_KEY, cloudId, accessToken, fetchImpl = fetch}) {
+  if (!cloudId || !accessToken) throw new Error("jira_connection_required");
+  const url = new URL(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/mypermissions`);
+  url.searchParams.set("projectKey", projectKey);
+  url.searchParams.set("permissions", "BROWSE_PROJECTS,CREATE_ISSUES,EDIT_ISSUES,ADD_COMMENTS,ASSIGN_ISSUES,DELETE_ISSUES,TRANSITION_ISSUES");
+  const response = await fetchImpl(url, {headers: {accept: "application/json", authorization: `Bearer ${accessToken}`} });
+  if (!response.ok) throw new Error(`jira_permissions_failed_${response.status}`);
+  return (await response.json()).permissions ?? {};
 }
 
 export async function commentJiraWorkItem({issueKey, body, cloudId, accessToken, fetchImpl = fetch}) {

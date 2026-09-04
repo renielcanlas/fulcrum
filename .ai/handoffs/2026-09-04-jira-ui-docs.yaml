@@ -1,5 +1,5 @@
 schema_version: "1.0"
-task: "Update repository documentation for the implemented landing page, FCRM demo UI, and Jira experimentation sandbox"
+task: "Document and harden the implemented landing page, FCRM demo UI, and Jira experimentation sandbox"
 requirements: ["REQ-016", "REQ-017", "REQ-025", "REQ-026", "REQ-027", "REQ-028"]
 files_changed:
   - "README.md"
@@ -15,15 +15,19 @@ files_changed:
 artifacts_changed: []
 decisions:
   - "Document the Jira sandbox as a bounded synthetic integration experiment, separate from FULCRUM assessment authority and workflow."
-  - "Describe Jira OAuth connectivity as implemented for the demo while retaining durable token custody, sync, reconciliation, and production write-back as deferred."
+  - "Describe service-account OAuth connectivity as implemented for the sandbox while retaining durable token custody, sync, reconciliation, and production write-back as deferred."
 unresolved_questions:
   - "Should production OAuth site selection be explicit when multiple accessible Jira resources are returned?"
   - "Which production Jira write-back actions, if any, will be approved after security and FCRM review?"
+  - "Confirm the service-account credential has the required Jira scopes and FCRM project permissions."
 tests_performed:
-  - "npm test: 31 passed"
+  - "npm test: 36 passed"
   - "npm run build: passed"
   - "git diff --check: passed"
   - "handoff YAML parse: passed"
+  - "Local /api/jira/status: service-account authenticated and FCRM create/browse permissions available"
+  - "Scenario execution route now returns structured errors for Jira/network failures"
+  - "Localized Jira workflow transition aliases covered for Review → 审查"
 known_risks:
   - "Jira connections, sessions, and audit records are currently in-memory."
   - "The cleanup scenario permanently deletes all work items returned by the fixed FCRM project search."

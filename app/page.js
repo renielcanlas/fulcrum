@@ -13,6 +13,9 @@ export default function Home() {
     fetch("/api/demo-users")
       .then((r) => r.json())
       .then(setUsers);
+    if (new URLSearchParams(window.location.search).get("next") === "/sandbox") {
+      setLoginOpen(true);
+    }
   }, []);
   async function startDemo() {
     if (!userId) return;
@@ -22,7 +25,10 @@ export default function Home() {
       body: JSON.stringify({ userId }),
     });
     const d = await r.json();
-    if (d.user) router.push("/demo");
+    if (d.user) {
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next === "/sandbox" ? next : "/demo");
+    }
   }
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-[rgb(25,66,71)]">

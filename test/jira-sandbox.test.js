@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, normalizeIssue} from "../src/integrations/jira.js";
+import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, normalizeIssue, transitionJiraWorkItem} from "../src/integrations/jira.js";
 
 test("Jira sandbox scopes searches to a valid project key", () => {
   assert.equal(buildJql("FCRM", "statusCategory != Done"), "project = FCRM AND (statusCategory != Done)");
@@ -11,6 +11,17 @@ test("Jira sandbox returns no items without live credentials", async () => {
   const result = await fetchJiraWorkItems({projectKey: "FCRM", cloudId: "", accessToken: ""});
   assert.equal(result.mode, "not_connected");
   assert.deepEqual(result.items, []);
+});
+
+test("Jira project permission check requests the sandbox capabilities", async () => {
+  let requestUrl;
+  const permissions = await getJiraProjectPermissions({projectKey: "FCRM", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url) => {
+    requestUrl = url.toString();
+    return new Response(JSON.stringify({permissions: {BROWSE_PROJECTS: {havePermission: true}, CREATE_ISSUES: {havePermission: false}}}), {status: 200});
+  }});
+  assert.equal(permissions.CREATE_ISSUES.havePermission, false);
+  assert.match(requestUrl, /projectKey=FCRM/);
+  assert.match(requestUrl, /CREATE_ISSUES/);
 });
 
 test("Jira responses are normalized to the sandbox contract", () => {
@@ -86,4 +97,16 @@ test("Jira sandbox adds a comment to an issue", async () => {
   assert.equal(request.options.method, "POST");
   assert.match(request.url, /FCRM-9\/comment$/);
   assert.match(request.options.body, /Synthetic analyst note/);
+});
+
+test("Jira sandbox matches localized workflow status aliases", async () => {
+  const requests = [];
+  const result = await transitionJiraWorkItem({issueKey: "FCRM-9", status: "Review", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options = {}) => {
+    requests.push({url: url.toString(), options});
+    if (options.method === "POST") return new Response(null, {status: 204});
+    return new Response(JSON.stringify({transitions: [{id: "31", to: {name: "审查"}}]}), {status: 200});
+  }});
+  assert.equal(result.status, "审查");
+  assert.equal(requests[1].options.method, "POST");
+  assert.match(requests[1].options.body, /31/);
 });

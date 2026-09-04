@@ -5,6 +5,8 @@ const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const RESOURCES_URL = "https://api.atlassian.com/oauth/token/accessible-resources";
 const SCOPES = "read:jira-work write:jira-work read:jira-user offline_access";
 const STATE_TTL_MS = 10 * 60 * 1000;
+const SERVICE_TOKEN_SAFETY_MS = 60 * 1000;
+let serviceTokenCache = null;
 
 export class JiraConnectionStore {
   #attempts = new Map();
@@ -30,6 +32,40 @@ export class JiraConnectionStore {
 
 export function jiraOAuthConfigured(env = process.env) {
   return Boolean(env.ATLASSIAN_CLIENT_ID && env.ATLASSIAN_CLIENT_SECRET && (env.ATLASSIAN_REDIRECT_URI || env.NEXT_PUBLIC_APP_URL));
+}
+
+export function jiraServiceAccountConfigured(env = process.env) {
+  return Boolean(env.ATLASSIAN_CLIENT_ID && env.ATLASSIAN_CLIENT_SECRET && env.JIRA_CLOUD_ID && env.JIRA_SITE_URL);
+}
+
+export async function getServiceAccountAccessToken({clientId, clientSecret, fetchImpl = fetch, now = () => Date.now()} = {}) {
+  if (!clientId || !clientSecret) throw new Error("jira_service_account_not_configured");
+  if (serviceTokenCache?.clientId === clientId && serviceTokenCache.expiresAt > now() + SERVICE_TOKEN_SAFETY_MS) return serviceTokenCache.accessToken;
+  const response = await fetchImpl(TOKEN_URL, {
+    method: "POST",
+    headers: {accept: "application/json", "content-type": "application/x-www-form-urlencoded"},
+    body: new URLSearchParams({grant_type: "client_credentials", client_id: clientId, client_secret: clientSecret}).toString()
+  });
+  const responseBody = await response.text();
+  let token;
+  try {
+    token = JSON.parse(responseBody);
+  } catch {
+    token = {};
+  }
+  if (!response.ok) {
+    const detail = token.error ? `_${token.error}` : "";
+    throw new Error(`jira_service_account_token_failed_${response.status}${detail}`);
+  }
+  if (!token.access_token) throw new Error("jira_service_account_token_missing");
+  serviceTokenCache = {clientId, accessToken: token.access_token, expiresAt: now() + (token.expires_in ?? 3600) * 1000};
+  return token.access_token;
+}
+
+export async function getServiceAccountConnection({env = process.env, fetchImpl = fetch, now = () => Date.now()} = {}) {
+  if (!jiraServiceAccountConfigured(env)) return null;
+  const accessToken = await getServiceAccountAccessToken({clientId: env.ATLASSIAN_CLIENT_ID, clientSecret: env.ATLASSIAN_CLIENT_SECRET, fetchImpl, now});
+  return {mode: "service_account", cloudId: env.JIRA_CLOUD_ID, siteUrl: env.JIRA_SITE_URL, siteName: env.JIRA_SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""), accessToken};
 }
 
 export function buildAuthorizationUrl({clientId, redirectUri, state}) {

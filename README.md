@@ -181,27 +181,26 @@ AZURE_AI_FOUNDRY_FAST_DEPLOYMENT=your-fast-deployment PORT=3000 npm start
 
 Credentials are read by the backend only and must never be committed.
 
-For the Jira sandbox, configure the server-side Atlassian OAuth values in `.env`:
+For the Jira sandbox, configure the server-side Atlassian service-account OAuth values in `.env`:
 
 ```bash
 ATLASSIAN_CLIENT_ID=your-atlassian-client-id
 ATLASSIAN_CLIENT_SECRET=your-atlassian-client-secret
-ATLASSIAN_REDIRECT_URI=http://localhost:3000/api/jira/callback
-JIRA_CLOUD_ID=optional-fixed-cloud-id
+JIRA_CLOUD_ID=your-jira-cloud-id
 JIRA_SITE_URL=https://your-site.atlassian.net
 ```
 
-The Atlassian app redirect URL must match `ATLASSIAN_REDIRECT_URI`. `JIRA_CLOUD_ID` is optional locally; when omitted, the callback selects the first accessible Jira site. The sandbox project is fixed to `FCRM` by `data/config/jira-integration.json`.
+The client ID and secret are used server-side with Atlassian's service-account client-credentials flow, so the sandbox does not require interactive Jira reauthentication. The Cloud ID is the value from `https://your-site.atlassian.net/_edge/tenant_info`; it is not the organization ID. The sandbox project is fixed to `FCRM` by `data/config/jira-integration.json`.
 
 ## Jira sandbox walkthrough
 
-1. Start the app with `npm run dev` and enter the synthetic demo through the landing page.
-2. Open `/sandbox` and select **Connect Jira** when Atlassian OAuth configuration is available.
+1. Start the app with `npm run dev`.
+2. Open `/sandbox` directly, or use the landing-page link. No FULCRUM persona login is required.
 3. Use **Jira search** to query the fixed `FCRM` project.
 4. Use **Scenario automator** to inspect a checked-in scenario or paste custom JSON, then confirm execution.
 5. Use only the dedicated synthetic Jira account. The cleanup scenario permanently deletes all work items returned from the `FCRM` project search.
 
-The sandbox is an integration experiment and does not create, approve, reject, or otherwise mutate FULCRUM assessment state.
+The sandbox authenticates to Jira with the server-side service account and does not create, approve, reject, or otherwise mutate FULCRUM assessment state.
 
 ## Judge walkthrough
 
