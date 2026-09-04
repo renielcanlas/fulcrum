@@ -124,7 +124,7 @@ User → FULCRUM backend → JiraAdapter → Jira Cloud REST API
 
 Jira webhooks trigger reconciliation; they do not directly change FULCRUM risk state. See [Jira OAuth integration](docs/03-architecture/jira-oauth-integration.md) and [ADR-002](docs/11-decisions/ADR-002-jira-oauth-integration.md).
 
-See the [Jira sandbox guide](docs/03-architecture/jira-sandbox.md) for the available experiments, route boundary, synthetic-data rules, and current limitations. Ciel can read linked live `FCRM-*` Jira work items and, after explicit confirmation, improve only a story description through the server-side service-account adapter.
+See the [Jira sandbox guide](docs/03-architecture/jira-sandbox.md) for the available experiments, route boundary, synthetic-data rules, and current limitations. Ciel can read linked live `FCRM-*` Jira work items and, after explicit confirmation, improve descriptions, reassign to verified synthetic personas, or request a workflow status transition through the server-side service-account adapter.
 
 ## Current demo
 

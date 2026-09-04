@@ -1,4 +1,4 @@
-import {commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, jiraErrorStatus, transitionJiraWorkItem, updateJiraWorkItem} from "../../../../src/integrations/jira.js";
+import {assignJiraWorkItem, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, jiraErrorStatus, transitionJiraWorkItem, updateJiraWorkItem} from "../../../../src/integrations/jira.js";
 import {runtime} from "../../../../src/server/runtime.js";
 import {JIRA_PROJECT_KEY} from "../../../../src/integrations/jira-config.js";
 import {resolveJiraConnection} from "../../../../src/integrations/jira-connection.js";
@@ -35,7 +35,7 @@ export async function POST(request) {
     if (step.action === "create") result = await createJiraWorkItem({...step, projectKey: JIRA_PROJECT_KEY, cloudId: connection.cloudId, accessToken: connection.accessToken});
     else if (step.action === "update") { const fields = {...(step.fields ?? {})}; if (fields.assigneePersona) { fields.assignee = {accountId: personaAccountId(fields.assigneePersona)}; delete fields.assigneePersona; } else if (fields.assignee?.personaId) fields.assignee = {accountId: personaAccountId(fields.assignee.personaId)}; result = await updateJiraWorkItem({issueKey: body.issueKey, fields, cloudId: connection.cloudId, accessToken: connection.accessToken}); }
     else if (step.action === "transition") result = await transitionJiraWorkItem({issueKey: body.issueKey, status: step.status ?? step.to ?? step.intent ?? step.targetStatus, cloudId: connection.cloudId, accessToken: connection.accessToken});
-    else if (step.action === "assign") result = await updateJiraWorkItem({issueKey: body.issueKey, fields: {assignee: {accountId: step.personaId ? personaAccountId(step.personaId) : step.accountId}}, cloudId: connection.cloudId, accessToken: connection.accessToken});
+    else if (step.action === "assign") result = await assignJiraWorkItem({issueKey: body.issueKey, accountId: step.personaId ? personaAccountId(step.personaId) : step.accountId, cloudId: connection.cloudId, accessToken: connection.accessToken});
     else if (step.action === "comment") result = await commentJiraWorkItem({issueKey: body.issueKey, body: step.body, cloudId: connection.cloudId, accessToken: connection.accessToken});
     else if (step.action === "delete_all") result = await deleteAllJiraWorkItems({projectKey: JIRA_PROJECT_KEY, cloudId: connection.cloudId, accessToken: connection.accessToken});
     else throw new Error("unsupported_scenario_action");

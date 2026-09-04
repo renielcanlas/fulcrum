@@ -38,7 +38,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 
 ## Ask Ciel from the sandbox
 
-Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about linked work. In the demo board, Jira context is attached only when the question appears related to the board or a work item; unrelated questions do not receive the board payload. When a linked `FCRM-*` key is present, Ciel retrieves live Jira details through the server-side service account. Ask her to improve the story details or description; the browser displays an explicit confirmation before the bounded description update is applied. Ciel does not change scores, workflow, decisions, or arbitrary Jira fields.
+Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about linked work. In the demo board, Jira context is attached only when the question appears related to the board or a work item; unrelated questions do not receive the board payload. When a linked `FCRM-*` key is present, Ciel retrieves live Jira details through the server-side service account. After explicit confirmation, she may improve the description, reassign the item to a verified synthetic persona, or transition it to a requested workflow status. Ciel does not change scores, decisions, permissions, or arbitrary Jira fields.
 
 ## Persona assignment format
 

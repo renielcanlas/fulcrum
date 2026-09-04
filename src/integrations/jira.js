@@ -87,6 +87,13 @@ export async function updateJiraWorkItem({issueKey, fields, cloudId, accessToken
   return {issueKey, updated: true};
 }
 
+export async function assignJiraWorkItem({issueKey, accountId, cloudId, accessToken, fetchImpl = fetch}) {
+  if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !accountId || accountId.startsWith("jira-")) throw new Error("invalid_assignee");
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}/assignee`, {method: "PUT", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({accountId})});
+  if (!response.ok) { const detail = await jiraResponseDetail(response); throw new Error(`jira_assign_failed_${response.status}${detail ? `: ${detail}` : ""}`); }
+  return {issueKey, accountId, assigned: true};
+}
+
 function jiraDocumentText(value) {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -100,7 +107,7 @@ export async function getJiraWorkItem({issueKey, cloudId, accessToken, siteUrl =
   if (!response.ok) throw new Error(`jira_issue_lookup_failed_${response.status}`);
   const issue = await response.json();
   const source = issue.fields ?? {};
-  return {key: issue.key, id: issue.id, summary: source.summary ?? "", description: jiraDocumentText(source.description), status: source.status?.name ?? "", statusName: displayStatusName(source.status?.name, source.status?.statusCategory?.key), assignee: source.assignee?.displayName ?? null, priority: source.priority?.name ?? null, labels: Array.isArray(source.labels) ? source.labels : [], projectKey: source.project?.key ?? null, issueType: source.issuetype?.name ?? null, updated: source.updated ?? null, comments: (source.comment?.comments ?? []).map((comment) => ({id: comment.id, author: comment.author?.displayName ?? "Unknown", body: jiraDocumentText(comment.body), created: comment.created ?? null, updated: comment.updated ?? null})), url: siteUrl && issue.key ? `${siteUrl.replace(/\/$/, "")}/browse/${issue.key}` : null};
+  return {key: issue.key, id: issue.id, summary: source.summary ?? "", description: jiraDocumentText(source.description), status: source.status?.name ?? "", statusName: displayStatusName(source.status?.name, source.status?.category?.key ?? source.status?.statusCategory?.key), assignee: source.assignee?.displayName ?? null, assigneeAccountId: source.assignee?.accountId ?? null, priority: source.priority?.name ?? null, labels: Array.isArray(source.labels) ? source.labels : [], projectKey: source.project?.key ?? null, issueType: source.issuetype?.name ?? null, updated: source.updated ?? null, comments: (source.comment?.comments ?? []).map((comment) => ({id: comment.id, author: comment.author?.displayName ?? "Unknown", body: jiraDocumentText(comment.body), created: comment.created ?? null, updated: comment.updated ?? null})), url: siteUrl && issue.key ? `${siteUrl.replace(/\/$/, "")}/browse/${issue.key}` : null};
 }
 
 export async function transitionJiraWorkItem({issueKey, status, cloudId, accessToken, fetchImpl = fetch}) {

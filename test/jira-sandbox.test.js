@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
+import {assignJiraWorkItem, buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
+import {assignJiraPersona} from "../src/integrations/jira-assignment.js";
 import {assessIntake, formatIntakeAssessmentComment, parsePublishedIntakeAssessment, parsePublishedIntakeAssessments} from "../src/integrations/intake-assessment.js";
 
 test("Intake assessment uses the checked-in weighted configuration", () => {
@@ -114,6 +115,26 @@ test("Jira sandbox creates a basic Task with bearer auth", async () => {
   assert.equal(requestOptions.options.method, "POST");
   assert.equal(requestOptions.options.headers.authorization, "Bearer token-1");
   assert.match(requestOptions.options.body, /Review payment controls/);
+});
+
+test("Jira assignment uses the dedicated assignee endpoint", async () => {
+  let request;
+  const result = await assignJiraWorkItem({issueKey: "FCRM-9", accountId: "712020:maya", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options) => { request = {url: url.toString(), options}; return new Response(null, {status: 204}); }});
+  assert.equal(result.assigned, true);
+  assert.match(request.url, /FCRM-9\/assignee$/);
+  assert.deepEqual(JSON.parse(request.options.body), {accountId: "712020:maya"});
+});
+
+test("persona assignment verifies the assignee from Jira after writing", async () => {
+  const requests = [];
+  const result = await assignJiraPersona({issueKey: "FCRM-9", personaId: "po-1", cloudId: "cloud-1", accessToken: "token-1", siteUrl: "https://example.atlassian.net", fetchImpl: async (url, options = {}) => {
+    requests.push({url: url.toString(), options});
+    if (options.method === "PUT" && url.toString().endsWith("/assignee")) return new Response(null, {status: 204});
+    return new Response(JSON.stringify({key: "FCRM-9", fields: {summary: "Request", assignee: {accountId: "712020:3f099c0f-52b9-4142-88ac-242621a4926c", displayName: "Maya Chen"}}}), {status: 200});
+  }});
+  assert.deepEqual(result, {issueKey: "FCRM-9", personaId: "po-1", assignee: "Maya Chen", verified: true});
+  assert.match(requests[0].url, /FCRM-9\/assignee$/);
+  assert.match(requests[1].url, /FCRM-9\?fields=/);
 });
 
 test("cleanup deletes only issues returned by the FCRM project search", async () => {
