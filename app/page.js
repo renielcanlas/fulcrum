@@ -114,6 +114,8 @@ export default function Home() {
           </p>
           <a
             href="/sandbox"
+            target="_blank"
+            rel="noreferrer"
             className="mt-4 inline-flex text-sm font-bold text-[rgb(9,167,141)] hover:text-[rgb(25,66,71)]"
           >
             Explore the Jira sandbox →
@@ -187,13 +189,6 @@ export default function Home() {
                 "Read evaluation plan",
                 "docs/08-testing/ai-evaluation-framework.md",
               ],
-              [
-                "07",
-                "Jira sandbox",
-                "Connect a synthetic Jira account, search the fixed FCRM project, and run confirmed JSON experiments without changing FULCRUM decisions.",
-                "Read sandbox guide",
-                "docs/03-architecture/jira-sandbox.md",
-              ],
             ].map(([number, title, body, link, href]) => (
               <article
                 key={number}
@@ -263,7 +258,7 @@ export default function Home() {
               [
                 "03",
                 "Development",
-                "Built the Next.js/Vercel foundation, landing page, synthetic data, governed Ciel copilot, tool contracts, demo experience, and Jira sandbox.",
+                "Built the Next.js/Vercel foundation, landing page, synthetic data, governed Ciel copilot, tool contracts, demo experience, and a separate Jira sandbox for integration experiments.",
               ],
               [
                 "04",
@@ -279,11 +274,6 @@ export default function Home() {
                 "06",
                 "Operations",
                 "Documented observability, evaluation, failure handling, auditability, and the feedback loop for continuous improvement.",
-              ],
-              [
-                "07",
-                "Jira experimentation",
-                "Added a separate sandbox journey for OAuth connection, fixed-project search, synthetic scenario automation, and controlled cleanup.",
               ],
             ].map(([number, title, body]) => (
               <article

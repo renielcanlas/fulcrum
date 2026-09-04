@@ -50,7 +50,7 @@ export default function DemoPage() {
 
   function navigateTo(view) {
     if (view === "sandbox") {
-      router.push("/sandbox");
+      window.open("/sandbox", "_blank", "noopener,noreferrer");
       return;
     }
     setActiveView(view);
