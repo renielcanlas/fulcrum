@@ -40,6 +40,7 @@ const tones = {
   green: "bg-[rgb(82,224,129)]",
 };
 const cielStorageKey = "fulcrum-ciel-chat";
+const cielResponseStorageKey = "fulcrum-ciel-response-id";
 const jiraWorkflowStatuses = [
   "Intake",
   "Context and Research",
@@ -60,6 +61,7 @@ export default function DemoPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [activeView, setActiveView] = useState("board");
   const [chatReady, setChatReady] = useState(false);
+  const [previousResponseId, setPreviousResponseId] = useState("");
   const [boardItems, setBoardItems] = useState(null);
   const [boardError, setBoardError] = useState("");
   const [selectedWorkItem, setSelectedWorkItem] = useState(null);
@@ -99,6 +101,7 @@ export default function DemoPage() {
     try {
       const saved = JSON.parse(localStorage.getItem(cielStorageKey) ?? "null");
       if (Array.isArray(saved) && saved.length) setMessages(saved);
+      setPreviousResponseId(localStorage.getItem(cielResponseStorageKey) ?? "");
     } catch {}
     setChatReady(true);
   }, []);
@@ -107,6 +110,13 @@ export default function DemoPage() {
     if (chatReady)
       localStorage.setItem(cielStorageKey, JSON.stringify(messages));
   }, [messages, chatReady]);
+
+  useEffect(() => {
+    if (chatReady) {
+      if (previousResponseId) localStorage.setItem(cielResponseStorageKey, previousResponseId);
+      else localStorage.removeItem(cielResponseStorageKey);
+    }
+  }, [previousResponseId, chatReady]);
 
   useEffect(() => {
     fetch("/api/jira")
@@ -310,6 +320,7 @@ export default function DemoPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           message: text,
+          previousResponseId,
           applyJiraUpdate,
           conversation: messages.slice(-12),
           currentUrl: window.location.href,
@@ -322,6 +333,7 @@ export default function DemoPage() {
         }),
       });
       const data = await response.json();
+      if (data.responseId) setPreviousResponseId(data.responseId);
       setMessages((current) => [
         ...current,
         `Ciel: ${data.answer ?? data.error}`,
@@ -718,6 +730,7 @@ export default function DemoPage() {
               "Hi, I’m Ciel. I can help you understand this initiative and its decision trail.",
             ]);
             setPendingCielAction(null);
+            setPreviousResponseId("");
             setChatContextCleared(true);
           }}
         />

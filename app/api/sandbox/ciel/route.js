@@ -127,8 +127,8 @@ export async function POST(request) {
       }
     }
     const scopedMessage = `${conversation ? `Recent conversation (use it to resolve follow-ups; do not repeat introductions):\n${conversation}\n\n` : ""}${message}${currentUrl ? `\n\nCurrent FULCRUM page URL (UI metadata): ${origin}${new URL(currentUrl, origin).pathname}${new URL(currentUrl, origin).search}` : ""}${absoluteContext ? `\n\nOptional current UI context (ignore if unrelated to the question):\n${absoluteContext}\n\nWhen relevant, link to the supplied absolute FULCRUM work-item view and Jira URL. Do not invent links.` : ""}${jiraContext}${jiraUpdate}\n\nServer-operation rule: report only the Jira operations explicitly confirmed and actually completed by this request. Do not infer or claim a status transition unless this request returned a transition result.`;
-    const result = await runtime.copilot.respond({interactionId: randomUUID(), conversationId: body.conversationId ?? randomUUID(), user: sandboxUser, message: scopedMessage, allowAssessmentTools: false});
-    return Response.json({answer: redactPersonaAccountIds(responseText(result)), raw: result, context: issueKey ? `jira:${issueKey}` : "jira_unlinked", pendingAction});
+    const result = await runtime.copilot.respond({interactionId: randomUUID(), conversationId: body.conversationId ?? randomUUID(), previousResponseId: body.previousResponseId, user: sandboxUser, message: scopedMessage, allowAssessmentTools: false});
+    return Response.json({answer: redactPersonaAccountIds(responseText(result)), raw: result, responseId: result.id ?? null, context: issueKey ? `jira:${issueKey}` : "jira_unlinked", pendingAction});
   } catch (error) {
     const jiraStatus = jiraErrorStatus(error);
     return Response.json({error: error.message ?? "ciel_request_failed"}, {status: error.message === "FORBIDDEN" ? 403 : jiraStatus === 401 || jiraStatus === 403 ? 403 : 500});

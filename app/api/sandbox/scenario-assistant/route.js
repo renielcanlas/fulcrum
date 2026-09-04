@@ -60,19 +60,21 @@ export async function POST(request) {
     if (body.draftOnly) {
       const result = await runtime.provider.generateResponse({instructions: INSTRUCTIONS, input, text: SCENARIO_FORMAT});
       const output = getResponseText(result);
-      return Response.json({ok: true, raw: output});
+      return Response.json({ok: true, raw: output, responseId: result.id ?? null});
     }
     let output = "";
     let lastError = "scenario_generation_failed";
+    let previousResponseId = body.previousResponseId;
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const repairInput = attempt === 0 ? input : `${input}\n\nThe previous response failed deterministic validation. Repair it and return the complete scenario JSON only. Validation failure: ${lastError}\nPrevious response:\n${output.slice(0, 20000)}`;
-      const result = await runtime.provider.generateResponse({instructions: INSTRUCTIONS, input: repairInput, text: SCENARIO_FORMAT});
+      const result = await runtime.provider.generateResponse({instructions: INSTRUCTIONS, input: repairInput, text: SCENARIO_FORMAT, previousResponseId});
+      previousResponseId = result.id ?? previousResponseId;
       output = getResponseText(result);
       try {
         const scenario = parseScenario(output);
         const validation = validateJiraScenario(scenario);
         if (!validation.valid) throw new Error(validation.errors.join("; "));
-        return Response.json({ok: true, scenario, raw: output, validation});
+        return Response.json({ok: true, scenario, raw: output, validation, responseId: result.id ?? previousResponseId});
       } catch (error) {
         lastError = error.message ?? "scenario_validation_failed";
       }
