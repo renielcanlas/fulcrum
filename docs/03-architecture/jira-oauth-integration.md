@@ -23,7 +23,7 @@ For a FULCRUM web app integrating with Jira Cloud as an external application, us
 
 ## Scope strategy
 
-Start read-only: `read:jira-work read:jira-user` plus `offline_access` only if background refresh is required. Add `write:jira-work` only for an explicitly approved FULCRUM feature such as creating Jira engineering issues, and keep that action behind a user confirmation and an application authorization check. Determine endpoint scopes from the exact Jira API operations; do not request broad administrative scopes by default. Atlassian recommends least scope selection and notes that Jira permissions remain an independent constraint. [Atlassian scope guidance](https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/)
+Start read-only: `read:jira-work read:jira-user` plus `offline_access` only if background refresh is required. Add `write:jira-work` only for an explicitly approved FULCRUM feature such as adding a Jira comment, and keep that action behind user authorization and an application authorization check. The work-item view uses a separate OAuth 2.0 (3LO) client (`ATLASSIAN_USER_CLIENT_ID` / `ATLASSIAN_USER_CLIENT_SECRET`) for comments; it never uses the service-account client-credentials client on the user’s behalf. Determine endpoint scopes from the exact Jira API operations; do not request broad administrative scopes by default. Atlassian recommends least scope selection and notes that Jira permissions remain an independent constraint. [Atlassian scope guidance](https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/)
 
 ## Failure and lifecycle behavior
 

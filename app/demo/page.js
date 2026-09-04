@@ -57,6 +57,10 @@ export default function DemoPage() {
   const [activeIssueKey, setActiveIssueKey] = useState("");
   const [chatContextCleared, setChatContextCleared] = useState(false);
   const [jiraUpdateRequest, setJiraUpdateRequest] = useState(null);
+  const [jiraUserConnected, setJiraUserConnected] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [commentBusy, setCommentBusy] = useState(false);
+  const [commentError, setCommentError] = useState("");
 
   function navigateTo(view) {
     if (view === "sandbox") {
@@ -112,6 +116,28 @@ export default function DemoPage() {
       .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "jira_work_item_load_failed"); if (!data.item) throw new Error("work_item_not_found"); setSelectedWorkItem(data.item); })
       .catch((error) => setSelectedWorkItem({error: error.message ?? "jira_work_item_load_failed"}));
   }, [activeView]);
+
+  useEffect(() => {
+    if (activeView !== "work-item") return;
+    fetch("/api/jira/user-status")
+      .then((response) => response.json())
+      .then((data) => setJiraUserConnected(Boolean(data.connected)))
+      .catch(() => setJiraUserConnected(false));
+  }, [activeView]);
+
+  async function addComment() {
+    if (!selectedWorkItem?.key || !commentText.trim() || commentBusy) return;
+    setCommentBusy(true);
+    setCommentError("");
+    try {
+      const response = await fetch("/api/jira/comment", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({issueKey: selectedWorkItem.key, body: commentText.trim()})});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "jira_comment_failed");
+      setSelectedWorkItem((current) => ({...current, comments: [...(current.comments ?? []), {id: data.commentId ?? `local-${Date.now()}`, author: signedIn?.displayName ?? "Current user", body: commentText.trim(), created: new Date().toISOString()}]}));
+      setCommentText("");
+    } catch (error) { setCommentError(error.message ?? "jira_comment_failed"); }
+    finally { setCommentBusy(false); }
+  }
 
   async function sendCielMessage(text, applyJiraUpdate = false) {
     setChatContextCleared(false);
@@ -343,7 +369,7 @@ export default function DemoPage() {
               </section>
               {trace && <TracePanel trace={trace} />}
             </>
-          ) : activeView === "work-item" ? <JiraWorkItemView item={selectedWorkItem} onBack={() => { setSelectedWorkItem(null); setActiveView("board"); router.push("/demo"); }} /> : (
+          ) : activeView === "work-item" ? <JiraWorkItemView item={selectedWorkItem} userJiraConnected={jiraUserConnected} commentText={commentText} setCommentText={setCommentText} commentBusy={commentBusy} commentError={commentError} onAddComment={addComment} onBack={() => { setSelectedWorkItem(null); setActiveView("board"); router.push("/demo"); }} /> : (
             <WorkspaceScreen
               view={activeView}
               onOpenTrace={loadTrace}
@@ -912,10 +938,14 @@ function JiraWorkItemProgress({item}) {
   return <section className="sticky top-16 z-20 -mt-6 mb-6 -ml-4 -mr-4 border-b border-slate-200 bg-white/95 pb-3 pt-3 shadow-sm backdrop-blur sm:-ml-6 sm:-mr-6 lg:-mt-8 lg:-ml-10 lg:-mr-10" aria-label="Jira work item progress"><div className="mb-3 px-4 sm:px-5"><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(9,167,141)]">Work item progress</p><p className="mt-1 text-sm font-bold text-slate-950">{item?.key ?? "Loading work item…"}</p></div><div className="overflow-x-auto pb-1"><div className="flex min-w-[760px] items-stretch">{statuses.map((status, index) => <div key={status} className={`min-w-[150px] flex-1 border-y border-r px-2 py-2 ${currentIndex >= index && currentIndex >= 0 ? "border-[rgba(82,224,129,0.45)] bg-[rgba(82,224,129,0.06)]" : "border-slate-200 bg-white"}`}><div className="flex items-center gap-2"><span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${currentIndex >= index && currentIndex >= 0 ? "bg-[rgb(82,224,129)] text-[rgb(12,34,38)]" : "bg-slate-100 text-slate-400"}`}>{currentIndex >= index && currentIndex >= 0 ? "✓" : index + 1}</span><span className={`text-[10px] font-bold leading-3 ${currentIndex >= index && currentIndex >= 0 ? "text-[rgb(25,66,71)]" : "text-slate-400"}`}>{status}</span></div></div>)}</div></div></section>;
 }
 
-function JiraWorkItemView({item, onBack}) {
+function CommentComposer({item, userJiraConnected, commentText, setCommentText, commentBusy, commentError, onAddComment}) {
+  return <div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Add comment</h3>{userJiraConnected ? <form onSubmit={(event) => {event.preventDefault(); onAddComment();}} className="mt-3"><textarea value={commentText} onChange={(event) => setCommentText(event.target.value)} disabled={commentBusy} className="min-h-28 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm leading-6 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]" placeholder="Write a comment to add to Jira…" /><div className="mt-3 flex items-center justify-between gap-3"><p className="text-xs text-slate-500">Posting as your authorized Jira user.</p><button type="submit" disabled={commentBusy || !commentText.trim()} className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40">{commentBusy ? "Posting…" : "Post comment"}</button></div>{commentError && <p className="mt-3 text-xs font-semibold text-red-700" role="alert">{commentError}</p>}</form> : <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-4"><p className="text-sm leading-6 text-slate-600">Connect your Jira account before adding a comment.</p><a href={`/api/jira/user-connect?returnTo=${encodeURIComponent(`/demo?view=work-item&issue=${item.key}`)}`} className="rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] hover:bg-[#eef8f2]">Add comment</a></div>}</div>;
+}
+
+function JiraWorkItemView({item, userJiraConnected, commentText, setCommentText, commentBusy, commentError, onAddComment, onBack}) {
   if (!item) return <p className="text-sm text-slate-500">Loading Jira work item…</p>;
   if (item.error) return <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700">Unable to load this work item: {item.error}</div>;
-  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div><button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline">← Back to board</button><h1 className="mt-3 font-mono text-2xl font-bold text-[rgb(9,167,141)]">{item.key}</h1><h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{item.summary}</h2></div><dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 text-sm sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Status</dt><dd className="mt-1 font-semibold text-slate-700">{item.statusName ?? item.status ?? "Unknown"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Assignee</dt><dd className="mt-1 font-semibold text-slate-700">{item.assignee ?? "Unassigned"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Priority</dt><dd className="mt-1 font-semibold text-slate-700">{item.priority ?? "Not set"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Issue type</dt><dd className="mt-1 font-semibold text-slate-700">{item.issueType ?? "Issue"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Project</dt><dd className="mt-1 font-semibold text-slate-700">{item.projectKey ?? "FCRM"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Updated</dt><dd className="mt-1 font-semibold text-slate-700">{item.updated ? new Date(item.updated).toLocaleString() : "Not available"}</dd></div></dl><div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Description</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">{item.description || "No description provided."}</p>{item.labels?.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{item.labels.map((label) => <span key={label} className="rounded-full bg-[#edf7f0] px-2.5 py-1 text-xs font-semibold text-[#197443]">{label}</span>)}</div>}</div>{item.comments?.length > 0 && <div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Comments</h3><div className="mt-3 space-y-3">{item.comments.map((comment) => <article key={comment.id} className="rounded-xl bg-slate-50 p-4"><div className="flex flex-wrap justify-between gap-2 text-xs"><span className="font-bold text-slate-700">{comment.author}</span><span className="text-slate-400">{comment.created ? new Date(comment.created).toLocaleString() : ""}</span></div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{comment.body || "No comment text."}</p></article>)}</div></div>}<div className="mt-8 flex justify-end">{item.url && <a href={item.url} target="_blank" rel="noreferrer" className="rounded-lg bg-[rgb(16,47,51)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[rgb(25,66,71)]">Open actual Jira item ↗</a>}</div></section>;
+  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div><button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline">← Back to board</button><h1 className="mt-3 font-mono text-2xl font-bold text-[rgb(9,167,141)]">{item.key}</h1><h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{item.summary}</h2></div><dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 text-sm sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Status</dt><dd className="mt-1 font-semibold text-slate-700">{item.statusName ?? item.status ?? "Unknown"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Assignee</dt><dd className="mt-1 font-semibold text-slate-700">{item.assignee ?? "Unassigned"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Priority</dt><dd className="mt-1 font-semibold text-slate-700">{item.priority ?? "Not set"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Issue type</dt><dd className="mt-1 font-semibold text-slate-700">{item.issueType ?? "Issue"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Project</dt><dd className="mt-1 font-semibold text-slate-700">{item.projectKey ?? "FCRM"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Updated</dt><dd className="mt-1 font-semibold text-slate-700">{item.updated ? new Date(item.updated).toLocaleString() : "Not available"}</dd></div></dl><div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Description</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">{item.description || "No description provided."}</p>{item.labels?.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{item.labels.map((label) => <span key={label} className="rounded-full bg-[#edf7f0] px-2.5 py-1 text-xs font-semibold text-[#197443]">{label}</span>)}</div>}</div>{item.comments?.length > 0 && <div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Comments</h3><div className="mt-3 space-y-3">{item.comments.map((comment) => <article key={comment.id} className="rounded-xl bg-slate-50 p-4"><div className="flex flex-wrap justify-between gap-2 text-xs"><span className="font-bold text-slate-700">{comment.author}</span><span className="text-slate-400">{comment.created ? new Date(comment.created).toLocaleString() : ""}</span></div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{comment.body || "No comment text."}</p></article>)}</div></div>}<CommentComposer item={item} userJiraConnected={userJiraConnected} commentText={commentText} setCommentText={setCommentText} commentBusy={commentBusy} commentError={commentError} onAddComment={onAddComment} /><div className="mt-8 flex justify-end">{item.url && <a href={item.url} target="_blank" rel="noreferrer" className="rounded-lg bg-[rgb(16,47,51)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[rgb(25,66,71)]">Open actual Jira item ↗</a>}</div></section>;
 }
 
 function JiraBoardCard({ item }) {

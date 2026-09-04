@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildAuthorizationUrl, getServiceAccountAccessToken, getServiceAccountConnection, JiraConnectionStore, jiraServiceAccountConfigured} from "../src/integrations/jira-oauth.js";
+import {buildAuthorizationUrl, getServiceAccountAccessToken, getServiceAccountConnection, JiraConnectionStore, jiraServiceAccountConfigured, USER_SCOPES} from "../src/integrations/jira-oauth.js";
 
 test("Jira OAuth state is bound to the user and single-use", () => {
   const store = new JiraConnectionStore({now: () => 1000});
@@ -14,8 +14,10 @@ test("Jira authorization URL requests sandbox consent", () => {
   assert.equal(url.origin, "https://auth.atlassian.com");
   assert.equal(url.searchParams.get("client_id"), "client-1");
   assert.equal(url.searchParams.get("state"), "state-1");
+  assert.equal(url.searchParams.get("prompt"), "consent");
   assert.match(url.searchParams.get("scope"), /read:jira-work/);
   assert.match(url.searchParams.get("scope"), /offline_access/);
+  assert.doesNotMatch(new URL(buildAuthorizationUrl({clientId: "client-1", redirectUri: "http://localhost:3000/api/jira/callback", state: "state-1", scope: USER_SCOPES})).searchParams.get("scope"), /offline_access/);
 });
 
 test("service-account configuration requires Jira target and client credentials", () => {

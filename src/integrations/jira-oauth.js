@@ -4,6 +4,7 @@ const AUTH_URL = "https://auth.atlassian.com/authorize";
 const TOKEN_URL = "https://auth.atlassian.com/oauth/token";
 const RESOURCES_URL = "https://api.atlassian.com/oauth/token/accessible-resources";
 const SCOPES = "read:jira-work write:jira-work read:jira-user offline_access";
+export const USER_SCOPES = "read:jira-work write:jira-work read:jira-user";
 const STATE_TTL_MS = 10 * 60 * 1000;
 const SERVICE_TOKEN_SAFETY_MS = 60 * 1000;
 let serviceTokenCache = null;
@@ -14,9 +15,9 @@ export class JiraConnectionStore {
   #now;
 
   constructor({now = () => Date.now()} = {}) { this.#now = now; }
-  createState(userId) {
+  createState(userId, metadata = {}) {
     const state = randomBytes(32).toString("base64url");
-    this.#attempts.set(state, {userId, expiresAt: this.#now() + STATE_TTL_MS});
+    this.#attempts.set(state, {userId, ...metadata, expiresAt: this.#now() + STATE_TTL_MS});
     return state;
   }
   consumeState(state, userId) {
@@ -68,14 +69,15 @@ export async function getServiceAccountConnection({env = process.env, fetchImpl 
   return {mode: "service_account", cloudId: env.JIRA_CLOUD_ID, siteUrl: env.JIRA_SITE_URL, siteName: env.JIRA_SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""), accessToken};
 }
 
-export function buildAuthorizationUrl({clientId, redirectUri, state}) {
+export function buildAuthorizationUrl({clientId, redirectUri, state, scope = SCOPES}) {
   const url = new URL(AUTH_URL);
   url.searchParams.set("audience", "api.atlassian.com");
   url.searchParams.set("client_id", clientId);
-  url.searchParams.set("scope", SCOPES);
+  url.searchParams.set("scope", scope);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");
+  url.searchParams.set("prompt", "consent");
   return url;
 }
 

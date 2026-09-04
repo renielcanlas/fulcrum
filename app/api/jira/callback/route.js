@@ -3,20 +3,26 @@ import {parseCookie} from "../../../../src/auth/session.js";
 import {exchangeCode, getAccessibleResources} from "../../../../src/integrations/jira-oauth.js";
 
 const cookieName = "fulcrum_session";
-const sandboxUrl = request => new URL("/sandbox", request.url);
+const defaultDestination = request => new URL("/sandbox", request.url);
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
   const params = new URL(request.url).searchParams;
-  const destination = sandboxUrl(request);
+  const destination = defaultDestination(request);
   if (!user) { destination.searchParams.set("jira", "authentication_required"); return Response.redirect(destination); }
   if (params.get("error")) { destination.searchParams.set("jira", "consent_denied"); return Response.redirect(destination); }
   try {
     const redirectUri = process.env.ATLASSIAN_REDIRECT_URI || `${new URL(request.url).origin}/api/jira/callback`;
-    runtime.jiraConnections.consumeState(params.get("state"), user.id);
-    const token = await exchangeCode({code: params.get("code"), clientId: process.env.ATLASSIAN_CLIENT_ID, clientSecret: process.env.ATLASSIAN_CLIENT_SECRET, redirectUri});
+    const attempt = runtime.jiraConnections.consumeState(params.get("state"), user.id);
+    if (attempt.returnTo) {
+      const safe = attempt.returnTo.startsWith("/") && !attempt.returnTo.startsWith("//") ? attempt.returnTo : "/demo";
+      const target = new URL(safe, request.url);
+      target.searchParams.set("jira", "comment_connected");
+      destination.href = target.href;
+    }
+    const token = await exchangeCode({code: params.get("code"), clientId: process.env.ATLASSIAN_USER_CLIENT_ID, clientSecret: process.env.ATLASSIAN_USER_CLIENT_SECRET, redirectUri});
     const resources = await getAccessibleResources(token.access_token);
     const selected = resources.find(resource => !process.env.JIRA_CLOUD_ID || resource.id === process.env.JIRA_CLOUD_ID) ?? resources[0];
     if (!selected) throw new Error("jira_site_not_found");
