@@ -524,7 +524,7 @@ export default function DemoPage() {
                   </span>
                   {label}
                 </button>
-                {id === "board" && (
+                {id === "initiatives" && (
                   <button
                     type="button"
                     onClick={() => navigateTo("guided-demos")}
@@ -739,6 +739,7 @@ export default function DemoPage() {
               view={activeView}
               onOpenTrace={loadTrace}
               trace={trace}
+              currentUser={signedIn}
             />
           )}
         </section>
@@ -1075,7 +1076,343 @@ function InitiativeDetail({ trace }) {
   );
 }
 
-function WorkspaceScreen({ view, onOpenTrace, trace }) {
+function InitiativeForm({ onOpenTrace, currentUser }) {
+  const [form, setForm] = useState({
+    summary: "",
+    problem: "",
+    outcome: "",
+    scope: "",
+    users: "",
+    risk: "",
+    success: "",
+    labels: "",
+    priority: "Medium",
+    owner: "",
+  });
+  const [prepared, setPrepared] = useState(false);
+  const [createConfirm, setCreateConfirm] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createdItem, setCreatedItem] = useState(null);
+  const [createError, setCreateError] = useState("");
+  const [personas, setPersonas] = useState([]);
+  useEffect(() => {
+    fetch("/api/demo-users")
+      .then((response) => response.json())
+      .then(setPersonas)
+      .catch(() => setPersonas([]));
+  }, []);
+  function update(field, value) {
+    setPrepared(false);
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+  const description = [
+    form.owner && `Accountable owner\n${form.owner}`,
+    form.problem && `Problem / opportunity\n${form.problem}`,
+    form.outcome && `Intended outcome\n${form.outcome}`,
+    form.scope && `Scope and constraints\n${form.scope}`,
+    form.users && `Affected users, markets, or data\n${form.users}`,
+    form.risk && `Risk and compliance considerations\n${form.risk}`,
+    form.success && `Success criteria\n${form.success}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  async function createInJira() {
+    if (createBusy) return;
+    setCreateBusy(true);
+    setCreateError("");
+    try {
+      const response = await fetch("/api/jira/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          summary: form.summary.trim(),
+          description,
+          issueType: "Task",
+          labels: form.labels
+            .split(",")
+            .map((label) => label.trim())
+            .filter(Boolean),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.hint || data.error || "jira_creation_failed");
+      setCreatedItem(data);
+      setCreateConfirm(false);
+    } catch (error) {
+      setCreateError(error.message || "jira_creation_failed");
+    } finally {
+      setCreateBusy(false);
+    }
+  }
+  return (
+    <div>
+      <ScreenHeading
+        eyebrow="Initiative formulation"
+        title="Shape a decision-ready Jira initiative"
+        description="Capture the business context FULCRUM needs before the work item enters the governed workflow. This form prepares the minimum Jira story structure; it does not create a Jira item yet."
+      />
+      <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setPrepared(true);
+          }}
+          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+        >
+          <div className="border-b border-slate-100 pb-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
+              Jira story basics
+            </p>
+            <h2 className="mt-1 text-xl font-bold text-slate-950">
+              What is changing?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              These fields map to the core Jira initiative context and the first
+              Intake evaluation checks.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <label className="sm:col-span-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Summary <span className="text-red-600">*</span>
+              </span>
+              <input
+                required
+                value={form.summary}
+                onChange={(event) => update("summary", event.target.value)}
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+                placeholder="e.g. Add real-time fraud controls for card payments"
+              />
+            </label>
+            <label>
+              <span className="flex min-h-4 items-center text-xs font-bold uppercase tracking-wide text-slate-500">
+                Priority
+              </span>
+              <select
+                value={form.priority}
+                onChange={(event) => update("priority", event.target.value)}
+                className="mt-2 h-[47px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+              >
+                <option>Highest</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+              </select>
+            </label>
+            <label>
+              <span className="flex min-h-4 items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <span>Accountable owner</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    update("owner", currentUser?.displayName ?? "")
+                  }
+                  disabled={!currentUser}
+                  className="cursor-pointer normal-case tracking-normal text-[#087f70] transition hover:text-[#102f33] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Assign to me
+                </button>
+              </span>
+              <input
+                list="initiative-personas"
+                value={form.owner}
+                onChange={(event) => update("owner", event.target.value)}
+                className="mt-2 h-[47px] w-full rounded-lg border border-slate-300 px-3 py-3 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+                placeholder="Start typing a persona or team"
+              />
+              <datalist id="initiative-personas">
+                {personas.map((persona) => (
+                  <option key={persona.id} value={persona.displayName}>
+                    {persona.role}
+                  </option>
+                ))}
+              </datalist>
+            </label>
+            {["problem", "outcome", "scope", "users", "risk", "success"].map(
+              (field) => (
+                <label key={field} className="sm:col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {
+                      {
+                        problem: "Problem or opportunity",
+                        outcome: "Intended outcome",
+                        scope: "Scope and constraints",
+                        users: "Affected users, markets, or data",
+                        risk: "Risk and compliance considerations",
+                        success: "Success criteria",
+                      }[field]
+                    }
+                  </span>
+                  <textarea
+                    value={form[field]}
+                    onChange={(event) => update(field, event.target.value)}
+                    className="mt-2 min-h-24 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm leading-6 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+                    placeholder="Add enough detail for another person to understand the request."
+                  />
+                </label>
+              ),
+            )}
+            <label className="sm:col-span-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Classification labels
+              </span>
+              <input
+                value={form.labels}
+                onChange={(event) => update("labels", event.target.value)}
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+                placeholder="payments, fraud, customer-impact (comma separated)"
+              />
+            </label>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">
+              <span className="font-bold text-slate-700">Project:</span> FCRM ·{" "}
+              <span className="font-bold text-slate-700">Issue type:</span> Task
+            </p>
+            <button
+              type="submit"
+              className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d]"
+            >
+              Prepare Jira story
+            </button>
+          </div>
+          {prepared && (
+            <p
+              className="mt-4 rounded-lg bg-[#dcefe7] px-3 py-2 text-xs font-semibold text-[#197443]"
+              role="status"
+            >
+              Story draft prepared for review. Confirm below when you are ready
+              to create it in Jira.
+            </p>
+          )}
+          {prepared && !createdItem && (
+            <button
+              type="button"
+              onClick={() => setCreateConfirm(true)}
+              className="mt-3 rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2]"
+            >
+              Create initiative in Jira
+            </button>
+          )}
+          {createdItem && (
+            <p
+              className="mt-4 rounded-lg bg-[#dcefe7] px-3 py-2 text-xs font-semibold text-[#197443]"
+              role="status"
+            >
+              Created {createdItem.key} in Jira.{" "}
+              <a
+                href={`/demo?view=work-item&issue=${encodeURIComponent(createdItem.key)}`}
+                className="ml-1 underline"
+              >
+                Open in FULCRUM
+              </a>
+            </p>
+          )}
+          {createError && (
+            <p className="mt-4 text-xs font-semibold text-red-700" role="alert">
+              {createError}
+            </p>
+          )}
+        </form>
+        <aside className="h-fit rounded-2xl border border-[#cfe3d8] bg-[#f7fbf8] p-5 sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
+            Decision context preview
+          </p>
+          <h2 className="mt-1 text-xl font-bold text-[#102f33]">
+            What FULCRUM will evaluate
+          </h2>
+          <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-600">
+            <li>
+              <strong className="text-slate-800">Business context:</strong> why
+              the change is needed and what outcome it should produce.
+            </li>
+            <li>
+              <strong className="text-slate-800">Delivery scope:</strong>{" "}
+              affected users, markets, data, constraints, and success criteria.
+            </li>
+            <li>
+              <strong className="text-slate-800">Accountability:</strong> a
+              named owner and useful classification labels.
+            </li>
+            <li>
+              <strong className="text-slate-800">Governance:</strong> risk and
+              compliance considerations that can guide later evaluation.
+            </li>
+          </ul>
+          {form.summary && (
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                Draft preview
+              </p>
+              <h3 className="mt-2 font-bold text-slate-900">{form.summary}</h3>
+              <p className="mt-3 whitespace-pre-wrap text-xs leading-5 text-slate-600">
+                {description || "Add context to preview the Jira description."}
+              </p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onOpenTrace}
+            className="mt-6 text-sm font-bold text-[#087f70] transition hover:text-[#102f33]"
+          >
+            View the golden decision trace →
+          </button>
+        </aside>
+      </div>
+      {createConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,34,38,0.7)] p-5"
+          role="presentation"
+        >
+          <section
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-initiative-title"
+          >
+            <h2
+              id="create-initiative-title"
+              className="text-xl font-bold text-[#102f33]"
+            >
+              Create this Jira initiative?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              This will create a Task in the FCRM project using the FULCRUM
+              service account. Review the prepared story before confirming.
+            </p>
+            <div className="mt-4 rounded-lg bg-slate-50 p-3 text-sm">
+              <p className="font-bold text-slate-900">{form.summary}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                FCRM · Task · {form.priority}
+              </p>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCreateConfirm(false)}
+                disabled={createBusy}
+                className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={createInJira}
+                disabled={createBusy}
+                className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+              >
+                {createBusy ? "Creating…" : "Confirm and create"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
   const screens = {
     initiatives: {
       eyebrow: "Portfolio view",
@@ -1209,22 +1546,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace }) {
 
   const content = {
     initiatives: (
-      <InfoCard title="Golden Initiative">
-        <p className="text-lg font-bold text-slate-950">
-          Launch U.S.–Philippines Instant Remittance
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          A synthetic cross-border payment launch with one linked assessment,
-          eight lifecycle stages, and explicit Product Owner, Analyst, and
-          Committee participants.
-        </p>
-        <button
-          onClick={() => onOpenTrace()}
-          className="mt-4 text-sm font-bold text-[rgb(9,167,141)]"
-        >
-          Open decision trace →
-        </button>
-      </InfoCard>
+      <InitiativeForm onOpenTrace={onOpenTrace} currentUser={currentUser} />
     ),
     evidence: (
       <InfoCard title="Evidence coverage">
@@ -1309,7 +1631,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace }) {
   };
   return (
     <div>
-      <ScreenHeading {...screen} />
+      {view !== "initiatives" && <ScreenHeading {...screen} />}
       <div className="space-y-5">{content[view] ?? content.initiatives}</div>
     </div>
   );
