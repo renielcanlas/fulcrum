@@ -2,8 +2,26 @@ import {commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, jiraErr
 import {runtime} from "../../../../../src/server/runtime.js";
 import {JIRA_PROJECT_KEY} from "../../../../../src/integrations/jira-config.js";
 import {resolveJiraConnection} from "../../../../../src/integrations/jira-connection.js";
+import {findDemoUser} from "../../../../../src/auth/demo-users.js";
 
 const SANDBOX_ACTOR_ID = "fulcrum-sandbox";
+const ACTION_ALIASES = {create_issue: "create", add_comment: "comment", move: "transition", delete_all_issues: "delete_all"};
+
+function normalizeStep(rawStep) {
+  const actionKey = rawStep.action ?? Object.keys(rawStep).find((key) => ACTION_ALIASES[key] || ["create", "update", "transition", "assign", "comment", "delete_all"].includes(key));
+  const action = ACTION_ALIASES[actionKey] ?? actionKey;
+  const nested = rawStep[actionKey] && typeof rawStep[actionKey] === "object" && !Array.isArray(rawStep[actionKey]) ? rawStep[actionKey] : null;
+  const step = nested ? {...rawStep, ...nested, action} : {...rawStep, action};
+  if (action === "update" && !step.fields && nested) step.fields = nested;
+  if (nested && actionKey !== "action") delete step[actionKey];
+  return step;
+}
+
+function personaAccountId(personaId) {
+  const persona = findDemoUser(personaId);
+  if (!persona?.jiraIdentity?.jiraAccountId || persona.jiraIdentity.jiraAccountId.startsWith("jira-")) throw new Error("invalid_persona_jira_mapping");
+  return persona.jiraIdentity.jiraAccountId;
+}
 
 export async function POST(request) {
   let action;
@@ -11,13 +29,13 @@ export async function POST(request) {
     const connection = await resolveJiraConnection({connections: runtime.jiraConnections});
     if (!connection) return Response.json({error: "jira_connection_required"}, {status: 409});
     const body = await request.json();
-    const step = body.step ?? {};
+    const step = normalizeStep(body.step ?? {});
     action = step.action;
     let result;
     if (step.action === "create") result = await createJiraWorkItem({...step, projectKey: JIRA_PROJECT_KEY, cloudId: connection.cloudId, accessToken: connection.accessToken});
-    else if (step.action === "update") result = await updateJiraWorkItem({issueKey: body.issueKey, fields: step.fields, cloudId: connection.cloudId, accessToken: connection.accessToken});
+    else if (step.action === "update") { const fields = {...(step.fields ?? {})}; if (fields.assigneePersona) { fields.assignee = {accountId: personaAccountId(fields.assigneePersona)}; delete fields.assigneePersona; } else if (fields.assignee?.personaId) fields.assignee = {accountId: personaAccountId(fields.assignee.personaId)}; result = await updateJiraWorkItem({issueKey: body.issueKey, fields, cloudId: connection.cloudId, accessToken: connection.accessToken}); }
     else if (step.action === "transition") result = await transitionJiraWorkItem({issueKey: body.issueKey, status: step.status ?? step.to ?? step.intent ?? step.targetStatus, cloudId: connection.cloudId, accessToken: connection.accessToken});
-    else if (step.action === "assign") result = await updateJiraWorkItem({issueKey: body.issueKey, fields: {assignee: {accountId: step.accountId}}, cloudId: connection.cloudId, accessToken: connection.accessToken});
+    else if (step.action === "assign") result = await updateJiraWorkItem({issueKey: body.issueKey, fields: {assignee: {accountId: step.personaId ? personaAccountId(step.personaId) : step.accountId}}, cloudId: connection.cloudId, accessToken: connection.accessToken});
     else if (step.action === "comment") result = await commentJiraWorkItem({issueKey: body.issueKey, body: step.body, cloudId: connection.cloudId, accessToken: connection.accessToken});
     else if (step.action === "delete_all") result = await deleteAllJiraWorkItems({projectKey: JIRA_PROJECT_KEY, cloudId: connection.cloudId, accessToken: connection.accessToken});
     else throw new Error("unsupported_scenario_action");
