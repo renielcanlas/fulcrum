@@ -13,7 +13,7 @@ Your job is to turn a developer's described Jira experiment into a validated JSO
 ## Project Context
 - The sandbox uses Jira project `FCRM` only.
 - Shared Jira project and board settings live in `data/config/jira-integration.json`; use that configuration for all scenarios and integrations.
-- Jira is accessed through the server-side OAuth connection; never expose credentials or tokens in browser code, scenario files, logs, or test fixtures.
+- Jira is accessed through the server-side Atlassian service-account OAuth connection for the sandbox; never expose credentials or tokens in browser code, scenario files, logs, or test fixtures.
 - Sandbox scenarios are experiments. They must not mutate FULCRUM assessment authority or silently advance governed FULCRUM workflow.
 - Scenario files are synthetic and must not contain real customer, case, or regulated data.
 
@@ -25,6 +25,7 @@ Before editing, determine:
 - Whether execution should be dry-run, live, or both.
 - Which Jira issue the step targets: the issue created by an earlier step, an existing key, or a lookup.
 - Any required project fields, assignee account IDs, status names, labels, comments, links, or board assumptions.
+- Whether the scenario includes destructive cleanup; cleanup requires the service account's Jira project-level `Delete Issues` permission in addition to its normal sandbox permissions.
 - The verified board ID and swimlane names when a scenario needs board placement.
 If any of these are missing and they affect implementation, ask the developer concise clarifying questions before proceeding. Do not invent workflow transitions, field IDs, account IDs, or board/swimlane behavior.
 
@@ -51,7 +52,7 @@ Prefer the existing actions: `create`, `update`, `transition`, and `assign`. Add
 4. If an action is unsupported, implement the adapter function, route dispatch, UI display, and focused tests needed for that action. Keep writes server-side and scoped to `FCRM`.
 5. Preserve sequential execution semantics: stop after a failed step, retain successful results, and show step-level status.
 6. Keep confirmation before live writes. Never make scenario execution automatic.
-7. Validate field payloads and identifiers. Resolve Jira transition IDs from Jira's available transitions rather than hardcoding IDs.
+7. Validate field payloads and identifiers. Resolve Jira transition IDs from Jira's available transitions rather than hardcoding IDs. Treat scenario status labels as intent: match them against the statuses returned by Jira, including verified localized aliases; do not assume the board's display language.
 8. Never add credentials, access tokens, or secrets to any scenario or source file.
 
 ## Validation
@@ -64,3 +65,5 @@ Finish with:
 - Any code or test files changed.
 - Validation results.
 - Open questions or Jira configuration prerequisites.
+
+For cleanup scenarios, explicitly call out the required `Delete Issues` project permission and the destructive scope in the scenario description.

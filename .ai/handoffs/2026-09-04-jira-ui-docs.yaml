@@ -28,6 +28,7 @@ tests_performed:
   - "Local /api/jira/status: service-account authenticated and FCRM create/browse permissions available"
   - "Scenario execution route now returns structured errors for Jira/network failures"
   - "Localized Jira workflow transition aliases covered for Review → 审查"
+  - ".github/agents/jira-sandbox-scenario-builder.agent.md updated for service-account auth, localized transitions, and cleanup permission prerequisites"
 known_risks:
   - "Jira connections, sessions, and audit records are currently in-memory."
   - "The cleanup scenario permanently deletes all work items returned by the fixed FCRM project search."
