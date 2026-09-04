@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {renderCielMessage} from "../../src/components/ciel-chat.js";
+import {JiraUpdateDialog, renderCielMessage} from "../../src/components/ciel-chat.js";
 
 const workflow = [
   ["Draft", "slate"],
@@ -36,6 +36,7 @@ const tones = {
   orange: "bg-orange-400",
   green: "bg-[rgb(82,224,129)]",
 };
+const cielStorageKey = "fulcrum-ciel-chat";
 const jiraWorkflowStatuses = ["Intake", "Context and Research", "Risk Assessment", "Review", "Decision"];
 
 export default function DemoPage() {
@@ -49,9 +50,13 @@ export default function DemoPage() {
   const [trace, setTrace] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [activeView, setActiveView] = useState("board");
+  const [chatReady, setChatReady] = useState(false);
   const [boardItems, setBoardItems] = useState(null);
   const [boardError, setBoardError] = useState("");
   const [selectedWorkItem, setSelectedWorkItem] = useState(null);
+  const [activeIssueKey, setActiveIssueKey] = useState("");
+  const [chatContextCleared, setChatContextCleared] = useState(false);
+  const [jiraUpdateRequest, setJiraUpdateRequest] = useState(null);
 
   function navigateTo(view) {
     if (view === "sandbox") {
@@ -73,6 +78,15 @@ export default function DemoPage() {
   }, [router]);
 
   useEffect(() => {
+    try { const saved = JSON.parse(localStorage.getItem(cielStorageKey) ?? "null"); if (Array.isArray(saved) && saved.length) setMessages(saved); } catch {}
+    setChatReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (chatReady) localStorage.setItem(cielStorageKey, JSON.stringify(messages));
+  }, [messages, chatReady]);
+
+  useEffect(() => {
     fetch("/api/sandbox/jira")
       .then(async (response) => {
         const data = await response.json();
@@ -92,16 +106,15 @@ export default function DemoPage() {
 
   useEffect(() => {
     const issueKey = new URLSearchParams(window.location.search).get("issue");
+    setActiveIssueKey(issueKey ?? "");
     if (activeView !== "work-item" || !issueKey) return;
-    fetch(`/api/sandbox/jira?jql=${encodeURIComponent(`key = ${issueKey}`)}`)
-      .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "jira_work_item_load_failed"); const item = data.items?.find((candidate) => candidate.key === issueKey); if (!item) throw new Error("work_item_not_found"); setSelectedWorkItem(item); })
+    fetch(`/api/sandbox/jira?issue=${encodeURIComponent(issueKey)}`)
+      .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "jira_work_item_load_failed"); if (!data.item) throw new Error("work_item_not_found"); setSelectedWorkItem(data.item); })
       .catch((error) => setSelectedWorkItem({error: error.message ?? "jira_work_item_load_failed"}));
   }, [activeView]);
 
-  async function ask(event) {
-    event.preventDefault();
-    if (!question.trim() || !signedIn || busy) return;
-    const text = question;
+  async function sendCielMessage(text, applyJiraUpdate = false) {
+    setChatContextCleared(false);
     setQuestion("");
     setMessages((current) => [...current, `You: ${text}`]);
     setBusy(true);
@@ -109,7 +122,7 @@ export default function DemoPage() {
       const response = await fetch("/api/ciel", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ assessmentId: "FA-2026-00124", message: text, currentUrl: window.location.href, context: buildCielContext(text, activeView, boardItems, selectedWorkItem) }),
+        body: JSON.stringify({ message: text, applyJiraUpdate, currentUrl: window.location.href, context: buildCielContext(text, activeView, boardItems, selectedWorkItem) }),
       });
       const data = await response.json();
       setMessages((current) => [
@@ -119,6 +132,18 @@ export default function DemoPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function ask(event) {
+    event.preventDefault();
+    if (!question.trim() || !signedIn || busy) return;
+    const text = question.trim();
+    if (/\b(update|edit|improve|rewrite|populate|enhance)\b/i.test(text) && /\b(story|work item|jira item|details?|description|summary)\b/i.test(text) && (activeIssueKey || text.match(/\bFCRM-[1-9][0-9]*\b/i))) {
+      const issueKey = activeIssueKey || text.match(/\bFCRM-[1-9][0-9]*\b/i)[0].toUpperCase();
+      setJiraUpdateRequest({issueKey, message: text});
+      return;
+    }
+    await sendCielMessage(text);
   }
 
   async function loadTrace() {
@@ -342,6 +367,11 @@ export default function DemoPage() {
           busy={busy}
           ask={ask}
           onClose={() => setChatOpen(false)}
+          jiraIssueKey={chatContextCleared ? "" : activeIssueKey}
+          jiraUpdateRequest={jiraUpdateRequest}
+          onConfirmJiraUpdate={() => { const request = jiraUpdateRequest; setJiraUpdateRequest(null); sendCielMessage(request.message, true); }}
+          onCancelJiraUpdate={() => setJiraUpdateRequest(null)}
+          onClear={() => { setMessages(["Hi, I’m Ciel. I can help you understand this initiative and its decision trail."]); setChatContextCleared(true); }}
         />
       )}
     </main>
@@ -885,7 +915,7 @@ function JiraWorkItemProgress({item}) {
 function JiraWorkItemView({item, onBack}) {
   if (!item) return <p className="text-sm text-slate-500">Loading Jira work item…</p>;
   if (item.error) return <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700">Unable to load this work item: {item.error}</div>;
-  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div><button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline">← Back to board</button><h1 className="mt-3 font-mono text-2xl font-bold text-[rgb(9,167,141)]">{item.key}</h1><h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{item.summary}</h2></div><dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 text-sm sm:grid-cols-2"><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Assignee</dt><dd className="mt-1 font-semibold text-slate-700">{item.assignee ?? "Unassigned"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Issue type</dt><dd className="mt-1 font-semibold text-slate-700">{item.issueType ?? "Issue"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Project</dt><dd className="mt-1 font-semibold text-slate-700">{item.projectKey ?? "FCRM"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Updated</dt><dd className="mt-1 font-semibold text-slate-700">{item.updated ? new Date(item.updated).toLocaleString() : "Not available"}</dd></div></dl><div className="mt-8 flex justify-end">{item.url && <a href={item.url} target="_blank" rel="noreferrer" className="rounded-lg bg-[rgb(16,47,51)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[rgb(25,66,71)]">Open actual Jira item ↗</a>}</div></section>;
+  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div><button type="button" onClick={onBack} className="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline">← Back to board</button><h1 className="mt-3 font-mono text-2xl font-bold text-[rgb(9,167,141)]">{item.key}</h1><h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{item.summary}</h2></div><dl className="mt-8 grid gap-5 border-t border-slate-100 pt-6 text-sm sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Status</dt><dd className="mt-1 font-semibold text-slate-700">{item.statusName ?? item.status ?? "Unknown"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Assignee</dt><dd className="mt-1 font-semibold text-slate-700">{item.assignee ?? "Unassigned"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Priority</dt><dd className="mt-1 font-semibold text-slate-700">{item.priority ?? "Not set"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Issue type</dt><dd className="mt-1 font-semibold text-slate-700">{item.issueType ?? "Issue"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Project</dt><dd className="mt-1 font-semibold text-slate-700">{item.projectKey ?? "FCRM"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Updated</dt><dd className="mt-1 font-semibold text-slate-700">{item.updated ? new Date(item.updated).toLocaleString() : "Not available"}</dd></div></dl><div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Description</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">{item.description || "No description provided."}</p>{item.labels?.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{item.labels.map((label) => <span key={label} className="rounded-full bg-[#edf7f0] px-2.5 py-1 text-xs font-semibold text-[#197443]">{label}</span>)}</div>}</div>{item.comments?.length > 0 && <div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Comments</h3><div className="mt-3 space-y-3">{item.comments.map((comment) => <article key={comment.id} className="rounded-xl bg-slate-50 p-4"><div className="flex flex-wrap justify-between gap-2 text-xs"><span className="font-bold text-slate-700">{comment.author}</span><span className="text-slate-400">{comment.created ? new Date(comment.created).toLocaleString() : ""}</span></div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{comment.body || "No comment text."}</p></article>)}</div></div>}<div className="mt-8 flex justify-end">{item.url && <a href={item.url} target="_blank" rel="noreferrer" className="rounded-lg bg-[rgb(16,47,51)] px-4 py-2.5 text-sm font-bold text-white hover:bg-[rgb(25,66,71)]">Open actual Jira item ↗</a>}</div></section>;
 }
 
 function JiraBoardCard({ item }) {
@@ -944,8 +974,16 @@ function InitiativeCard({ onOpen }) {
   );
 }
 
-function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
+function ChatPanel({ question, setQuestion, messages, busy, ask, onClose, onClear, jiraIssueKey, jiraUpdateRequest, onConfirmJiraUpdate, onCancelJiraUpdate }) {
+  const chatScrollRef = useRef(null);
+  const chatTargetRef = useRef(null);
+
+  useEffect(() => {
+    chatTargetRef.current?.scrollIntoView({behavior: "smooth", block: "start"});
+  }, [messages, busy]);
+
   return (
+    <>
     <div className="fixed inset-x-4 bottom-24 z-50 flex max-h-[min(620px,calc(100vh-7rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[390px]">
       <div className="flex items-center justify-between bg-[rgba(12,34,38,0.95)] px-5 py-4 text-white">
         <div>
@@ -953,30 +991,22 @@ function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
             Ciel · FULCRUM AI Assistant
           </p>
           <h2 className="mt-1 font-bold">Initiative-aware chat</h2>
+          <p className="mt-1 text-[11px] text-white/60">{jiraIssueKey ? `Jira ${jiraIssueKey} · can inspect and update description` : "No linked Jira item"}</p>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Close AI chat"
-          className="text-xl text-white/60 hover:text-white"
-        >
-          ×
-        </button>
+        <div className="flex items-center gap-1"><button type="button" onClick={onClear} aria-label="Clear Ciel chat" title="Clear chat" className="grid h-10 w-10 place-items-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-[rgb(82,224,129)]"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M9 7V4h6v3m-8 0 1 13h6l1-13M10 11v5m4-5v5" /></svg></button><button type="button" onClick={onClose} aria-label="Close Ciel chat" title="Close chat" className="grid h-10 w-10 place-items-center rounded-lg text-2xl leading-none text-white/60 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-[rgb(82,224,129)]">×</button></div>
       </div>
-      <div className="min-h-40 flex-1 space-y-2 overflow-y-auto bg-slate-950 p-4 text-sm leading-6 text-slate-100">
+      <div ref={chatScrollRef} className="min-h-40 flex-1 space-y-3 overflow-y-auto bg-slate-100 p-4 text-sm leading-6 text-slate-800">
         {messages.map((message, index) => (
           <p
             key={index}
-            className={
-              index === 0
-                ? "text-slate-400"
-                : "border-b border-slate-800 pb-2 last:border-0"
-            }
+            ref={index === messages.length - 1 && !busy ? chatTargetRef : undefined}
+            className={`flex ${message.startsWith("You:") ? "justify-end" : "justify-start"}`}
           >
-            {renderCielMessage(message)}
+            <span className={`min-w-0 max-w-[88%] break-words whitespace-pre-wrap rounded-2xl px-3 py-2.5 shadow-sm ${index === 0 ? "bg-white text-slate-600" : message.startsWith("You:") ? "rounded-br-sm bg-[rgb(217,245,225)] text-[#173b32]" : "rounded-bl-sm border border-slate-200 bg-white text-slate-800"}`}>{renderCielMessage(message)}</span>
           </p>
         ))}
         {busy && (
-          <div className="w-fit rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-300">
+          <div ref={chatTargetRef} className="w-fit rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-300">
             <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[rgb(82,224,129)]">Ciel</p>
             <span className="flex items-center gap-1" aria-label="Ciel is typing">
               <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[rgb(82,224,129)] [animation-delay:-0.3s]" />
@@ -1008,6 +1038,8 @@ function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
         </button>
       </form>
     </div>
+    {jiraUpdateRequest && <JiraUpdateDialog issueKey={jiraUpdateRequest.issueKey} onConfirm={onConfirmJiraUpdate} onCancel={onCancelJiraUpdate} />}
+    </>
   );
 }
 

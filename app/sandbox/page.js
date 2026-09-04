@@ -6,6 +6,7 @@ import CielChat from "../../src/components/ciel-chat.js";
 
 const PROJECT_KEY = jiraConfig.projectKey;
 const menu = [["search", "Jira search"], ["automator", "Scenario automator"]];
+const cielStorageKey = "fulcrum-ciel-chat";
 
 export default function SandboxPage() {
   const [view, setView] = useState("search");
@@ -24,6 +25,17 @@ export default function SandboxPage() {
   const [cielMessages, setCielMessages] = useState(["Hi, I’m Ciel. I can explain the synthetic FULCRUM assessment context while you experiment in the sandbox."]);
   const [cielBusy, setCielBusy] = useState(false);
   const [cielOpen, setCielOpen] = useState(false);
+  const [cielReady, setCielReady] = useState(false);
+  const [jiraUpdateRequest, setJiraUpdateRequest] = useState(null);
+
+  useEffect(() => {
+    try { const saved = JSON.parse(localStorage.getItem(cielStorageKey) ?? "null"); if (Array.isArray(saved) && saved.length) setCielMessages(saved); } catch {}
+    setCielReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (cielReady) localStorage.setItem(cielStorageKey, JSON.stringify(cielMessages));
+  }, [cielMessages, cielReady]);
 
   useEffect(() => {
     async function initialize() {
@@ -54,20 +66,28 @@ export default function SandboxPage() {
     setResults(response.ok ? data : {error: data.error ?? "jira_request_failed"});
   }
 
-  async function askCiel(event) {
-    event.preventDefault();
-    if (!cielQuestion.trim() || cielBusy) return;
-    const message = cielQuestion.trim();
+  async function sendCielMessage(message, applyJiraUpdate = false) {
     setCielQuestion("");
     setCielMessages((current) => [...current, `You: ${message}`]);
     setCielBusy(true);
     try {
-      const response = await fetch("/api/ciel", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({message, currentUrl: window.location.href})});
+      const response = await fetch("/api/ciel", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({message, applyJiraUpdate, currentUrl: window.location.href})});
       const data = await response.json();
       setCielMessages((current) => [...current, `Ciel: ${data.answer ?? data.error ?? "No answer returned."}`]);
     } catch (error) {
       setCielMessages((current) => [...current, `Ciel: ${error.message ?? "Request failed."}`]);
     } finally { setCielBusy(false); }
+  }
+
+  async function askCiel(event) {
+    event.preventDefault();
+    if (!cielQuestion.trim() || cielBusy) return;
+    const message = cielQuestion.trim();
+    if (/\b(update|edit|improve|rewrite|populate|enhance)\b/i.test(message) && /\b(story|work item|jira item|details?|description|summary)\b/i.test(message)) {
+      setJiraUpdateRequest({issueKey: message.match(/\bFCRM-[1-9][0-9]*\b/i)?.[0]?.toUpperCase() ?? "linked Jira story", message});
+      return;
+    }
+    await sendCielMessage(message);
   }
 
   async function execute() {
@@ -113,7 +133,7 @@ export default function SandboxPage() {
     } catch (error) { setRun((current) => ({...current, rollbackActive: false, rollbackError: error.message})); }
   }
 
-  return <main className="min-h-screen bg-[#edf2f0] text-[#172b2f]"><header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[#d3dfdb] bg-[#102f33] px-5 text-white shadow-lg lg:px-8"><a href="/" className="text-sm font-bold tracking-[0.22em]">FULCRUM <span className="font-normal tracking-normal text-white/60">Sandbox</span></a><div className="flex items-center gap-3"><span className="hidden rounded-full border border-white/20 px-3 py-1.5 text-xs text-white/70 sm:inline">{PROJECT_KEY} project</span><span className={`rounded-lg border px-3 py-2 text-xs font-bold ${connection?.ready ? "border-[#55df82] bg-[#d9f5e1] text-[#197443]" : connection?.authenticated ? "border-amber-300 bg-amber-50 text-amber-800" : "border-white/20 text-white/80"}`}>{connection?.ready ? "✓ Jira connected" : connection?.authenticated ? "⚠ Jira permissions needed" : "Checking Jira..."}</span><span className={`rounded-lg border px-3 py-2 text-xs font-bold ${aiStatus?.connected ? "border-[#55df82] bg-[#d9f5e1] text-[#197443]" : "border-amber-300 bg-amber-50 text-amber-800"}`}>{aiStatus?.connected ? "✓ Azure AI connected" : aiStatus?.error ? "⚠ Azure AI unavailable" : "Checking Azure AI..."}</span></div></header><div className="mx-auto flex max-w-[1600px]"><aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-72 shrink-0 self-start overflow-y-auto border-r border-[#d3dfdb] bg-[#f8faf9] px-4 py-7 lg:block"><p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#087f70]">Sandbox</p><p className="mb-7 mt-2 px-3 text-sm font-semibold text-slate-900">All experiments</p><nav className="space-y-1" aria-label="Sandbox navigation">{menu.map(([id, label]) => <button type="button" key={id} onClick={() => setView(id)} className={`w-full rounded-xl px-3 py-3 text-left text-sm font-semibold ${view === id ? "bg-[#dcefe7] text-[#102f33]" : "text-slate-500 hover:bg-white"}`}>{label}</button>)}</nav></aside><div className="min-w-0 flex-1"><nav className="flex gap-2 border-b border-[#d3dfdb] bg-white px-4 py-3 lg:hidden" aria-label="Sandbox navigation">{menu.map(([id, label]) => <button type="button" key={id} onClick={() => setView(id)} className={`rounded-lg px-3 py-2 text-xs font-bold ${view === id ? "bg-[#dcefe7] text-[#102f33]" : "bg-slate-50 text-slate-500"}`}>{label}</button>)}</nav><section className="px-5 py-8 sm:px-8 lg:px-12 lg:py-10">{view === "search" ? <Search jql={jql} setJql={setJql} results={results} onSearch={search} /> : <Automator draftValidation={draftValidation} setDraftValidation={setDraftValidation} scenario={scenario} scenarios={scenarios} selectedId={selectedId} setSelectedId={(id) => {setSelectedId(id); setDraftValidation(null); setTab("details");}} customJson={customJson} setCustomJson={setCustomJson} aiPrompt={aiPrompt} setAiPrompt={setAiPrompt} tab={tab} setTab={setTab} connection={connection} run={run} onRequestExecute={prepareExecute} onExecute={execute} onCancel={() => setRun(null)} onClose={() => setRun(null)} onRollback={rollback} />}</section></div></div><button type="button" onClick={() => setCielOpen(true)} aria-label="Open Ciel chat" className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-[rgb(82,224,129)] text-xl font-bold text-[rgb(12,34,38)] shadow-xl shadow-[rgba(9,167,141,0.3)] transition hover:scale-105 hover:bg-[rgb(110,235,151)]">✦</button>{cielOpen && <CielChat question={cielQuestion} setQuestion={setCielQuestion} messages={cielMessages} busy={cielBusy} onAsk={askCiel} onClose={() => setCielOpen(false)} />}</main>;
+  return <main className="min-h-screen bg-[#edf2f0] text-[#172b2f]"><header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[#d3dfdb] bg-[#102f33] px-5 text-white shadow-lg lg:px-8"><a href="/" className="text-sm font-bold tracking-[0.22em]">FULCRUM <span className="font-normal tracking-normal text-white/60">Sandbox</span></a><div className="flex items-center gap-3"><span className="hidden rounded-full border border-white/20 px-3 py-1.5 text-xs text-white/70 sm:inline">{PROJECT_KEY} project</span><span className={`rounded-lg border px-3 py-2 text-xs font-bold ${connection?.ready ? "border-[#55df82] bg-[#d9f5e1] text-[#197443]" : connection?.authenticated ? "border-amber-300 bg-amber-50 text-amber-800" : "border-white/20 text-white/80"}`}>{connection?.ready ? "✓ Jira connected" : connection?.authenticated ? "⚠ Jira permissions needed" : "Checking Jira..."}</span><span className={`rounded-lg border px-3 py-2 text-xs font-bold ${aiStatus?.connected ? "border-[#55df82] bg-[#d9f5e1] text-[#197443]" : "border-amber-300 bg-amber-50 text-amber-800"}`}>{aiStatus?.connected ? "✓ Azure AI connected" : aiStatus?.error ? "⚠ Azure AI unavailable" : "Checking Azure AI..."}</span></div></header><div className="mx-auto flex max-w-[1600px]"><aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-72 shrink-0 self-start overflow-y-auto border-r border-[#d3dfdb] bg-[#f8faf9] px-4 py-7 lg:block"><p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#087f70]">Sandbox</p><p className="mb-7 mt-2 px-3 text-sm font-semibold text-slate-900">All experiments</p><nav className="space-y-1" aria-label="Sandbox navigation">{menu.map(([id, label]) => <button type="button" key={id} onClick={() => setView(id)} className={`w-full rounded-xl px-3 py-3 text-left text-sm font-semibold ${view === id ? "bg-[#dcefe7] text-[#102f33]" : "text-slate-500 hover:bg-white"}`}>{label}</button>)}</nav></aside><div className="min-w-0 flex-1"><nav className="flex gap-2 border-b border-[#d3dfdb] bg-white px-4 py-3 lg:hidden" aria-label="Sandbox navigation">{menu.map(([id, label]) => <button type="button" key={id} onClick={() => setView(id)} className={`rounded-lg px-3 py-2 text-xs font-bold ${view === id ? "bg-[#dcefe7] text-[#102f33]" : "bg-slate-50 text-slate-500"}`}>{label}</button>)}</nav><section className="px-5 py-8 sm:px-8 lg:px-12 lg:py-10">{view === "search" ? <Search jql={jql} setJql={setJql} results={results} onSearch={search} /> : <Automator draftValidation={draftValidation} setDraftValidation={setDraftValidation} scenario={scenario} scenarios={scenarios} selectedId={selectedId} setSelectedId={(id) => {setSelectedId(id); setDraftValidation(null); setTab("details");}} customJson={customJson} setCustomJson={setCustomJson} aiPrompt={aiPrompt} setAiPrompt={setAiPrompt} tab={tab} setTab={setTab} connection={connection} run={run} onRequestExecute={prepareExecute} onExecute={execute} onCancel={() => setRun(null)} onClose={() => setRun(null)} onRollback={rollback} />}</section></div></div><button type="button" onClick={() => setCielOpen(true)} aria-label="Open Ciel chat" className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-[rgb(82,224,129)] text-xl font-bold text-[rgb(12,34,38)] shadow-xl shadow-[rgba(9,167,141,0.3)] shadow-xl transition hover:scale-105 hover:bg-[rgb(110,235,151)]">✦</button>{cielOpen && <CielChat question={cielQuestion} setQuestion={setCielQuestion} messages={cielMessages} busy={cielBusy} onAsk={askCiel} onClose={() => setCielOpen(false)} onClear={() => setCielMessages(["Hi, I’m Ciel. I can explain the synthetic FULCRUM assessment context while you experiment in the sandbox."])} jiraUpdateRequest={jiraUpdateRequest} onConfirmJiraUpdate={() => { const request = jiraUpdateRequest; setJiraUpdateRequest(null); sendCielMessage(request.message, true); }} onCancelJiraUpdate={() => setJiraUpdateRequest(null)} />}</main>;
 }
 
 function Header({eyebrow, title, text}) { return <div className="max-w-3xl"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f70]">{eyebrow}</p><h1 className="mt-3 text-4xl font-bold tracking-tight text-[#102f33]">{title}</h1><p className="mt-4 text-base leading-7 text-slate-600">{text}</p></div>; }

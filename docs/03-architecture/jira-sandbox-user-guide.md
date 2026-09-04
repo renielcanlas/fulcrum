@@ -15,7 +15,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 - **FULCRUM work-item view**: selecting a Jira key opens an independent FULCRUM detail page; the external Jira link is available from that detail page.
 - **JSON view**: the current scenario JSON for inspection.
 - **AI scenario assistant**: a prompt area for creating or revising a scenario.
-- **Ciel chat**: the read-only FULCRUM AI Assistant used in the demo, available from the floating ✦ button without signing in. It answers against the synthetic Golden Initiative context; it does not execute Jira scenarios.
+- **Ciel chat**: the FULCRUM AI Assistant, available from the floating ✦ button without signing in. It can inspect a linked live FCRM Jira story and, after explicit confirmation, improve its description; it does not execute Jira scenarios.
 - **Import JSON**: loads a local `.json` file into the editor.
 - **Save JSON**: downloads the current valid scenario.
 - **Clear**: resets the custom JSON, AI prompt, and generation error.
@@ -38,7 +38,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 
 ## Ask Ciel from the sandbox
 
-Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about the synthetic assessment, its evidence, risk findings, decision trail, or linked work. In the demo board, Jira context is attached only when the question appears related to the board or a work item; unrelated questions do not receive the board payload. Relevant answers can link to the FULCRUM work-item view and the remote Jira issue. The sandbox uses a fixed synthetic analyst identity and assessment scope so the chat can be demonstrated without a FULCRUM login. Ciel remains read-only: it can explain retrieved facts and system calculations, but it cannot change the scenario, Jira, scores, workflow, or decisions.
+Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about linked work. In the demo board, Jira context is attached only when the question appears related to the board or a work item; unrelated questions do not receive the board payload. When a linked `FCRM-*` key is present, Ciel retrieves live Jira details through the server-side service account. Ask her to improve the story details or description; the browser displays an explicit confirmation before the bounded description update is applied. Ciel does not change scores, workflow, decisions, or arbitrary Jira fields.
 
 ## Persona assignment format
 

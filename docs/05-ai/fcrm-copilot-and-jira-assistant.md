@@ -37,6 +37,8 @@ The assembler applies tenant, user, project, issue, and field-level access contr
 
 ## Interaction patterns
 
+When a user asks Ciel to improve a linked Jira story, the backend retrieves the live issue through the server-side service-account connection. Ciel may prepare a clearer description from the existing facts, but the browser must explicitly confirm the update. The deterministic Jira adapter then writes only the bounded description field, records an audit event, and reports the exact result. Read access remains available for linked `FCRM-*` issues; unsupported fields, invented custom fields, and silent writes are rejected.
+
 **Analyst workspace:** a side panel on the initiative shows “Ask Ciel”, evidence-backed suggestions, missing information, contradictions, and draft actions. Each suggestion has accept, edit, reject, and explain controls.
 
 **Initiative Q&A:** “What changed in the Jira initiative since the last assessment?”, “Which delivery channels are affected?”, “What evidence supports geography risk?”, and “What remains unknown?” Answers cite individual FULCRUM/Jira sources and disclose inference.

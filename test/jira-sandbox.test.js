@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
+import {buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
 
 test("Jira sandbox scopes searches to a valid project key", () => {
   assert.equal(buildJql("FCRM", "statusCategory != Done"), "project = FCRM AND (statusCategory != Done)");
@@ -66,6 +66,19 @@ test("live Jira search sends bearer auth and requested fields", async () => {
   assert.match(requestedUrl.toString(), /project\+%3D\+ABC/);
   assert.equal(requestedOptions.headers.authorization, "Bearer token-1");
   assert.equal(result.items[0].key, "ABC-1");
+});
+
+test("Ciel can retrieve a linked Jira story with service-account auth", async () => {
+  let request;
+  const item = await getJiraWorkItem({issueKey: "FCRM-80", cloudId: "cloud-1", accessToken: "token-1", siteUrl: "https://example.atlassian.net", fetchImpl: async (url, options) => {
+    request = {url: url.toString(), options};
+    return new Response(JSON.stringify({id: "80", key: "FCRM-80", fields: {summary: "Story", description: {type: "doc", content: [{type: "paragraph", content: [{type: "text", text: "Details"}]}]}, status: {name: "Intake"}, labels: ["synthetic"], project: {key: "FCRM"}, issuetype: {name: "Task"}}}), {status: 200});
+  }});
+  assert.equal(item.description, "Details");
+  assert.equal(item.statusName, "Intake");
+  assert.equal(item.url, "https://example.atlassian.net/browse/FCRM-80");
+  assert.equal(request.options.headers.authorization, "Bearer token-1");
+  assert.match(request.url, /FCRM-80\?fields=/);
 });
 
 test("Jira sandbox creates a basic Task with bearer auth", async () => {
