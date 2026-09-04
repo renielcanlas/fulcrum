@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   JiraUpdateDialog,
   renderCielMessage,
 } from "../../src/components/ciel-chat.js";
+import guidedDemos from "../../data/config/guided-demos.json" with { type: "json" };
 
 const workflow = [
   ["Draft", "slate"],
@@ -48,6 +49,7 @@ const jiraWorkflowStatuses = [
   "Review",
   "Decision",
 ];
+const demoTourSteps = guidedDemos[0]?.steps ?? [];
 
 export default function DemoPage() {
   const router = useRouter();
@@ -77,6 +79,25 @@ export default function DemoPage() {
   const [assessmentBusy, setAssessmentBusy] = useState(false);
   const [assessmentError, setAssessmentError] = useState("");
   const [transitionOffer, setTransitionOffer] = useState(false);
+  const [tourStep, setTourStep] = useState(null);
+  const [tourRect, setTourRect] = useState(null);
+
+  useEffect(() => {
+    if (tourStep === null) return;
+    const updateTourTarget = () => {
+      const target = document.querySelector(
+        `[data-tour="${demoTourSteps[tourStep].target}"]`,
+      );
+      setTourRect(target?.getBoundingClientRect() ?? null);
+    };
+    updateTourTarget();
+    window.addEventListener("resize", updateTourTarget);
+    window.addEventListener("scroll", updateTourTarget, true);
+    return () => {
+      window.removeEventListener("resize", updateTourTarget);
+      window.removeEventListener("scroll", updateTourTarget, true);
+    };
+  }, [tourStep]);
 
   function navigateTo(view) {
     if (view === "sandbox") {
@@ -113,7 +134,8 @@ export default function DemoPage() {
 
   useEffect(() => {
     if (chatReady) {
-      if (previousResponseId) localStorage.setItem(cielResponseStorageKey, previousResponseId);
+      if (previousResponseId)
+        localStorage.setItem(cielResponseStorageKey, previousResponseId);
       else localStorage.removeItem(cielResponseStorageKey);
     }
   }, [previousResponseId, chatReady]);
@@ -227,7 +249,7 @@ export default function DemoPage() {
       setIntakeAssessment((current) => ({
         ...(current ?? {}),
         issueKey: activeIssueKey,
-          stage: selectedWorkItem?.statusName,
+        stage: selectedWorkItem?.statusName,
         assessment: data.assessment,
       }));
     } catch (error) {
@@ -490,29 +512,33 @@ export default function DemoPage() {
           </div>
           <nav className="space-y-1" aria-label="Demo navigation">
             {navItems.map(([id, label, icon]) => (
-              <button
-                key={id}
-                onClick={() => navigateTo(id)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${activeView === id ? "bg-[rgba(9,167,141,0.11)] text-[rgb(25,66,71)]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
-              >
-                <span
-                  className={`grid h-7 w-7 place-items-center rounded-lg text-base ${activeView === id ? "bg-[rgb(9,167,141)] text-white" : "bg-slate-100 text-slate-500"}`}
+              <Fragment key={id}>
+                <button
+                  onClick={() => navigateTo(id)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${activeView === id ? "bg-[rgba(9,167,141,0.11)] text-[rgb(25,66,71)]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
                 >
-                  {icon}
-                </span>
-                {label}
-              </button>
+                  <span
+                    className={`grid h-7 w-7 place-items-center rounded-lg text-base ${activeView === id ? "bg-[rgb(9,167,141)] text-white" : "bg-slate-100 text-slate-500"}`}
+                  >
+                    {icon}
+                  </span>
+                  {label}
+                </button>
+                {id === "board" && (
+                  <button
+                    type="button"
+                    onClick={() => navigateTo("guided-demos")}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-base text-slate-500">
+                      ▷
+                    </span>
+                    Guided demos
+                  </button>
+                )}
+              </Fragment>
             ))}
           </nav>
-          <div className="mt-auto rounded-2xl bg-[rgba(12,34,38,0.95)] p-4 text-white">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[rgb(82,224,129)]">
-              Guided demo
-            </p>
-            <p className="mt-2 text-sm leading-5 text-white/70">
-              Follow the initiative from intake to a governed committee
-              decision.
-            </p>
-          </div>
         </aside>
         <section className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           {activeView === "initiative-detail" && <InitiativeProgress />}
@@ -539,11 +565,32 @@ export default function DemoPage() {
               >
                 Ask Ciel
               </button>
+              <button
+                type="button"
+                onClick={() => setTourStep(0)}
+                className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              >
+                Welcome tour
+              </button>
             </div>
           )}
-          {activeView === "board" ? (
+          {activeView === "guided-demos" ? (
+            <GuidedDemosScreen
+              demos={guidedDemos}
+              onStart={(demo) => {
+                if (demo.id === "welcome-tour") {
+                  setActiveView("board");
+                  setTourStep(0);
+                  router.replace("/demo");
+                }
+              }}
+            />
+          ) : activeView === "board" ? (
             <>
-              <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div
+                data-tour="metrics"
+                className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4"
+              >
                 {[
                   [
                     boardItems === null ? "—" : boardItems.length,
@@ -575,6 +622,7 @@ export default function DemoPage() {
                 ))}
               </div>
               <section
+                data-tour="board"
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 aria-label="Initiative board"
               >
@@ -695,9 +743,25 @@ export default function DemoPage() {
           )}
         </section>
       </div>
+      {tourStep !== null && (
+        <GuidedDemoTour
+          step={demoTourSteps[tourStep]}
+          index={tourStep}
+          total={demoTourSteps.length}
+          rect={tourRect}
+          onBack={() => setTourStep((current) => Math.max(0, current - 1))}
+          onNext={() =>
+            setTourStep((current) =>
+              current + 1 >= demoTourSteps.length ? null : current + 1,
+            )
+          }
+          onClose={() => setTourStep(null)}
+        />
+      )}
       <button
         onClick={() => setChatOpen(true)}
         aria-label="Open AI chat"
+        data-tour="ciel"
         className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-[rgb(82,224,129)] text-xl font-bold text-[rgb(12,34,38)] shadow-xl shadow-[rgba(9,167,141,0.3)] transition hover:scale-105 hover:bg-[rgb(110,235,151)]"
       >
         ✦
@@ -1276,6 +1340,126 @@ function InfoCard({ title, children }) {
   );
 }
 
+function GuidedDemosScreen({ demos, onStart }) {
+  return (
+    <div>
+      <ScreenHeading
+        eyebrow="Guided demos"
+        title="Explore the FULCRUM workbench"
+        description="Choose a guided tour to learn the main parts of the demo at your own pace."
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {demos.map((demo) => (
+          <article
+            key={demo.id}
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#087f70]">
+                  Guided tour
+                </p>
+                <h2 className="mt-2 text-xl font-bold text-slate-950">
+                  {demo.name}
+                </h2>
+              </div>
+              <span className="rounded-full bg-[#dcefe7] px-2.5 py-1 text-xs font-bold text-[#197443]">
+                {demo.steps?.length ?? 0} steps
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              {demo.description}
+            </p>
+            <button
+              type="button"
+              onClick={() => onStart(demo)}
+              className="mt-5 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081]"
+            >
+              Start tour
+            </button>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
+  const tooltipStyle = rect
+    ? {
+        top:
+          rect.bottom + 220 <= window.innerHeight
+            ? rect.bottom + 16
+            : Math.max(20, rect.top - 220),
+        left: Math.min(window.innerWidth - 340, Math.max(20, rect.left)),
+      }
+    : { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+  return (
+    <div
+      className="fixed inset-0 z-[70]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="demo-tour-title"
+    >
+      {rect && (
+        <div
+          className="pointer-events-none fixed rounded-xl border-2 border-[#52e081] shadow-[0_0_0_9999px_rgba(12,34,38,0.58)]"
+          style={{
+            top: rect.top - 6,
+            left: rect.left - 6,
+            width: rect.width + 12,
+            height: rect.height + 12,
+          }}
+        />
+      )}
+      <section
+        className="absolute max-h-[calc(100vh-40px)] w-[min(320px,calc(100vw-40px))] overflow-y-auto rounded-xl bg-white p-5 shadow-2xl"
+        style={tooltipStyle}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#087f70]">
+              Demo guide · {index + 1}/{total}
+            </p>
+            <h2
+              id="demo-tour-title"
+              className="mt-2 text-lg font-bold text-[#102f33]"
+            >
+              {step.title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close guided tour"
+            className="cursor-pointer text-xl leading-none text-slate-400 transition hover:text-slate-800"
+          >
+            ×
+          </button>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-slate-600">{step.text}</p>
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={index === 0}
+            className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="cursor-pointer rounded-lg bg-[#102f33] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#17494d]"
+          >
+            {index + 1 === total ? "Finish" : "Next"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function JiraWorkItemProgress({ item }) {
   const statuses = [
     "Intake",
@@ -1303,7 +1487,10 @@ function JiraWorkItemProgress({ item }) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
             <span>
-              Assignee: <strong className="text-slate-700">{item?.assignee ?? "Unassigned"}</strong>
+              Assignee:{" "}
+              <strong className="text-slate-700">
+                {item?.assignee ?? "Unassigned"}
+              </strong>
             </span>
           </div>
         </div>
@@ -1429,7 +1616,12 @@ function IntakeAssessmentPanel({
 }) {
   const [selectedVersion, setSelectedVersion] = useState(0);
   useEffect(() => setSelectedVersion(0), [item?.key]);
-  const nextStages = {Intake: "Context and Research", "Context and Research": "Risk Assessment", "Risk Assessment": "Review", Review: "Decision"};
+  const nextStages = {
+    Intake: "Context and Research",
+    "Context and Research": "Risk Assessment",
+    "Risk Assessment": "Review",
+    Review: "Decision",
+  };
   const stage = item?.statusName;
   if (!stage || !nextStages[stage]) return null;
   const canAdvance = Boolean(
@@ -1454,7 +1646,8 @@ function IntakeAssessmentPanel({
           </p>
           <h3 className="mt-1 text-lg font-bold text-[#102f33]">{stage}</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Evaluate whether this Jira item is ready to proceed to the next stage.
+            Evaluate whether this Jira item is ready to proceed to the next
+            stage.
           </p>
         </div>
         {published && !draft && (
@@ -1587,7 +1780,9 @@ function IntakeAssessmentPanel({
                 disabled={assessmentBusy}
                 className="cursor-pointer rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] disabled:cursor-wait disabled:opacity-40"
               >
-                {assessmentBusy ? "Re-evaluating " + stage + "…" : "Re-evaluate " + stage}
+                {assessmentBusy
+                  ? "Re-evaluating " + stage + "…"
+                  : "Re-evaluate " + stage}
               </button>
               {canAdvance && (
                 <span className="text-xs text-slate-500">
@@ -1610,8 +1805,10 @@ function IntakeAssessmentPanel({
       )}
       {transitionOffer && canMove && (
         <div className="mt-4 rounded-lg border border-[#b9e4d1] bg-white p-4 text-sm text-slate-700">
-          <strong>Assessment published.</strong> It recommends proceeding to&nbsp;
-            <strong>{nextStages[stage]}</strong>. Would you like to move this Jira item now?
+          <strong>Assessment published.</strong> It recommends proceeding
+          to&nbsp;
+          <strong>{nextStages[stage]}</strong>. Would you like to move this Jira
+          item now?
           <div className="mt-3 flex gap-2">
             <button
               type="button"

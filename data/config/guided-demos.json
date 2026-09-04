@@ -1,0 +1,12 @@
+[
+  {
+    "id": "welcome-tour",
+    "name": "Welcome Tour",
+    "description": "A short orientation to the live Jira board, summary metrics, and Ciel.",
+    "steps": [
+      {"target":"board","title":"Live Jira board","text":"This board reflects the current FCRM work items and workflow status from Jira."},
+      {"target":"metrics","title":"At-a-glance context","text":"These summary cards show the live item count, workflow coverage, connected project, and data source."},
+      {"target":"ciel","title":"Ask Ciel","text":"Use Ciel, the FULCRUM AI Assistant, to explore the current initiative and decision context."}
+    ]
+  }
+]
