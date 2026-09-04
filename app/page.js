@@ -264,7 +264,7 @@ export default function Home() {
               [
                 "03",
                 "Development",
-                "Built the Next.js/Vercel foundation, landing page, synthetic data, governed Ciel copilot, tool contracts, demo experience, and a separate sandbox with an AI scenario builder for safe integration experiments.",
+                "Built the Next.js/Vercel foundation, landing page, synthetic data, FULCRUM AI Assistant, tool contracts, demo experience, and a separate sandbox with an AI scenario builder for safe integration experiments.",
               ],
               [
                 "04",
@@ -329,6 +329,14 @@ export default function Home() {
                 AI accelerated research, design, development, testing, and
                 deployment—while the product keeps decisions governed by
                 deterministic logic and humans.
+              </p>
+              <p className="mt-4 text-sm leading-6 text-white/70">
+                Ciel, FULCRUM AI Assistant, is named with a nod to the
+                AI-like partner skill associated with Rimuru in <em>That Time
+                I Got Reincarnated as a Slime</em>. The French word <em>ciel</em>
+                means “sky” and traces to Latin <em>caelum</em>—a fitting image
+                for an assistant that gives people a wider view of evidence,
+                risk, and decision context while leaving authority with humans.
               </p>
               <a
                 href={`${repoDocs}/docs/05-ai/ai-usage-and-hackathon-methodology.md`}

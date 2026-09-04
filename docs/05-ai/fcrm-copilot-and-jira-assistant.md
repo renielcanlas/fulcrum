@@ -2,7 +2,13 @@
 
 ## Purpose
 
-The integrated AI capability supports FCRM analysts with assisted decision preparation and provides a conversational interface over a FULCRUM initiative plus its authorized Jira context. Its user-facing persona is **Ciel**, FULCRUM's governed AI copilot. Ciel is a copilot, not an autonomous decision-maker.
+The integrated AI capability supports FCRM analysts with assisted decision preparation and provides a conversational interface over a FULCRUM initiative plus its authorized Jira context. Its user-facing persona is **Ciel**, the FULCRUM AI Assistant. Ciel is not an autonomous decision-maker.
+
+## Why the name Ciel
+
+Ciel is a deliberate fictional reference to *That Time I Got Reincarnated as a Slime* (*Tensei Shitara Slime Datta Ken*). In that story, Rimuru’s wisdom-oriented skill develops into an AI-like partner associated with Raphael and later named Ciel. FULCRUM borrows the idea of a trusted, analytical partner—not the character’s powers or authority. Ciel helps users inspect evidence, explain deterministic calculations, surface uncertainty, and prepare next steps; authorized humans remain responsible for judgments and decisions.
+
+The French noun *ciel* means “sky” and can also carry the sense of “heaven”; its etymological line comes through French from Latin *caelum*. The name therefore also expresses FULCRUM’s product intent: give analysts a broader view over fragmented evidence, risk context, linked work, and decision lineage. Ciel is an interface for clarity and perspective, not a replacement for governance.
 
 ## What the copilot does
 

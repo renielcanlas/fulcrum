@@ -36,7 +36,9 @@ export const server = createServer(async (req, res) => {
     }
     if (req.method === "DELETE" && req.url === "/api/session") { const user = currentUser(req); sessions.destroy(parseCookie(req.headers.cookie, sessionCookie)); clearSessionCookie(res); if (user) audit.record({eventType:"UserSessionEnded", actorId:user.id, actorType:"DEMO_PERSONA", entityId:user.id}); return json(res, 200, {ok:true}); }
     if (req.method === "POST" && req.url === "/api/copilot/respond") {
-      const user = currentUser(req); if (!user) return json(res, 401, {error:"authentication_required"});
+      // Ciel is available without login for the synthetic demo. Keep its identity
+      // fixed to a read-only demo analyst when no persona session exists.
+      const user = currentUser(req) ?? findDemoUser("analyst-7");
       const body = await new Promise((resolve, reject) => { let raw=""; req.on("data", c => raw += c); req.on("end", () => { try { resolve(JSON.parse(raw)); } catch { reject(new Error("INVALID_JSON")); } }); });
       if (!body.assessmentId || !body.message) return json(res, 400, {error:"assessmentId and message are required"});
       const result = await copilot.respond({interactionId:crypto.randomUUID(), conversationId:body.conversationId ?? crypto.randomUUID(), user, assessmentId:body.assessmentId, message:body.message});

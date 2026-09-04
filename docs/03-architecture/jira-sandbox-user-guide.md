@@ -14,6 +14,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 - **Scenario details**: description, ordered steps, action names, and validation indicators.
 - **JSON view**: the current scenario JSON for inspection.
 - **AI scenario assistant**: a prompt area for creating or revising a scenario.
+- **Ciel chat**: the read-only FULCRUM AI Assistant used in the demo, available from the floating ✦ button without signing in. It answers against the synthetic Golden Initiative context; it does not execute Jira scenarios.
 - **Import JSON**: loads a local `.json` file into the editor.
 - **Save JSON**: downloads the current valid scenario.
 - **Clear**: resets the custom JSON, AI prompt, and generation error.
@@ -33,6 +34,10 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 7. The first draft appears in the JSON editor immediately. It is not executable until validation passes.
 8. Review the step indicators and the JSON. Azure may receive up to three repair requests when validation finds a problem.
 9. Confirm execution only after the scenario is valid and the intended changes are understood.
+
+## Ask Ciel from the sandbox
+
+Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about the synthetic assessment, its evidence, risk findings, decision trail, or linked work. The sandbox uses a fixed synthetic analyst identity and assessment scope so the chat can be demonstrated without a FULCRUM login. Ciel remains read-only: it can explain retrieved facts and system calculations, but it cannot change the scenario, Jira, scores, workflow, or decisions.
 
 ## Persona assignment format
 

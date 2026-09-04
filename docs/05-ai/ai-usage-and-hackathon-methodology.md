@@ -8,7 +8,7 @@ This project uses AI across both the project-development lifecycle and the FULCR
 - **Development:** I used the Codex plugin for VS Code for most of the development journey: repository changes, implementation, refactoring, documentation, and verification. I also used available AI resources from the Myridius Azure portal as part of the platform exploration.
 - **Testing:** AI-assisted test generation helped create unit and regression tests for AI workflows, deterministic decision/scoring behavior, security boundaries, human governance, lineage, and workflow correctness. The tests remain executable repository artifacts rather than claims based only on model output.
 - **Deployment:** Vercel is connected to the repository so the app is automatically deployed whenever changes are committed. This keeps the judge-facing demo aligned with the latest reviewed code.
-- **Runtime AI capability:** We use the OpenAI API through a provider adapter for **Ciel**, the FULCRUM Copilot. The API supports model responses, structured backend tool calls, governed context retrieval, assessment explanation, drafting, and chatbot interaction.
+- **Runtime AI capability:** We use the OpenAI API through a provider adapter for **Ciel**, the FULCRUM AI Assistant. The API supports model responses, structured backend tool calls, governed context retrieval, assessment explanation, drafting, and chatbot interaction.
 
 ## What “model training” means in this project
 

@@ -14,13 +14,19 @@ export class CopilotOrchestrator {
     if (!stream && response.output) {
       const calls = response.output.filter(x => x.type === "function_call");
       if (calls.length > MAX_TOOL_CALLS) throw new Error("TOOL_CALL_LIMIT_EXCEEDED");
+      const toolOutputs = [];
       for (const item of calls) {
         let args;
         try { args = JSON.parse(item.arguments); } catch { throw new Error("INVALID_TOOL_ARGUMENTS"); }
         if (args.assessmentId !== assessmentId) throw new Error("ACTIVE_ASSESSMENT_SCOPE_VIOLATION");
         const result = this.tools.execute(item.name, args, user);
         toolsUsed.push(item.name);
-        response = await this.provider.generateResponse({...request, input:[...request.input, item, {type:"function_call_output", call_id:item.call_id, output:JSON.stringify(result)}]});
+        toolOutputs.push({type:"function_call_output", call_id:item.call_id, output:JSON.stringify(result)});
+      }
+      if (toolOutputs.length) {
+        // Responses API tool continuations must retain the complete model output,
+        // including any reasoning items that accompany a function call.
+        response = await this.provider.generateResponse({...request, input:[...request.input, ...response.output, ...toolOutputs]});
       }
     }
     this.audit.record({interactionId, conversationId, assessmentId, userId:user.id, userRole:user.role, provider:"openai-compatible", model:this.provider.model ?? "fake", toolsInvoked:toolsUsed, responseClassification:"GOVERNED_COPILOT_RESPONSE", latencyMs:Date.now()-started, tokenUsage:response.usage ?? null});

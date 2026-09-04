@@ -80,7 +80,7 @@ export default function DemoPage() {
     setMessages((current) => [...current, `You: ${text}`]);
     setBusy(true);
     try {
-      const response = await fetch("/api/copilot/respond", {
+      const response = await fetch("/api/ciel", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ assessmentId: "FA-2026-00124", message: text }),
@@ -896,7 +896,7 @@ function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
       <div className="flex items-center justify-between bg-[rgba(12,34,38,0.95)] px-5 py-4 text-white">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[rgb(82,224,129)]">
-            Ciel · AI copilot
+            Ciel · FULCRUM AI Assistant
           </p>
           <h2 className="mt-1 font-bold">Initiative-aware chat</h2>
         </div>
@@ -921,6 +921,16 @@ function ChatPanel({ question, setQuestion, messages, busy, ask, onClose }) {
             {message}
           </p>
         ))}
+        {busy && (
+          <div className="w-fit rounded-2xl rounded-bl-sm bg-slate-800 px-3 py-2 text-slate-300">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[rgb(82,224,129)]">Ciel</p>
+            <span className="flex items-center gap-1" aria-label="Ciel is typing">
+              <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[rgb(82,224,129)] [animation-delay:-0.3s]" />
+              <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[rgb(82,224,129)] [animation-delay:-0.15s]" />
+              <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[rgb(82,224,129)]" />
+            </span>
+          </div>
+        )}
       </div>
       <form
         onSubmit={ask}

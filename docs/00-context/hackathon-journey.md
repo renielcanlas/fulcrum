@@ -16,7 +16,7 @@ See the [architecture baseline](../03-architecture/architecture-baseline.md), [a
 
 ## Stage 03 — Development
 
-We built the Next.js and Vercel foundation, polished landing page, synthetic domain data, the governed Ciel copilot, typed read tools, audit seams, initiative detail screens, Jira integration guidance, and the interactive demo flow. We then added a separate `/sandbox` surface so Jira connectivity and synthetic work-item experiments could be exercised without confusing those experiments with the FULCRUM assessment workflow.
+We built the Next.js and Vercel foundation, polished landing page, synthetic domain data, the FULCRUM AI Assistant named Ciel, typed read tools, audit seams, initiative detail screens, Jira integration guidance, and the interactive demo flow. We then added a separate `/sandbox` surface so Jira connectivity and synthetic work-item experiments could be exercised without confusing those experiments with the FULCRUM assessment workflow.
 
 See the [deployment architecture](../09-deployment/vercel-nextjs-deployment.md), [AI orchestration](../05-ai/fcrm-copilot-and-jira-assistant.md), [Jira sandbox guide](../03-architecture/jira-sandbox.md), and [Golden Initiative fixture](../../data/demo/golden-initiative.json).
 

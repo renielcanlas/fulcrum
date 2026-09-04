@@ -15,6 +15,15 @@ test("copilot executes typed tools and audits the interaction", async () => {
   assert.deepEqual(audit.all()[0].toolsInvoked, ["getRiskScores"]);
 });
 
+test("copilot preserves response reasoning items during tool continuation", async () => {
+  const reasoning = {type:"reasoning", id:"r1", encrypted_content:"synthetic-reasoning"};
+  const functionCall = {type:"function_call", name:"getAssessmentSummary", call_id:"c1", arguments:JSON.stringify({assessmentId:"FA-2026-00124"})};
+  const provider = new FakeProvider([{output:[reasoning, functionCall]},{output_text:"FACT: the assessment is at final decision."}]);
+  await new CopilotOrchestrator({provider, tools:createToolRegistry(createDemoRepository()), audit:new AuditLog()}).respond({interactionId:"i-reasoning", conversationId:"c-reasoning", user, assessmentId:"FA-2026-00124", message:"What is the status?"});
+  assert.equal(provider.calls[1].input[1], reasoning);
+  assert.equal(provider.calls[1].input.at(-1).type, "function_call_output");
+});
+
 test("product owners cannot read analyst-only risk data or another owner's assessment", () => {
   const tools = createToolRegistry(createDemoRepository());
   const owner = {id:"po-1", role:"PRODUCT_OWNER"};

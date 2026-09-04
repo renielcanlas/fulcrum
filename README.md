@@ -15,13 +15,13 @@ INTAKE → UNDERSTAND → EXTRACT → RESEARCH → DECOMPOSE RISK → SCORE
 
 FULCRUM does not automatically approve or reject changes. AI retrieves, extracts, explains, compares, drafts, and challenges. Deterministic services calculate governed outputs. Authorized FCRM analysts and Risk Committee members retain decision authority.
 
-This is a Next.js App Router application designed for deployment to Vercel. The current increment includes a polished landing page, a judge-facing FCRM demo workbench, a governed Copilot foundation, and a separate Jira experimentation sandbox. Durable production persistence and full enterprise synchronization remain on the roadmap.
+This is a Next.js App Router application designed for deployment to Vercel. The current increment includes a polished landing page, a judge-facing FCRM demo workbench, a governed Copilot foundation, and a separate sandbox with Jira experiments, AI scenario generation, and Ciel chat. Durable production persistence and full enterprise synchronization remain on the roadmap.
 
 ## The canonical demo
 
 The first end-to-end scenario is **Launch U.S.–Philippines Instant Remittance**. Maya Chen submits the synthetic initiative, Daniel Reyes reviews the FCRM findings and overrides one AI recommendation with a recorded rationale, and Helen Morgan approves the bounded launch with conditions. The complete facts, evidence, controls, risk domains, workflow timing, Jira links, AI observations, override, and decision are in the [Golden Initiative demo](docs/04-domain/golden-initiative-demo.md) and [canonical fixture](data/demo/golden-initiative.json).
 
-To run the presentation flow, start the app with `npm run dev`, open `http://localhost:3000`, select a synthetic persona, and ask **Ciel**, FULCRUM's governed AI copilot, about residual risk, evidence, missing information, or open Jira conditions. Ciel can explain and draft; it cannot approve or reject.
+To run the presentation flow, start the app with `npm run dev`, open `http://localhost:3000`, select a synthetic persona, and ask **Ciel**, FULCRUM AI Assistant, about residual risk, evidence, missing information, or open Jira conditions. Ciel can explain and draft; it cannot approve or reject.
 
 ## Why FULCRUM
 
@@ -39,7 +39,7 @@ Financial-crime risk assessments can take 15–20 business days and can be diffi
 
 ## What makes this AI-native
 
-FULCRUM is not a generic chatbot or an LLM wrapper. The embedded **Ciel** copilot operates inside the assessment workspace and uses governed backend tools to answer questions such as:
+FULCRUM is not a generic chatbot or an LLM wrapper. The embedded **Ciel** FULCRUM AI Assistant operates inside the assessment workspace and uses governed backend tools to answer questions such as:
 
 - “Why is residual AML risk High?”
 - “Which evidence supports the geography risk?”
@@ -124,7 +124,7 @@ User → FULCRUM backend → JiraAdapter → Jira Cloud REST API
 
 Jira webhooks trigger reconciliation; they do not directly change FULCRUM risk state. See [Jira OAuth integration](docs/03-architecture/jira-oauth-integration.md) and [ADR-002](docs/11-decisions/ADR-002-jira-oauth-integration.md).
 
-See the [Jira sandbox guide](docs/03-architecture/jira-sandbox.md) for the available experiments, route boundary, synthetic-data rules, and current limitations.
+See the [Jira sandbox guide](docs/03-architecture/jira-sandbox.md) for the available experiments, route boundary, synthetic-data rules, and current limitations. The sandbox also exposes Ciel’s read-only chat against the synthetic demo assessment.
 
 ## Current demo
 
