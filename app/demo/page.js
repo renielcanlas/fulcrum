@@ -21,6 +21,7 @@ const navItems = [
   ["controls", "Risk & controls", "◈"],
   ["decisions", "Decisions", "✓"],
   ["jira", "Jira integration", "↗"],
+  ["sandbox", "Sandbox", "⚗"],
 ];
 const jiraBoardUrl =
   "https://geniushacks.atlassian.net/jira/software/projects/KAN/boards/2?filter=&groupBy=none&atlOrigin=eyJpIjoiYjY1ZTgwYTY3NWM5NGU3ZWEwMDEyZjZlNmQwODAzMjQiLCJwIjoiaiJ9";
@@ -48,6 +49,10 @@ export default function DemoPage() {
   const [activeView, setActiveView] = useState("board");
 
   function navigateTo(view) {
+    if (view === "sandbox") {
+      router.push("/sandbox");
+      return;
+    }
     setActiveView(view);
     if (view !== "initiative-detail") setTrace(null);
     router.replace(view === "board" ? "/demo" : `/demo?view=${view}`);

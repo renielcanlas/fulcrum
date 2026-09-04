@@ -40,7 +40,6 @@ export function buildAuthorizationUrl({clientId, redirectUri, state}) {
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("prompt", "consent");
   return url;
 }
 

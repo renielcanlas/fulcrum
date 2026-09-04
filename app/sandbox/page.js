@@ -19,7 +19,12 @@ export default function SandboxPage() {
 
   useEffect(() => {
     async function initialize() {
-      await fetch("/api/sandbox/session", {method: "POST"});
+      const sessionResponse = await fetch("/api/session");
+      const session = await sessionResponse.json();
+      if (!session.user) {
+        window.location.href = "/";
+        return;
+      }
       const [statusResponse, scenariosResponse] = await Promise.all([fetch("/api/jira/status"), fetch("/api/sandbox/scenarios")]);
       const data = await scenariosResponse.json();
       setConnection(await statusResponse.json());
