@@ -38,6 +38,20 @@ test("published intake comment keeps deterministic recommendation and includes A
   assert.match(comment, /owner is confirmed/);
 });
 
+test("published intake comment headlines the weighted score", () => {
+  const comment = formatIntakeAssessmentComment({
+    ...assessment,
+    score: 100,
+    weightedDecision: {score: 55, maxScore: 100, recommendation: "Hold for remediation", automaticPercent: 25, aiPercent: 75},
+    decisionWeighting: {automaticPercent: 25, aiPercent: 75},
+    checks: [{id: "description", label: "Business context", state: "pass", points: 20, weight: 20}],
+    aiDecisionSupport: {checkReviews: [{checkId: "description", points: 0, weight: 20, state: "fail", observation: "Missing evidence."}], proposedComment: "AI decision support: Hold."},
+  });
+  assert.match(comment, /Weighted score: 55\/100/);
+  assert.match(comment, /Weighted checks:\n- Business context: weighted \(5\/20\)/);
+  assert.doesNotMatch(comment, /\nScore: 100\/100/);
+});
+
 test("invalid intake AI response is rejected instead of treated as an approval", () => {
   assert.throws(() => parseIntakeDecisionSupport(JSON.stringify({recommendation: "Proceed"})), /intake_ai_response_incomplete/);
 });
