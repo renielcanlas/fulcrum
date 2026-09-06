@@ -21,4 +21,8 @@ For PDF attachments, the server downloads the Jira content through the authentic
 
 The UI presents the weighted decision and stage-specific AI response side by side, including a compact challenge/pros/cons view. Publishing writes the deterministic evaluation and, when present, the reviewed AI summary, challenge, benefits, risks, rationale, recommendation, and proposed comment into one Jira comment through the existing Fulcrum service-account path. Publishing is the human checkpoint; the AI route never advances the workflow.
 
+Before a stage transition, the backend—not only the UI—requires the latest published evaluation for the current stage to have a weighted Proceed recommendation. A new non-FULCRUM Jira comment after publication marks the evaluation stale and requires reassessment. Re-publishing the same evaluation source/version is idempotent. Missing AI checklist reviews are recorded as uncertain and the AI result is marked incomplete; they do not silently appear as a complete review.
+
+The transition and publication paths emit audit events for the service-account action, score, weighted score, recommendation, stage, and revision. The final committee decision, conditions, durable assessment store, and full Jira reconciliation service remain separate roadmap increments.
+
 This implements REQ-018 and REQ-027 while preserving the governance boundary in [agent-and-tool-contracts](agent-and-tool-contracts.md): AI drafts and challenges, while deterministic scoring, authorization, workflow, audit, and Jira mutation remain application responsibilities.

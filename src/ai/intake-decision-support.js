@@ -51,13 +51,14 @@ export async function generateEvaluationDecisionSupport({provider, item, assessm
   const result = await provider.generateResponse({instructions: buildDecisionSupportInstructions({stage, stageConfig}), input: buildIntakeDecisionSupportInput({item, assessment, attachmentEvidence, stage, stageConfig}), text: INTAKE_DECISION_SUPPORT_FORMAT});
   const raw = parseIntakeDecisionSupport(responseText(result));
   const reviewsById = new Map(raw.checkReviews.map((review) => [review.checkId, review]));
+  const missingCheckIds = assessment.checks.filter((check) => !reviewsById.has(check.id)).map((check) => check.id);
   const checkReviews = assessment.checks.map((check) => {
     const review = reviewsById.get(check.id) ?? {checkId: check.id, state: "uncertain", observation: "AI did not return a review for this configured check."};
     const partialFactor = Number(stageConfig.scoring?.partialCreditFactor ?? intakeAssessmentConfig.scoring?.partialCreditFactor ?? 0.5);
     return {...review, label: check.label, weight: check.weight, points: review.state === "pass" ? check.weight : review.state === "partial" ? Math.round(check.weight * partialFactor) : 0};
   });
   const score = checkReviews.reduce((sum, check) => sum + check.points, 0);
-  const decisionSupport = {...raw, checkReviews, score, maxScore: assessment.maxScore, recommendation: recommendationForScore(score, stageConfig), status: checkReviews.length === assessment.checks.length ? "completed" : "incomplete", reviewedCheckCount: checkReviews.filter((check) => check.observation && check.state !== "uncertain").length, stage};
+  const decisionSupport = {...raw, checkReviews, score, maxScore: assessment.maxScore, recommendation: recommendationForScore(score, stageConfig), status: missingCheckIds.length === 0 && checkReviews.every((check) => check.state !== "uncertain") ? "completed" : "incomplete", missingCheckIds, reviewedCheckCount: checkReviews.filter((check) => check.observation && check.state !== "uncertain").length, stage};
   return {decisionSupport, responseId: result.id ?? null};
 }
 

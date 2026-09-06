@@ -14,7 +14,9 @@ import {
   evaluationStages,
   evaluateStage,
   formatStageEvaluationComment,
+  hasNonFulcrumChangesSinceEvaluation,
   parsePublishedStageEvaluations,
+  publishedEvaluationRecommendation,
 } from "../../../../src/integrations/stage-evaluation.js";
 import { runtime } from "../../../../src/server/runtime.js";
 import { resolveJiraConnection } from "../../../../src/integrations/jira-connection.js";
@@ -86,7 +88,9 @@ export async function POST(request) {
     if (!evaluationStages.includes(stage))
       return Response.json({ error: "unsupported_evaluation_stage", stage }, { status: 400 });
     const legacyHistory = stage === "Intake" ? parsePublishedIntakeAssessments(item.comments) : [];
-    const history = [...legacyHistory, ...parsePublishedStageEvaluations(item.comments, stage)];
+    const history = [...legacyHistory, ...parsePublishedStageEvaluations(item.comments, stage)].sort((left, right) =>
+      String(right.publishedAt ?? "").localeCompare(String(left.publishedAt ?? "")),
+    );
     const evaluate = () =>
       stage === "Intake" && !parsePublishedStageEvaluations(item.comments, stage).length
         ? assessIntake(item)
@@ -98,6 +102,22 @@ export async function POST(request) {
       });
     if (action === "publish") {
       const assessment = body.assessment ?? { ...evaluate(), revision: history.length + 1 };
+      if (assessment.stage && assessment.stage !== stage)
+        return Response.json({ error: "evaluation_stage_mismatch", stage }, { status: 400 });
+      const duplicate = assessment.source?.updated
+        ? history.find((published) =>
+            published.source?.updated === assessment.source.updated &&
+            published.weightedDecision?.score === assessment.weightedDecision?.score &&
+            published.aiDecisionSupport?.stage === assessment.aiDecisionSupport?.stage,
+          )
+        : null;
+      if (duplicate)
+        return Response.json({
+          ok: true,
+          duplicate: true,
+          commentId: duplicate.commentId ?? null,
+          assessment: duplicate,
+        });
       const result = await commentJiraWorkItem({
         issueKey,
         body: stage === "Intake" && !assessment.version?.startsWith("stage-")
@@ -114,7 +134,9 @@ export async function POST(request) {
         entityId: issueKey,
         metadata: {
           score: assessment.score,
+          weightedScore: assessment.weightedDecision?.score ?? assessment.score,
           recommendation: assessment.recommendation,
+          weightedRecommendation: publishedEvaluationRecommendation(assessment),
           stage,
           revision: assessment.revision ?? null,
         },
@@ -122,9 +144,26 @@ export async function POST(request) {
       return Response.json({ ok: true, ...result, assessment });
     }
     if (action === "transition") {
-      if (!history.length)
+      const published = history[0];
+      if (!published)
         return Response.json(
           { error: "evaluation_required_before_transition", stage },
+          { status: 409 },
+        );
+      if (hasNonFulcrumChangesSinceEvaluation(item, published))
+        return Response.json(
+          { error: "evaluation_stale_after_jira_changes", stage },
+          { status: 409 },
+        );
+      const recommendation = publishedEvaluationRecommendation(published);
+      if (recommendation !== "Proceed")
+        return Response.json(
+          {
+            error: "evaluation_not_ready_to_advance",
+            stage,
+            recommendation,
+            score: published.weightedDecision?.score ?? published.score,
+          },
           { status: 409 },
         );
       const nextStages = {
@@ -141,6 +180,14 @@ export async function POST(request) {
         status: nextStage,
         cloudId: connection.cloudId,
         accessToken: connection.accessToken,
+      });
+      runtime.audit.record({
+        eventType: "JiraStageEvaluationTransitioned",
+        actorId: ACTOR,
+        actorType: "SERVICE_ACCOUNT",
+        userRole: "SERVICE_ACCOUNT",
+        entityId: issueKey,
+        metadata: { stage, nextStage, recommendation, score: published.weightedDecision?.score ?? published.score },
       });
       return Response.json({ ok: true, ...result });
     }

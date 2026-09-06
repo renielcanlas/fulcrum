@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {FakeProvider} from "../src/ai/provider.js";
 import {buildIntakeDecisionSupportInput, calculateWeightedIntakeDecision, generateEvaluationDecisionSupport, generateIntakeDecisionSupport, parseIntakeDecisionSupport} from "../src/ai/intake-decision-support.js";
-import {getStageEvaluationConfig, evaluateStage} from "../src/integrations/stage-evaluation.js";
+import {getStageEvaluationConfig, evaluateStage, hasNonFulcrumChangesSinceEvaluation, publishedEvaluationRecommendation} from "../src/integrations/stage-evaluation.js";
 import {formatIntakeAssessmentComment} from "../src/integrations/intake-assessment.js";
 
 const assessment = {version: "intake-v1", stage: "Intake", score: 80, maxScore: 100, recommendation: "Proceed", checks: []};
@@ -74,4 +74,22 @@ test("stage AI context uses the current stage parameters", async () => {
   assert.equal(result.decisionSupport.checkReviews.length, stageAssessment.checks.length);
   assert.match(buildIntakeDecisionSupportInput({item, assessment: stageAssessment, stage, stageConfig}), /Risk Assessment/);
   assert.match(JSON.stringify(stageConfig.aiParameters), /residual uncertainty/);
+});
+
+test("published stage recommendation and freshness helpers use weighted decisions and non-FULCRUM changes", () => {
+  const evaluation = {stage: "Review", publishedAt: "2026-09-06T10:00:00.000Z", recommendation: "Hold for remediation", weightedDecision: {score: 82, recommendation: "Proceed"}};
+  assert.equal(publishedEvaluationRecommendation(evaluation), "Proceed");
+  assert.equal(hasNonFulcrumChangesSinceEvaluation({comments: [{body: "human note", created: "2026-09-06T10:01:00.000Z"}]}, evaluation), true);
+  assert.equal(hasNonFulcrumChangesSinceEvaluation({comments: [{body: "<!-- fulcrum-evaluation: stage=\"Review\" -->\nFULCRUM_EVALUATION_JSON:{}", created: "2026-09-06T10:01:00.000Z"}]}, evaluation), false);
+});
+
+test("AI evaluation remains incomplete when a configured check is not reviewed", async () => {
+  const provider = new FakeProvider([{id: "resp-incomplete-1", output_text: JSON.stringify({confidence: 0.5, summary: "Partial review.", challenge: "Review the missing check.", pros: [], cons: ["Evidence is missing."], rationale: [], checkReviews: [{checkId: "description", state: "pass", observation: "Description reviewed."}], proposedComment: "AI decision support: incomplete."})}]);
+  const result = await generateIntakeDecisionSupport({
+    provider,
+    item,
+    assessment: {...assessment, checks: [{id: "description", label: "Business context", weight: 20, state: "pass", points: 20}, {id: "owner", label: "Owner", weight: 10, state: "fail", points: 0}], maxScore: 30},
+  });
+  assert.equal(result.decisionSupport.status, "incomplete");
+  assert.deepEqual(result.decisionSupport.missingCheckIds, ["owner"]);
 });
