@@ -268,7 +268,8 @@ export default function DemoPage() {
     setAssessmentError("");
     setTransitionOffer(false);
     try {
-      const response = await fetch("/api/jira/assessment", {
+      const intake = selectedWorkItem?.statusName === "Intake";
+      const response = await fetch(intake ? "/api/jira/assessment/ai" : "/api/jira/assessment", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -2146,6 +2147,21 @@ function CommentComposer({
   );
 }
 
+function ScoreBar({ label, score, maxScore, color }) {
+  const percent = maxScore > 0 ? Math.max(0, Math.min(100, (score / maxScore) * 100)) : 0;
+  return (
+    <div>
+      <div className="flex justify-between gap-3 text-[11px]">
+        <span className="font-semibold text-slate-600">{label}</span>
+        <span className="text-slate-500">{score}/{maxScore}</span>
+      </div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100" role="img" aria-label={`${label}: ${score} of ${maxScore}`}>
+        <div className={`h-full rounded-full ${color}`} style={{width: `${percent}%`}} />
+      </div>
+    </div>
+  );
+}
+
 function IntakeAssessmentPanel({
   item,
   currentUser,
@@ -2212,6 +2228,23 @@ function IntakeAssessmentPanel({
             </div>
           )}
         </div>
+        {history.length > 1 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#dcefe7] pt-4">
+            <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-400">
+              Assessment version
+            </span>
+            {history.map((version, index) => (
+              <button
+                key={version.commentId ?? index}
+                type="button"
+                onClick={() => setSelectedVersion(index)}
+                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition hover:bg-[#dcefe7] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] ${index === selectedVersion && !draft ? "bg-[#087f70] text-white hover:bg-[#087f70]" : "bg-white text-[#087f70]"}`}
+              >
+                v{version.revision ?? history.length - index}
+              </button>
+            ))}
+          </div>
+        )}
         {!assessment ? (
           <button
             type="button"
@@ -2234,11 +2267,16 @@ function IntakeAssessmentPanel({
               </div>
               <div className="rounded-lg bg-white p-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Recommendation
+                  Weighted decision
                 </p>
                 <p className="mt-1 text-sm font-bold text-[#197443]">
                   {assessment.recommendation}
                 </p>
+                {assessment.aiDecisionSupport && (
+                  <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                    AI response: {assessment.aiDecisionSupport.recommendation}
+                  </p>
+                )}
               </div>
               <div className="rounded-lg bg-white p-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -2253,6 +2291,26 @@ function IntakeAssessmentPanel({
                 </p>
               </div>
             </div>
+            <div className="mt-4 rounded-lg bg-white p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Score comparison</p>
+                <span className="text-[11px] text-slate-500">{assessment.maxScore} possible points</span>
+              </div>
+              <div className="mt-3 space-y-3">
+                <ScoreBar label="Weighted checklist" score={assessment.score} maxScore={assessment.maxScore} color="bg-[#087f70]" />
+                {assessment.aiDecisionSupport?.score !== undefined && <ScoreBar label="AI checklist review" score={assessment.aiDecisionSupport.score} maxScore={assessment.aiDecisionSupport.maxScore ?? assessment.maxScore} color="bg-[#6d5bd0]" />}
+              </div>
+            </div>
+            <details className="mt-3 rounded-lg bg-white p-3">
+              <summary className="cursor-pointer text-xs font-bold text-slate-600 hover:text-[#087f70]">View scoring configuration</summary>
+              <div className="mt-3 grid gap-3 text-[11px] text-slate-500 sm:grid-cols-2">
+                <p>Proceed threshold: <strong className="text-slate-700">{assessment.scoreBands?.find((band) => band.label === "Proceed")?.min ?? 80}</strong></p>
+                <p>Partial credit: <strong className="text-slate-700">{Math.round((assessment.scoring?.partialCreditFactor ?? 0.5) * 100)}%</strong></p>
+              </div>
+              <ul className="mt-3 space-y-1 text-[11px] text-slate-500">
+                {assessment.checks.map((check) => <li key={`weight-${check.id}`} className="flex justify-between gap-3"><span>{check.label}</span><strong className="text-slate-700">{check.weight} pts</strong></li>)}
+              </ul>
+            </details>
             {assessment.assessedAt && (
               <p className="mt-3 text-xs text-slate-500">
                 Assessed{" "}
@@ -2261,51 +2319,73 @@ function IntakeAssessmentPanel({
                 </time>
               </p>
             )}
-            <ul className="mt-4 space-y-2 text-sm">
-              {assessment.checks.map((check) => (
-                <li
-                  key={check.id}
-                  className="flex gap-2 rounded-lg bg-white px-3 py-2"
-                >
-                  <span
-                    className={
-                      check.state === "pass"
-                        ? "text-[#197443]"
-                        : "text-amber-700"
-                    }
-                  >
-                    {check.state === "pass" ? "✓" : "!"}
+            {assessment.aiDecisionSupport && (
+              <div className="mt-4 rounded-lg border border-[#b9e4d1] bg-[#eef8f2] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
+                    AI response
+                  </p>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[#197443]">
+                    Proposed: {assessment.aiDecisionSupport.recommendation}
                   </span>
-                  <span>
-                    <strong className="text-slate-700">{check.label}</strong>
-                    {check.failure && (
-                      <span className="ml-1 text-slate-500">
-                        — {check.failure}
-                      </span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {history.length > 1 && (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Previous Evaluations
-                </span>
-                {history.map((version, index) => (
-                  <button
-                    key={version.commentId ?? index}
-                    type="button"
-                    onClick={() => {
-                      setSelectedVersion(index);
-                    }}
-                    className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition hover:bg-[#dcefe7] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] ${index === selectedVersion && !draft ? "bg-[#087f70] text-white hover:bg-[#087f70]" : "bg-white text-[#087f70]"}`}
-                  >
-                    v{version.revision ?? history.length - index}
-                  </button>
-                ))}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {assessment.aiDecisionSupport.summary}
+                </p>
+                {assessment.aiDecisionSupport.rationale?.length > 0 && (
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-slate-600">
+                    {assessment.aiDecisionSupport.rationale.map((reason, index) => (
+                      <li key={`${reason}-${index}`}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+                {assessment.aiContext && (
+                  <p className="mt-3 text-[11px] text-slate-500">
+                    Reviewed Jira context: {assessment.aiContext.commentCount} comment(s) · {assessment.aiContext.attachmentCount} attachment(s). Attachment files are represented by their available metadata unless content extraction is supported.
+                  </p>
+                )}
+                {assessment.aiDecisionSupport.proposedComment && (
+                  <div className="mt-3 rounded-lg bg-white p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                      Proposed Jira comment
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-slate-600">
+                      {assessment.aiDecisionSupport.proposedComment}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
+            <ul className="mt-4 space-y-2 text-sm">
+              {assessment.checks.map((check) => {
+                const aiReview = assessment.aiDecisionSupport?.checkReviews?.find((review) => review.checkId === check.id);
+                return (
+                  <li key={check.id} className="rounded-lg bg-white px-3 py-3">
+                    <div className="flex items-start gap-2">
+                      <span className={check.state === "pass" ? "text-[#197443]" : "text-amber-700"}>{check.state === "pass" ? "✓" : "!"}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <strong className="text-slate-700">{check.label}</strong>
+                          <span className="text-[11px] font-semibold text-slate-400">{check.weight} pts</span>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-[11px] sm:grid-cols-2">
+                          <div className="rounded-md border border-slate-100 px-2 py-1.5">
+                            <p className="font-bold uppercase tracking-wide text-slate-400">Automatic checklist</p>
+                            <p className="mt-1 text-slate-600">{check.state} · {check.points}/{check.weight} points</p>
+                            {check.failure && <p className="mt-1 text-slate-500">{check.failure}</p>}
+                          </div>
+                          {aiReview && <div className="rounded-md border border-[#e2dcff] bg-[#faf9ff] px-2 py-1.5">
+                            <p className="font-bold uppercase tracking-wide text-[#6d5bd0]">AI review</p>
+                            <p className="mt-1 text-slate-600">{aiReview.state} · {aiReview.points}/{aiReview.weight} points</p>
+                            <p className="mt-1 text-slate-500">{aiReview.observation}</p>
+                          </div>}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
             {draft ? (
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button

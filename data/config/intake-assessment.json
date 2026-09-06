@@ -3,7 +3,13 @@
   "stage": "Intake",
   "title": "Intake completeness",
   "description": "Deterministic checks for whether a Jira work item contains enough context to begin assessment.",
+  "scoring": {"partialCreditFactor": 0.5, "rounding": "nearest", "unreviewedAiState": "uncertain"},
   "recommendationThresholds": {"proceed": 80, "hold": 50},
+  "scoreBands": [
+    {"id":"proceed", "min":80, "max":100, "label":"Proceed", "description":"Required intake context is sufficiently complete for the next stage."},
+    {"id":"remediate", "min":50, "max":79, "label":"Hold for remediation", "description":"Some intake context exists, but open items should be addressed before proceeding."},
+    {"id":"insufficient", "min":0, "max":49, "label":"Hold for remediation", "description":"The intake is materially incomplete and needs more context before proceeding."}
+  ],
   "checks": [
     {"id":"project","label":"FCRM project","weight":10,"kind":"equals","path":"projectKey","value":"FCRM","failure":"Work item is outside the FCRM project."},
     {"id":"summary","label":"Clear summary","weight":15,"kind":"textLength","path":"summary","full":20,"partial":8,"failure":"Add a clear summary describing the requested change."},
