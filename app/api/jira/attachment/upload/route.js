@@ -1,6 +1,6 @@
 import {runtime, findDemoUser} from "../../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../../src/auth/session.js";
-import {uploadJiraAttachment, jiraErrorStatus} from "../../../../../src/integrations/jira.js";
+import {getJiraCurrentUser, uploadJiraAttachment, jiraErrorStatus} from "../../../../../src/integrations/jira.js";
 import {JIRA_PROJECT_KEY} from "../../../../../src/integrations/jira-config.js";
 
 const cookieName = "fulcrum_session";
@@ -21,6 +21,9 @@ export async function POST(request) {
     if (!issueKey.startsWith(`${JIRA_PROJECT_KEY}-`)) return Response.json({error: "invalid_jira_project"}, {status: 400});
     if (!file || typeof file.arrayBuffer !== "function" || !file.name) return Response.json({error: "attachment_file_required"}, {status: 400});
     if (file.size > MAX_ATTACHMENT_BYTES) return Response.json({error: "attachment_too_large", maxBytes: MAX_ATTACHMENT_BYTES}, {status: 413});
+    const jiraUser = await getJiraCurrentUser({cloudId: connection.cloudId, accessToken: connection.accessToken});
+    const expectedAccountId = user.jiraIdentity?.jiraAccountId;
+    if (expectedAccountId && jiraUser.accountId !== expectedAccountId) return Response.json({error: "jira_user_identity_mismatch", jiraUser: jiraUser.displayName}, {status: 409});
     const result = await uploadJiraAttachment({issueKey, file, cloudId: connection.cloudId, accessToken: connection.accessToken});
     runtime.audit.record({eventType: "JiraAttachmentUploaded", actorId: user.id, actorType: "DEMO_PERSONA", userRole: user.role, entityId: issueKey, metadata: {connection: "user_oauth", filename: file.name, size: file.size, mimeType: file.type || "application/octet-stream"}});
     return Response.json({ok: true, ...result});

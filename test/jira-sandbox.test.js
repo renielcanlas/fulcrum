@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {assignJiraWorkItem, buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraAttachment, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem, uploadJiraAttachment} from "../src/integrations/jira.js";
+import {assignJiraWorkItem, buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraAttachment, getJiraCurrentUser, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem, uploadJiraAttachment} from "../src/integrations/jira.js";
 import {assignJiraPersona} from "../src/integrations/jira-assignment.js";
 import {assessIntake, formatIntakeAssessmentComment, parsePublishedIntakeAssessment, parsePublishedIntakeAssessments} from "../src/integrations/intake-assessment.js";
 
@@ -127,6 +127,11 @@ test("Jira attachment upload uses the current user's authenticated endpoint", as
   assert.match(request.url, /FCRM-80\/attachments$/);
   assert.equal(request.options.headers.authorization, "Bearer user-token");
   assert.equal(request.options.headers["x-atlassian-token"], "no-check");
+});
+
+test("Jira current-user lookup returns the OAuth token identity", async () => {
+  const user = await getJiraCurrentUser({cloudId: "cloud-1", accessToken: "user-token", fetchImpl: async () => new Response(JSON.stringify({accountId: "account-1", displayName: "Maya Chen"}), {status: 200})});
+  assert.deepEqual(user, {accountId: "account-1", displayName: "Maya Chen"});
 });
 
 test("Jira sandbox creates a basic Task with bearer auth", async () => {

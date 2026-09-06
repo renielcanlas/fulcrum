@@ -176,6 +176,14 @@ export async function uploadJiraAttachment({issueKey, file, cloudId, accessToken
   return {issueKey, attachments: Array.isArray(attachments) ? attachments.map((attachment) => ({id: attachment.id, filename: attachment.filename, mimeType: attachment.mimeType ?? "application/octet-stream", size: attachment.size ?? null, created: attachment.created ?? null, author: attachment.author?.displayName ?? "Current user"})) : []};
 }
 
+export async function getJiraCurrentUser({cloudId, accessToken, fetchImpl = fetch}) {
+  if (!cloudId || !accessToken) throw new Error("jira_user_identity_lookup_invalid");
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/myself`, {headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
+  if (!response.ok) throw new Error(`jira_user_identity_lookup_failed_${response.status}`);
+  const user = await response.json();
+  return {accountId: user.accountId ?? null, displayName: user.displayName ?? user.emailAddress ?? "Unknown Jira user"};
+}
+
 export async function deleteAllJiraWorkItems({projectKey = JIRA_PROJECT_KEY, cloudId, accessToken, fetchImpl = fetch}) {
   if (projectKey !== JIRA_PROJECT_KEY) throw new Error("invalid_cleanup_project");
   if (!cloudId || !accessToken) throw new Error("jira_connection_required");

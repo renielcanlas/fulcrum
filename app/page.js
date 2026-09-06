@@ -32,6 +32,19 @@ export default function Home() {
       });
       const d = await r.json();
       if (!r.ok || !d.user) throw new Error(d.error ?? "demo_login_failed");
+      // Chat histories and model response IDs are persona-specific. Clear them
+      // at the session boundary so a new persona cannot inherit old context.
+      for (const key of [
+        "fulcrum-ciel-chat",
+        "fulcrum-ciel-response-id",
+        "fulcrum-scenario-response-id",
+      ]) {
+        try {
+          window.localStorage.removeItem(key);
+        } catch {
+          // Storage can be unavailable in privacy-restricted browser contexts.
+        }
+      }
       const next = new URLSearchParams(window.location.search).get("next");
       router.replace(next === "/sandbox" ? next : "/demo");
     } catch (error) {

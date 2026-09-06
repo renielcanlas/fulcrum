@@ -250,6 +250,8 @@ export default function DemoPage() {
             ? "Your Fulcrum session expired. Return to the landing page and enter the demo again."
             : data.error === "jira_user_authorization_required"
               ? "Authorize your Jira account before uploading an attachment."
+              : data.error === "jira_user_identity_mismatch"
+                ? `Your Jira authorization is for ${data.jiraUser ?? "a different user"}, not ${signedIn?.displayName ?? "the current Fulcrum user"}. Reconnect Jira using the current user's Atlassian account.`
               : data.error ?? "jira_attachment_upload_failed",
         );
       await refreshWorkItem(selectedWorkItem.key);
