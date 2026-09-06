@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {FakeProvider} from "../src/ai/provider.js";
-import {buildIntakeDecisionSupportInput, generateIntakeDecisionSupport, parseIntakeDecisionSupport} from "../src/ai/intake-decision-support.js";
+import {buildIntakeDecisionSupportInput, calculateWeightedIntakeDecision, generateIntakeDecisionSupport, parseIntakeDecisionSupport} from "../src/ai/intake-decision-support.js";
 import {formatIntakeAssessmentComment} from "../src/integrations/intake-assessment.js";
 
 const assessment = {version: "intake-v1", stage: "Intake", score: 80, maxScore: 100, recommendation: "Proceed", checks: []};
@@ -17,12 +17,15 @@ test("intake AI context includes Jira comments, attachment inventory, and determ
 });
 
 test("intake decision support parses a constrained recommendation", async () => {
-  const provider = new FakeProvider([{id: "resp-intake-1", output_text: JSON.stringify({confidence: 0.82, summary: "The intake is sufficiently documented.", rationale: ["Owner and scope are present."], checkReviews: [{checkId: "description", state: "pass", observation: "Context is clear."}], proposedComment: "AI decision support: Proceed, subject to human review."})}]);
+  const provider = new FakeProvider([{id: "resp-intake-1", output_text: JSON.stringify({confidence: 0.82, summary: "The intake is sufficiently documented.", challenge: "Confirm the control owner before proceeding.", pros: ["Clear business scope."], cons: ["Owner confirmation remains open."], rationale: ["Owner and scope are present."], checkReviews: [{checkId: "description", state: "pass", observation: "Context is clear."}], proposedComment: "AI decision support: Proceed, subject to human review."})}]);
   const result = await generateIntakeDecisionSupport({provider, item, assessment: {...assessment, checks: [{id: "description", label: "Business context", weight: 20, state: "pass", points: 20}], maxScore: 20}});
   assert.equal(result.responseId, "resp-intake-1");
   assert.equal(result.decisionSupport.recommendation, "Hold for remediation");
   assert.equal(result.decisionSupport.confidence, 0.82);
   assert.equal(result.decisionSupport.checkReviews[0].points, 20);
+  assert.equal(result.decisionSupport.challenge, "Confirm the control owner before proceeding.");
+  assert.deepEqual(result.decisionSupport.pros, ["Clear business scope."]);
+  assert.deepEqual(result.decisionSupport.cons, ["Owner confirmation remains open."]);
 });
 
 test("published intake comment keeps deterministic recommendation and includes AI proposal", () => {
@@ -36,4 +39,12 @@ test("published intake comment keeps deterministic recommendation and includes A
 
 test("invalid intake AI response is rejected instead of treated as an approval", () => {
   assert.throws(() => parseIntakeDecisionSupport(JSON.stringify({recommendation: "Proceed"})), /intake_ai_response_incomplete/);
+});
+
+test("intake decision weighting applies 25 percent automatic and 75 percent AI", () => {
+  const decision = calculateWeightedIntakeDecision({automaticScore: 100, aiScore: 40, maxScore: 100, weighting: {automaticPercent: 25, aiPercent: 75}});
+  assert.equal(decision.score, 55);
+  assert.equal(decision.recommendation, "Hold for remediation");
+  assert.equal(decision.automaticPercent, 25);
+  assert.equal(decision.aiPercent, 75);
 });

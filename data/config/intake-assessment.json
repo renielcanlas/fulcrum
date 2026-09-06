@@ -4,6 +4,7 @@
   "title": "Intake completeness",
   "description": "Deterministic checks for whether a Jira work item contains enough context to begin assessment.",
   "scoring": {"partialCreditFactor": 0.5, "rounding": "nearest", "unreviewedAiState": "uncertain"},
+  "decisionWeighting": {"automaticPercent": 25, "aiPercent": 75},
   "recommendationThresholds": {"proceed": 80, "hold": 50},
   "scoreBands": [
     {"id":"proceed", "min":80, "max":100, "label":"Proceed", "description":"Required intake context is sufficiently complete for the next stage."},

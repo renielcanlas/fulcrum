@@ -1,6 +1,6 @@
 import { assessIntake, formatIntakeAssessmentComment } from "../../../../../src/integrations/intake-assessment.js";
 import { commentJiraWorkItem, getJiraWorkItem, jiraErrorStatus } from "../../../../../src/integrations/jira.js";
-import { generateIntakeDecisionSupport } from "../../../../../src/ai/intake-decision-support.js";
+import { calculateWeightedIntakeDecision, generateIntakeDecisionSupport } from "../../../../../src/ai/intake-decision-support.js";
 import { extractJiraPdfAttachments } from "../../../../../src/integrations/document-intelligence.js";
 import { resolveJiraConnection } from "../../../../../src/integrations/jira-connection.js";
 import { runtime } from "../../../../../src/server/runtime.js";
@@ -30,15 +30,17 @@ export async function POST(request) {
         ({decisionSupport} = await generateIntakeDecisionSupport({provider: runtime.provider, item, assessment, attachmentEvidence}));
       } catch (error) {
         aiError = error.message ?? "intake_ai_review_failed";
-        decisionSupport = {recommendation: assessment.recommendation, confidence: 0, summary: "AI decision support was unavailable; the deterministic intake metrics remain available for review.", rationale: [], metricObservations: [], proposedComment: "", status: "unavailable"};
+        decisionSupport = {recommendation: assessment.recommendation, confidence: 0, summary: "AI decision support was unavailable; the deterministic intake metrics remain available for review.", challenge: "AI could not challenge the idea because the model was unavailable.", pros: [], cons: [], rationale: [], checkReviews: [], proposedComment: "", status: "unavailable"};
       }
     }
+    const weightedDecision = decisionSupport.status === "unavailable"
+      ? {score: 0, maxScore: assessment.maxScore, recommendation: "Hold for remediation", automaticPercent: 25, aiPercent: 75, status: "ai_unavailable"}
+      : {...calculateWeightedIntakeDecision({automaticScore: assessment.score, aiScore: decisionSupport.score ?? 0, maxScore: assessment.maxScore}), status: decisionSupport.status};
     const enrichedAssessment = {
       ...assessment,
+      decisionWeighting: {automaticPercent: weightedDecision.automaticPercent, aiPercent: weightedDecision.aiPercent},
       weightedDecision: {
-        score: assessment.score,
-        maxScore: assessment.maxScore,
-        recommendation: assessment.recommendation,
+        ...weightedDecision,
       },
       aiDecisionSupport: decisionSupport,
       aiContext: {commentCount: item.comments?.length ?? 0, attachmentCount: item.attachments?.length ?? 0, extractedAttachmentCount: attachmentEvidence.filter((evidence) => evidence.status === "completed").length, attachmentEvidence: attachmentEvidence.map((evidence) => ({attachmentId: evidence.attachmentId, filename: evidence.filename, status: evidence.status, reason: evidence.reason ?? null, pages: evidence.pages?.length ?? 0}))},

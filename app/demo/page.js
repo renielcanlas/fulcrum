@@ -316,7 +316,7 @@ export default function DemoPage() {
       if (!response.ok)
         throw new Error(data.error ?? "intake_assessment_publish_failed");
       await refreshWorkItem(activeIssueKey);
-      if (data.assessment.recommendation === "Proceed")
+      if ((data.assessment.weightedDecision?.recommendation ?? data.assessment.recommendation) === "Proceed")
         setTransitionOffer(true);
     } catch (error) {
       setAssessmentError(error.message ?? "intake_assessment_publish_failed");
@@ -2166,6 +2166,42 @@ function ScoreBar({ label, score, maxScore, color }) {
   );
 }
 
+function ChecklistScoreGraphic({ check, aiReview, weighting }) {
+  const automaticPercent = check.weight > 0 ? Math.max(0, Math.min(100, (check.points / check.weight) * 100)) : 0;
+  const aiPercent = aiReview && aiReview.weight > 0 ? Math.max(0, Math.min(100, (aiReview.points / aiReview.weight) * 100)) : 0;
+  const automaticWeight = Number(weighting?.automaticPercent ?? 25) / 100;
+  const aiWeight = Number(weighting?.aiPercent ?? 75) / 100;
+  const combinedPercent = aiReview ? (automaticPercent * automaticWeight) + (aiPercent * aiWeight) : automaticPercent;
+  const combinedPoints = aiReview ? ((check.points * automaticWeight) + (aiReview.points * aiWeight)).toFixed(1).replace(".0", "") : check.points;
+  const scoreTone = combinedPercent >= 80
+    ? {ring: "#197443", track: "#dcefe7", text: "text-[#197443]"}
+    : combinedPercent < 50
+      ? {ring: "#c2413b", track: "#f8dedb", text: "text-[#c2413b]"}
+      : {ring: "#b7791f", track: "#f8ebc9", text: "text-[#b7791f]"};
+  return (
+    <li className="rounded-lg border border-slate-200 bg-white p-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="flex min-w-0 items-start gap-1.5">
+          <strong className="text-xs leading-4 text-slate-700">{check.label}</strong>
+        </span>
+        <span className="shrink-0 text-[10px] text-slate-400">/{check.weight}</span>
+      </div>
+      <div className="mt-3 flex justify-center" role="img" aria-label={`${check.label}: combined score ${combinedPoints} of ${check.weight}`}>
+        <div className="grid h-[76px] w-[76px] place-items-center rounded-full" style={{background: `conic-gradient(${scoreTone.ring} 0 ${combinedPercent}%, ${scoreTone.track} ${combinedPercent}% 100%)`}}>
+          <div className="grid h-[58px] w-[58px] place-items-center rounded-full bg-white text-center">
+            <span className={`text-xl font-bold ${scoreTone.text}`}>{combinedPoints}</span>
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 flex justify-center gap-3 text-[10px]">
+        <span className="text-[#087f70]"><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#087f70]" />Auto {check.points}</span>
+        <span className="text-[#6d5bd0]"><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#6d5bd0]" />AI {aiReview?.points ?? "—"}</span>
+      </div>
+      <p className="mt-2 min-h-8 text-[10px] leading-4 text-slate-500">{aiReview?.observation ?? check.failure ?? "No additional observation."}</p>
+    </li>
+  );
+}
+
 function IntakeAssessmentPanel({
   item,
   currentUser,
@@ -2199,12 +2235,13 @@ function IntakeAssessmentPanel({
   const selectedPublished = selectedVersion === "draft" ? null : history[Number(selectedVersion)] ?? intakeAssessment?.published;
   const assessment = selectedVersion === "draft" && hasDraft ? intakeAssessment.assessment : selectedPublished;
   const draft = selectedVersion === "draft" && hasDraft;
+  const weightedDecision = assessment?.weightedDecision ?? {score: assessment?.score ?? 0, maxScore: assessment?.maxScore ?? 0, recommendation: assessment?.recommendation ?? "Hold for remediation"};
   const canMove =
-    canAdvance && !draft && assessment?.recommendation === "Proceed";
+    canAdvance && !draft && weightedDecision.recommendation === "Proceed";
   return (
     <>
       <section
-        className="mt-8 rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] p-5"
+        className="mt-8 rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] p-4"
         aria-label="FULCRUM Intake evaluation"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2272,28 +2309,35 @@ function IntakeAssessmentPanel({
         ) : (
           <>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg bg-white p-3">
+              <div className="rounded-lg bg-white p-2.5">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  Score
+                  Weighted score
                 </p>
-                <p className="mt-1 text-2xl font-bold text-[#102f33]">
-                  {assessment.score}/{assessment.maxScore}
+                <p className="mt-1 text-xl font-bold text-[#102f33]">
+                  {weightedDecision.score}/{weightedDecision.maxScore}
                 </p>
+                <div className="mt-2 space-y-1.5">
+                  <ScoreBar label="Automatic" score={assessment.score} maxScore={assessment.maxScore} color="bg-[#087f70]" />
+                  {assessment.aiDecisionSupport?.score !== undefined && <ScoreBar label="AI" score={assessment.aiDecisionSupport.score} maxScore={assessment.aiDecisionSupport.maxScore ?? assessment.maxScore} color="bg-[#6d5bd0]" />}
+                </div>
               </div>
-              <div className="rounded-lg bg-white p-3">
+              <div className="rounded-lg bg-white p-2.5">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                   Weighted decision
                 </p>
                 <p className="mt-1 text-sm font-bold text-[#197443]">
-                  {assessment.recommendation}
+                  {weightedDecision.recommendation}
+                </p>
+                <p className="mt-1 text-[10px] text-slate-500">
+                  {assessment.score}/{assessment.maxScore} automatic · {assessment.decisionWeighting?.automaticPercent ?? 25}% automatic / {assessment.decisionWeighting?.aiPercent ?? 75}% AI
                 </p>
                 {assessment.aiDecisionSupport && (
                   <p className="mt-1 text-[11px] font-semibold text-slate-500">
-                    AI response: {assessment.aiDecisionSupport.recommendation}
+                    AI response: {assessment.aiDecisionSupport.recommendation} · {assessment.aiDecisionSupport.reviewedCheckCount ?? assessment.aiDecisionSupport.checkReviews?.length ?? 0}/{assessment.checks.length} checks reviewed
                   </p>
                 )}
               </div>
-              <div className="rounded-lg bg-white p-3">
+              <div className="rounded-lg bg-white p-2.5">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                   Checks
                 </p>
@@ -2306,23 +2350,14 @@ function IntakeAssessmentPanel({
                 </p>
               </div>
             </div>
-            <div className="mt-4 rounded-lg bg-white p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Score comparison</p>
-                <span className="text-[11px] text-slate-500">{assessment.maxScore} possible points</span>
-              </div>
-              <div className="mt-3 space-y-3">
-                <ScoreBar label="Weighted checklist" score={assessment.score} maxScore={assessment.maxScore} color="bg-[#087f70]" />
-                {assessment.aiDecisionSupport?.score !== undefined && <ScoreBar label="AI checklist review" score={assessment.aiDecisionSupport.score} maxScore={assessment.aiDecisionSupport.maxScore ?? assessment.maxScore} color="bg-[#6d5bd0]" />}
-              </div>
-            </div>
-            <details className="mt-3 rounded-lg bg-white p-3">
+            <details className="mt-2 rounded-lg bg-white p-2.5">
               <summary className="cursor-pointer text-xs font-bold text-slate-600 hover:text-[#087f70]">View scoring configuration</summary>
-              <div className="mt-3 grid gap-3 text-[11px] text-slate-500 sm:grid-cols-2">
+              <div className="mt-2 grid gap-2 text-[11px] text-slate-500 sm:grid-cols-2">
                 <p>Proceed threshold: <strong className="text-slate-700">{assessment.scoreBands?.find((band) => band.label === "Proceed")?.min ?? 80}</strong></p>
                 <p>Partial credit: <strong className="text-slate-700">{Math.round((assessment.scoring?.partialCreditFactor ?? 0.5) * 100)}%</strong></p>
+                <p>Decision weighting: <strong className="text-slate-700">{assessment.decisionWeighting?.automaticPercent ?? 25}% automatic / {assessment.decisionWeighting?.aiPercent ?? 75}% AI</strong></p>
               </div>
-              <ul className="mt-3 space-y-1 text-[11px] text-slate-500">
+              <ul className="mt-2 space-y-1 text-[11px] text-slate-500">
                 {assessment.checks.map((check) => <li key={`weight-${check.id}`} className="flex justify-between gap-3"><span>{check.label}</span><strong className="text-slate-700">{check.weight} pts</strong></li>)}
               </ul>
             </details>
@@ -2335,7 +2370,7 @@ function IntakeAssessmentPanel({
               </p>
             )}
             {assessment.aiDecisionSupport && (
-              <div className="mt-4 rounded-lg border border-[#b9e4d1] bg-[#eef8f2] p-4">
+              <div className="mt-3 rounded-lg border border-[#b9e4d1] bg-[#eef8f2] p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
                     AI response
@@ -2347,6 +2382,20 @@ function IntakeAssessmentPanel({
                 <p className="mt-2 text-sm leading-6 text-slate-700">
                   {assessment.aiDecisionSupport.summary}
                 </p>
+                <div className="mt-2 rounded-md bg-white px-3 py-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Challenge to the idea</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">{assessment.aiDecisionSupport.challenge ?? "No additional challenge was returned."}</p>
+                </div>
+                <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
+                  <div className="rounded-md bg-white px-3 py-2">
+                    <p className="font-bold uppercase tracking-wide text-[#197443]">Potential benefits</p>
+                    {assessment.aiDecisionSupport.pros?.length ? <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-600">{assessment.aiDecisionSupport.pros.map((item, index) => <li key={`pro-${index}`}>{item}</li>)}</ul> : <p className="mt-1 text-slate-500">None identified.</p>}
+                  </div>
+                  <div className="rounded-md bg-white px-3 py-2">
+                    <p className="font-bold uppercase tracking-wide text-amber-700">Risks and trade-offs</p>
+                    {assessment.aiDecisionSupport.cons?.length ? <ul className="mt-1 list-disc space-y-1 pl-4 text-slate-600">{assessment.aiDecisionSupport.cons.map((item, index) => <li key={`con-${index}`}>{item}</li>)}</ul> : <p className="mt-1 text-slate-500">None identified.</p>}
+                  </div>
+                </div>
                 {assessment.aiDecisionSupport.rationale?.length > 0 && (
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-slate-600">
                     {assessment.aiDecisionSupport.rationale.map((reason, index) => (
@@ -2383,34 +2432,10 @@ function IntakeAssessmentPanel({
                 )}
               </div>
             )}
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 text-sm">
               {assessment.checks.map((check) => {
                 const aiReview = assessment.aiDecisionSupport?.checkReviews?.find((review) => review.checkId === check.id);
-                return (
-                  <li key={check.id} className="rounded-lg bg-white px-3 py-3">
-                    <div className="flex items-start gap-2">
-                      <span className={check.state === "pass" ? "text-[#197443]" : "text-amber-700"}>{check.state === "pass" ? "✓" : "!"}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <strong className="text-slate-700">{check.label}</strong>
-                          <span className="text-[11px] font-semibold text-slate-400">{check.weight} pts</span>
-                        </div>
-                        <div className="mt-2 grid gap-2 text-[11px] sm:grid-cols-2">
-                          <div className="rounded-md border border-slate-100 px-2 py-1.5">
-                            <p className="font-bold uppercase tracking-wide text-slate-400">Automatic checklist</p>
-                            <p className="mt-1 text-slate-600">{check.state} · {check.points}/{check.weight} points</p>
-                            {check.failure && <p className="mt-1 text-slate-500">{check.failure}</p>}
-                          </div>
-                          {aiReview && <div className="rounded-md border border-[#e2dcff] bg-[#faf9ff] px-2 py-1.5">
-                            <p className="font-bold uppercase tracking-wide text-[#6d5bd0]">AI review</p>
-                            <p className="mt-1 text-slate-600">{aiReview.state} · {aiReview.points}/{aiReview.weight} points</p>
-                            <p className="mt-1 text-slate-500">{aiReview.observation}</p>
-                          </div>}
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                );
+                  return <ChecklistScoreGraphic key={check.id} check={check} aiReview={aiReview} weighting={assessment.decisionWeighting} />;
               })}
             </ul>
             {draft ? (
