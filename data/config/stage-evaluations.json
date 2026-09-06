@@ -4,6 +4,8 @@
     "Intake": {
       "title": "Intake completeness",
       "recommendationThresholds": { "proceed": 80 },
+      "decisionWeighting": { "automaticPercent": 25, "aiPercent": 75 },
+      "aiParameters": { "focus": "Whether the initiative is sufficiently defined to begin structured research.", "questions": ["Is the problem and intended outcome clear?", "Is there an accountable owner and enough collaboration context to start?", "What important intake assumptions remain unverified?"], "evidence": ["business context", "scope and intended outcome", "named owner", "classification", "initial collaboration context"] },
       "checks": [
         {"id":"project","label":"FCRM project","weight":10,"kind":"equals","path":"projectKey","value":"FCRM","failure":"Work item is outside the FCRM project."},
         {"id":"summary","label":"Clear summary","weight":15,"kind":"textLength","path":"summary","full":20,"partial":8,"failure":"Add a clear summary describing the requested change."},
@@ -16,6 +18,8 @@
     "Context and Research": {
       "title": "Context and research readiness",
       "recommendationThresholds": {"proceed":75},
+      "decisionWeighting": { "automaticPercent": 25, "aiPercent": 75 },
+      "aiParameters": { "focus": "Whether the work has enough customer, market, technical, and operational context to support a credible risk review.", "questions": ["Are the research questions specific and answerable?", "What evidence is still missing or contradictory?", "Do the comments and attachments support the stated context?"], "evidence": ["research scope", "affected users and use cases", "technical or operational constraints", "research discussion", "source documents and page references"] },
       "checks": [
         {"id":"description","label":"Research scope","weight":25,"kind":"textLength","path":"description","full":240,"partial":100,"failure":"Describe the scope, affected users, constraints, and research questions."},
         {"id":"assignee","label":"Research owner","weight":15,"kind":"present","path":"assignee","failure":"Assign an owner for research and context gathering."},
@@ -27,6 +31,8 @@
     "Risk Assessment": {
       "title": "Risk assessment readiness",
       "recommendationThresholds": {"proceed":75},
+      "decisionWeighting": { "automaticPercent": 25, "aiPercent": 75 },
+      "aiParameters": { "focus": "Whether the initiative has enough risk-relevant detail to identify material threats, controls, and residual uncertainty.", "questions": ["What financial-crime, fraud, privacy, security, or operational risks are indicated?", "Are affected data, users, geographies, and processes explicit?", "Which risks or controls need evidence before review can proceed?"], "evidence": ["risk-relevant context", "risk owner", "risk discussion", "risk classification", "priority and impact"] },
       "checks": [
         {"id":"description","label":"Risk-relevant context","weight":30,"kind":"textLength","path":"description","full":240,"partial":120,"failure":"Document the product change, users, geographies, data, and operational impact."},
         {"id":"assignee","label":"Named risk owner","weight":15,"kind":"present","path":"assignee","failure":"Assign a named risk owner."},
@@ -38,6 +44,8 @@
     "Review": {
       "title": "Analyst review readiness",
       "recommendationThresholds": {"proceed":75},
+      "decisionWeighting": { "automaticPercent": 25, "aiPercent": 75 },
+      "aiParameters": { "focus": "Whether an analyst has a complete, coherent, and reviewable evidence package for an informed recommendation.", "questions": ["Is the decision context internally consistent?", "Do comments and attachments support the claims being reviewed?", "What should the analyst challenge or clarify before decision?"], "evidence": ["complete review context", "accountable reviewer", "review evidence", "priority", "classification and unresolved questions"] },
       "checks": [
         {"id":"description","label":"Complete review context","weight":25,"kind":"textLength","path":"description","full":240,"partial":120,"failure":"Ensure the issue description contains the complete decision context."},
         {"id":"assignee","label":"Review owner","weight":20,"kind":"present","path":"assignee","failure":"Assign the accountable reviewer."},
@@ -49,6 +57,8 @@
     "Decision": {
       "title": "Decision readiness",
       "recommendationThresholds": {"proceed":75},
+      "decisionWeighting": { "automaticPercent": 25, "aiPercent": 75 },
+      "aiParameters": { "focus": "Whether the decision owner has a sufficiently complete, evidenced, and challenged record to make an accountable decision.", "questions": ["What are the strongest reasons to proceed and the strongest reasons to pause?", "Are open questions, trade-offs, and residual risks explicit?", "Does the record support an accountable human decision without inventing missing evidence?"], "evidence": ["decision context", "decision owner", "decision discussion", "priority", "classification, trade-offs, and open questions"] },
       "checks": [
         {"id":"description","label":"Decision context","weight":25,"kind":"textLength","path":"description","full":240,"partial":120,"failure":"Provide the complete context needed for a decision."},
         {"id":"assignee","label":"Decision owner","weight":15,"kind":"present","path":"assignee","failure":"Assign the accountable decision owner."},

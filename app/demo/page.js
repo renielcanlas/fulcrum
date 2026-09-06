@@ -270,8 +270,7 @@ export default function DemoPage() {
     setAssessmentError("");
     setTransitionOffer(false);
     try {
-      const intake = selectedWorkItem?.statusName === "Intake";
-      const response = await fetch(intake ? "/api/jira/assessment/ai" : "/api/jira/assessment", {
+      const response = await fetch("/api/jira/assessment/ai", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -2151,6 +2150,18 @@ function CommentComposer({
   );
 }
 
+function isFulcrumComment(comment) {
+  const body = String(comment?.body ?? "");
+  return body.includes("<!-- fulcrum-assessment:") || body.includes("<!-- fulcrum-evaluation:") || body.includes("FULCRUM_ASSESSMENT_JSON:") || body.includes("FULCRUM_EVALUATION_JSON:");
+}
+
+function readableFulcrumComment(body) {
+  return String(body ?? "")
+    .split(/\nFULCRUM_(?:ASSESSMENT|EVALUATION)_JSON:/i)[0]
+    .replace(/<!-- fulcrum-(?:assessment|evaluation):[^>]*-->/gi, "")
+    .trim() || "FULCRUM automated details are available in the evaluation above.";
+}
+
 function ScoreBar({ label, score, maxScore, color }) {
   const percent = maxScore > 0 ? Math.max(0, Math.min(100, (score / maxScore) * 100)) : 0;
   return (
@@ -2164,6 +2175,19 @@ function ScoreBar({ label, score, maxScore, color }) {
       </div>
     </div>
   );
+}
+
+function weightedCheckScore(check, assessment) {
+  const weighting = assessment?.decisionWeighting ?? assessment?.weightedDecision ?? {};
+  const automaticWeight = Number(weighting.automaticPercent ?? 25) / 100;
+  const aiWeight = Number(weighting.aiPercent ?? 75) / 100;
+  const aiReview = assessment?.aiDecisionSupport?.checkReviews?.find((review) => review.checkId === check.id);
+  if (!aiReview) return {points: check.points, max: check.weight, hasAi: false};
+  return {
+    points: Number(((check.points * automaticWeight) + (aiReview.points * aiWeight)).toFixed(1)),
+    max: check.weight,
+    hasAi: true,
+  };
 }
 
 function ChecklistScoreGraphic({ check, aiReview, weighting }) {
@@ -2575,11 +2599,14 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
                   : ""}
               </span>
             </div>
-            <p className="mt-1 text-sm font-bold text-slate-700">
-              {assessment.score}/{assessment.maxScore}
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              Weighted score
+            </p>
+            <p className="mt-0.5 text-sm font-bold text-slate-700">
+              {(assessment.weightedDecision?.score ?? assessment.score)}/{assessment.weightedDecision?.maxScore ?? assessment.maxScore}
             </p>
             <p className="mt-0.5 truncate text-[11px] text-slate-500">
-              {assessment.recommendation ?? "No recommendation"}
+              {assessment.weightedDecision?.recommendation ?? assessment.recommendation ?? "No recommendation"}
             </p>
             {assessment.checks?.length > 0 && (
               <ul className="mt-2 space-y-0.5 border-t border-slate-100 pt-1.5">
@@ -2589,10 +2616,8 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
                     className="flex items-center justify-between gap-1 text-[10px] text-slate-500"
                   >
                     <span className="truncate">{check.label}</span>
-                    <span
-                      className={`shrink-0 font-bold ${check.state === "pass" ? "text-[#197443]" : check.state === "partial" ? "text-amber-700" : "text-red-600"}`}
-                    >
-                      {check.points}/{check.weight}
+                    <span className="shrink-0 font-bold text-slate-700">
+                      {weightedCheckScore(check, assessment).points}/{check.weight}
                     </span>
                   </li>
                 ))}
@@ -2638,16 +2663,7 @@ function JiraWorkItemView({
         Unable to load this work item: {item.error}
       </div>
     );
-  const assessmentComments = (item.comments ?? []).filter((comment) =>
-    String(comment.body ?? "").includes("<!-- fulcrum-assessment:"),
-  );
-  const latestAssessmentCommentId =
-    assessmentComments[assessmentComments.length - 1]?.id;
-  const visibleComments = (item.comments ?? []).filter(
-    (comment) =>
-      !String(comment.body ?? "").includes("<!-- fulcrum-assessment:") ||
-      comment.id === latestAssessmentCommentId,
-  );
+  const visibleComments = item.comments ?? [];
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <div>
@@ -2798,8 +2814,9 @@ function JiraWorkItemView({
             Comments
           </h3>
           <div className="mt-3 space-y-3">
-            {visibleComments.map((comment) => (
-              <article key={comment.id} className="rounded-xl bg-slate-50 p-4">
+            {visibleComments.map((comment) => {
+              const fulcrumComment = isFulcrumComment(comment);
+              const header = (
                 <div className="flex flex-wrap justify-between gap-2 text-xs">
                   <span className="font-bold text-slate-700">
                     {comment.author}
@@ -2810,11 +2827,35 @@ function JiraWorkItemView({
                       : ""}
                   </span>
                 </div>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                  {comment.body || "No comment text."}
-                </p>
-              </article>
-            ))}
+              );
+              if (fulcrumComment) {
+                return (
+                  <details key={comment.id} className="rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] px-4 py-3">
+                    <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#dcefe7] text-xs text-[#087f70]" aria-hidden="true">+</span>
+                        <div className="min-w-0 flex-1">
+                          {header}
+                          <p className="mt-1 text-xs font-semibold text-[#087f70]">FULCRUM automated comment · click to expand</p>
+                        </div>
+                      </div>
+                    </summary>
+                    <div className="mt-3 border-t border-[#cfe3d8] pt-3">
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">{readableFulcrumComment(comment.body)}</p>
+                      <p className="mt-2 text-[10px] text-slate-400">Machine-readable evaluation data is hidden from this comment view.</p>
+                    </div>
+                  </details>
+                );
+              }
+              return (
+                <article key={comment.id} className="rounded-xl bg-slate-50 p-4">
+                  {header}
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                    {comment.body || "No comment text."}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         </div>
       )}

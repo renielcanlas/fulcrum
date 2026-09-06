@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {FakeProvider} from "../src/ai/provider.js";
-import {buildIntakeDecisionSupportInput, calculateWeightedIntakeDecision, generateIntakeDecisionSupport, parseIntakeDecisionSupport} from "../src/ai/intake-decision-support.js";
+import {buildIntakeDecisionSupportInput, calculateWeightedIntakeDecision, generateEvaluationDecisionSupport, generateIntakeDecisionSupport, parseIntakeDecisionSupport} from "../src/ai/intake-decision-support.js";
+import {getStageEvaluationConfig, evaluateStage} from "../src/integrations/stage-evaluation.js";
 import {formatIntakeAssessmentComment} from "../src/integrations/intake-assessment.js";
 
 const assessment = {version: "intake-v1", stage: "Intake", score: 80, maxScore: 100, recommendation: "Proceed", checks: []};
@@ -47,4 +48,16 @@ test("intake decision weighting applies 25 percent automatic and 75 percent AI",
   assert.equal(decision.recommendation, "Hold for remediation");
   assert.equal(decision.automaticPercent, 25);
   assert.equal(decision.aiPercent, 75);
+});
+
+test("stage AI context uses the current stage parameters", async () => {
+  const stage = "Risk Assessment";
+  const stageConfig = getStageEvaluationConfig(stage);
+  const stageAssessment = evaluateStage({...item, statusName: stage}, stage);
+  const provider = new FakeProvider([{id: "resp-risk-1", output_text: JSON.stringify({confidence: 0.8, summary: "Risk context is reviewable.", challenge: "Confirm residual risk ownership.", pros: ["Risk domain is identified."], cons: ["Control evidence is limited."], rationale: ["The issue includes risk context."], checkReviews: stageAssessment.checks.map((check) => ({checkId: check.id, state: "pass", observation: "Reviewed for the current risk stage."})), proposedComment: "AI decision support: review residual risk ownership."})}]);
+  const result = await generateEvaluationDecisionSupport({provider, item: {...item, statusName: stage}, assessment: stageAssessment, stage, stageConfig});
+  assert.equal(result.decisionSupport.stage, stage);
+  assert.equal(result.decisionSupport.checkReviews.length, stageAssessment.checks.length);
+  assert.match(buildIntakeDecisionSupportInput({item, assessment: stageAssessment, stage, stageConfig}), /Risk Assessment/);
+  assert.match(JSON.stringify(stageConfig.aiParameters), /residual uncertainty/);
 });
