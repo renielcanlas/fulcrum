@@ -16,7 +16,7 @@ See the [architecture baseline](../03-architecture/architecture-baseline.md), [a
 
 ## Stage 03 — Development
 
-We built the Next.js and Vercel foundation, polished landing page, synthetic domain data, the FULCRUM AI Assistant named Ciel, typed read tools, audit seams, initiative detail screens, Jira integration guidance, and the interactive demo flow. We then added a separate `/sandbox` surface so Jira connectivity and synthetic work-item experiments could be exercised without confusing those experiments with the FULCRUM assessment workflow.
+We built the Next.js and Vercel foundation, polished landing page, synthetic domain data, the FULCRUM AI Assistant named Ciel, typed read tools, audit seams, initiative detail screens, Jira integration guidance, and the interactive demo flow. We then added a separate `/sandbox` surface so Jira connectivity and synthetic work-item experiments could be exercised without confusing those experiments with the FULCRUM assessment workflow. The work-item view now supports all five Jira workflow-stage evaluations with stage-specific AI guidance, PDF evidence context, weighted scoring, Jira publication/history, stale-result protection, and guarded progression.
 
 See the [deployment architecture](../09-deployment/vercel-nextjs-deployment.md), [AI orchestration](../05-ai/fcrm-copilot-and-jira-assistant.md), [Jira sandbox guide](../03-architecture/jira-sandbox.md), and [Golden Initiative fixture](../../data/demo/golden-initiative.json).
 
@@ -55,7 +55,7 @@ Landing page → synthetic persona → /demo FCRM workbench → decision trace/C
 5. I use **Scenario automator** to inspect a checked-in JSON scenario, import/paste custom JSON, or ask the AI scenario builder for a synthetic draft.
 6. I review the initial AI JSON immediately, watch deterministic validation and bounded AI refinement, then confirm the preflight preview before Jira changes execute.
 7. I use the create, comment, transition, assignment, update, and cleanup actions only for synthetic test-account experiments. The cleanup scenario is destructive and is limited to the configured `FCRM` project; AI does not generate cleanup steps.
-8. I return to `/demo` to explain FULCRUM’s governed assessment path. Jira activity provides integration context; it does not approve, reject, score, or advance a FULCRUM assessment.
+8. I return to `/demo` to evaluate the current stage, review the deterministic and AI weighted result, publish the evaluation to Jira, and explicitly confirm progression when the weighted recommendation is Proceed. Jira activity provides integration context; it does not approve or reject a FULCRUM decision.
 
 This sandbox makes the integration tangible for the demo while preserving a clear next step: durable connections, explicit linked-initiative selection, reconciliation, freshness, and production write-back governance.
 

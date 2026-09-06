@@ -20,6 +20,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 - **Save JSON**: downloads the current valid scenario.
 - **Clear**: resets the custom JSON, AI prompt, and generation error.
 - **Execution dialog**: preflight result, step progress, Jira errors, copy-error control, and rollback for issues created during a failed run.
+- **Stage evaluation**: current-stage deterministic checks, stage-specific AI review, weighted score, recommendation, evaluation history, and guarded next-stage progression.
 
 ## Create a scenario with AI
 
@@ -39,6 +40,17 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 ## Ask Ciel from the sandbox
 
 Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assistant about linked work. In the demo board, Jira context is attached only when the question appears related to the board or a work item; unrelated questions do not receive the board payload. When a linked `FCRM-*` key is present, Ciel retrieves live Jira details through the server-side service account. After explicit confirmation, she may improve the description, reassign the item to a verified synthetic persona, or transition it to a requested workflow status. Ciel does not change scores, decisions, permissions, or arbitrary Jira fields.
+
+## Evaluate a Jira work item stage
+
+1. Open a work item from the board and confirm its current Jira status.
+2. Select **Evaluate [stage]**. FULCRUM loads the current Jira fields, comments, attachments, and supported PDF evidence.
+3. Review the deterministic checklist and the stage-specific AI response. The AI focus changes by stage: research readiness, risk evidence, analyst review quality, or decision readiness.
+4. Review the weighted result. It uses 25% automatic checklist scoring and 75% AI checklist scoring; the same weighting applies to each metric and the overall recommendation.
+5. Publish the evaluation when ready. The result is written to Jira as a human-readable FULCRUM comment with a hidden machine-readable payload.
+6. If the weighted recommendation is **Proceed**, and you are the current Jira assignee, FULCRUM offers the next-stage action. Confirming it rechecks the published evaluation, rejects stale or non-Proceed evaluations, transitions Jira, and refreshes the page.
+
+If a new non-FULCRUM Jira comment is added after publication, the evaluation becomes stale and should be reassessed. Previous published evaluations remain available in stage history.
 
 ## Persona assignment format
 

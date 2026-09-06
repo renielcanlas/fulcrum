@@ -11,7 +11,7 @@ Status: **READY WITH FIXES**
 | 7.7 AI harness red-team | Complete | Injection, scope, tool-loop, malformed-output, outage, and autonomy risks reviewed; safe high-risk runtime issues fixed |
 | 8 Implementation/Jira plan | Complete | Dependency-ordered solo-developer workstreams and acceptance criteria documented |
 | 9 Development | Complete for current increment | Routing metadata, contract validation, bounded tool calls, and active-assessment enforcement implemented |
-| 10 Testing/evaluation | Complete for current increment | 22 tests pass; production build passes; measured fixture evaluation passes |
+| 10 Testing/evaluation | Complete for current increment | 66 tests pass; production build passes; measured fixture evaluation passes |
 
 ## Material decisions
 
@@ -23,6 +23,7 @@ Status: **READY WITH FIXES**
 - Live Jira, Azure, PostgreSQL, queues, and enterprise identity remain behind adapters or documented production evolution.
 - The presentation increment now includes the landing page, judge-facing `/demo` workbench, and authenticated `/sandbox` Jira experimentation surface.
 - The Jira sandbox supports fixed-project search and explicitly confirmed synthetic test-account scenarios; it is not FULCRUM assessment synchronization.
+- The work-item view supports all five configured Jira workflow stages with stage-specific AI decision support, PDF evidence context, weighted 25/75 scoring, Jira-comment publication/history, stale-result protection, and guarded progression.
 
 ## What was implemented
 
@@ -65,16 +66,16 @@ Not measured because external services or labeled datasets are not configured:
 6. Ask whether AI can approve; the governed Copilot refuses.
 7. Review Helen Morgan's conditional committee decision and open conditions.
 
-The current presentation also includes a public landing page and an authenticated Jira sandbox at `/sandbox`. The sandbox can connect through Atlassian OAuth, search the fixed synthetic `FCRM` project, and execute confirmed JSON scenarios against the dedicated test account. These operations are audit-recorded and isolated from FULCRUM assessment state. They do not demonstrate durable synchronization or production Jira write-back governance.
+The current presentation also includes a public landing page and a server-authenticated Jira sandbox at `/sandbox`. The sandbox uses the service account to search the fixed synthetic `FCRM` project and execute confirmed JSON scenarios against the dedicated test account; user-authorized OAuth remains available for actions performed on the current user’s behalf. These operations are audit-recorded and isolated from FULCRUM assessment state. They do not demonstrate durable synchronization or production Jira write-back governance.
 
 ## Deferred scope
 
-Physical PostgreSQL persistence, durable Jira OAuth token custody and sync/reconciliation, Azure adapters, Document Intelligence jobs, production RAG/embeddings, durable orchestration, full Step 6.5 scenario set, governed production write-back, autonomous decisions, enterprise identity, and production audit archival are intentionally deferred because they require external resources or are not necessary for the current hackathon vertical slice. The synthetic Jira sandbox and its controlled test-account mutations are implemented.
+Physical PostgreSQL persistence, durable Jira OAuth token custody and sync/reconciliation, background Document Intelligence jobs, production RAG/embeddings, durable orchestration, full Step 6.5 scenario set, governed production write-back, autonomous decisions, enterprise identity, and production audit archival are intentionally deferred because they require external resources or are not necessary for the current hackathon vertical slice. The synthetic Jira sandbox, PDF extraction adapter, multi-stage evaluation flow, and controlled test-account mutations are implemented.
 
 ## Known risks
 
 - In-memory repository and sessions are not reliable as durable Vercel production state.
-- Current live provider path is OpenAI-compatible; Azure AI Foundry remains the documented target adapter.
+- Azure AI Foundry and Document Intelligence are supported through server-side adapters, but production deployment still requires external credentials, operational limits, and labeled evaluation data.
 - Retrieval and document extraction quality cannot be claimed until labeled corpora and services are configured.
 - The FCRM UI demonstrates read-oriented Copilot/trace behavior more fully than mutation workflows; Jira mutation experiments are isolated to the sandbox.
 

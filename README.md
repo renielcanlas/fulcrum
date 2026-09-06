@@ -114,7 +114,7 @@ The model cannot approve, reject, vote, change a rating, change scoring rules, b
 
 Jira is the system of record for the underlying business initiative and collaboration artifacts. FULCRUM references that context and remains the system of record for the FCRM assessment and decision lineage.
 
-The implemented demo connection uses server-side Atlassian OAuth 2.0 3LO. The browser never receives Jira or AI-provider credentials. The current sandbox can search the configured synthetic `FCRM` project and run explicitly confirmed JSON scenarios against that project. This proves the connection and adapter boundary; it is not yet the governed linked-initiative synchronization path.
+The sandbox uses a server-side Atlassian service-account client-credentials flow, so it can search the configured synthetic `FCRM` project and run explicitly confirmed JSON scenarios without repeated user reauthentication. User-authorized Jira actions such as posting a comment use a separate OAuth connection. The browser never receives Jira or AI-provider credentials. This proves the connection and adapter boundary; it is not yet the governed linked-initiative synchronization path.
 
 ```text
 User → FULCRUM backend → JiraAdapter → Jira Cloud REST API
@@ -138,7 +138,7 @@ The repository currently contains the architecture foundation and the first exec
 - Jira experimentation sandbox at `/sandbox`
 - live Jira OAuth connection and status flow when Atlassian environment variables are configured
 - fixed-project Jira search and sequential JSON scenario automation for synthetic work items
-- first-stage Intake evaluation with configurable weighted checks, Jira-only publication, and explicit next-stage transition confirmation
+- multi-stage FULCRUM evaluations for Intake, Context and Research, Risk Assessment, Review, and Decision, with configurable checks, stage-specific AI guidance, weighted 25/75 scoring, Jira publication, stale-result protection, and explicit next-stage transition confirmation
 - active assessment context (`FA-2026-00124`)
 - typed backend tools over a demo governed repository
 - FCRM Analyst and Product Owner authorization checks
@@ -146,12 +146,12 @@ The repository currently contains the architecture foundation and the first exec
 - deterministic score calculation and inspectable Risk → Fact → Evidence → Control → Decision trace
 - read-only decision trace at `/api/initiatives/INIT-2026-0007/trace`
 - Provider-neutral AI Gateway with safe no-key demo mode; Azure AI Foundry is the primary platform direction
-- Azure AI Document Intelligence planned for document extraction and evidence provenance
+- Azure AI Document Intelligence PDF extraction with page-level evidence provenance; additional document types remain roadmap work
 - AI interaction audit records
 - Ciel action planning for supported Jira mutations: Azure returns a structured intent and response plan once, while Fulcrum validates, executes, verifies, and selects the final response deterministically
 - tests proving tool execution, access isolation, and decision non-mutation
 
-The broader assessment workflow, persistent datastore, durable Jira connection/sync services, and production knowledge corpus are staged for subsequent increments.
+The broader committee decision workflow, persistent datastore, durable Jira connection/sync services, and production knowledge corpus are staged for subsequent increments. The current evaluation lifecycle remains Jira-comment backed and synthetic/demo oriented.
 
 ## Run it locally
 
@@ -164,7 +164,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). Use `npm run build && npm start` to run the production build locally. See the [Vercel deployment architecture](docs/09-deployment/vercel-nextjs-deployment.md) for the deployment path.
 
-Without Azure configuration, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. The planned Azure configuration is server-only and deployment-specific:
+Without Azure configuration, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. Azure configuration is server-only and deployment-specific:
 
 ```bash
 AZURE_AI_FOUNDRY_ENDPOINT=https://your-resource.openai.azure.com/
@@ -296,7 +296,7 @@ Start here:
 4. **Workflow foundation — current:** centralized state machine, explicit human gates, immutable event intent, conditions, and reassessment/versioning paths.
 5. **Deployment foundation — current:** Next.js App Router, Vercel-compatible route handlers, build scripts, and environment configuration. Durable persistence and Vercel Preview deployment remain next.
 6. **Governed knowledge:** synthetic policy corpus, metadata-filtered hybrid retrieval, citations, and evaluation fixtures.
-7. **Assessment workbench:** persistent domain model, evidence ingestion, deterministic scoring, analyst review, overrides, and committee workflow.
+7. **Assessment workbench — current prototype:** multi-stage Jira-backed evaluation, configurable deterministic checks, stage-specific AI decision support, weighted scoring, publication/history, and guarded transitions. Persistent domain model, analyst overrides, and committee workflow remain next.
 8. **Governed Jira synchronization:** token vault, explicit linked-initiative selection, read reconciliation, freshness/provenance, and integration observability.
 9. **Production-shaped delivery:** deployment controls, operational runbooks, security testing, regression gates, and model/provider evaluation.
 

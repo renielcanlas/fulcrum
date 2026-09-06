@@ -11,3 +11,11 @@ The authoritative matrix is maintained as implementation begins. Required column
 | REQ-025 | Synthetic persona entry to `/demo` and `/sandbox` | `app/page.js`, `app/api/session/route.js`, `app/sandbox/page.js` | `test/security.test.js` | Implemented for demo only |
 | REQ-026/027 | Session gate, backend-only credentials, audit events for Jira actions | Sandbox route handlers and `src/audit/audit.js` | `test/security.test.js`, `test/jira-sandbox.test.js` | Implemented for current demo boundary |
 | REQ-028 | Next.js App Router landing, demo, and sandbox surfaces | `app/page.js`, `app/demo/page.js`, `app/sandbox/page.js` | `npm run build` | Implemented locally; durable deployment state deferred |
+
+## Current evaluation increment
+
+| Requirement | User-facing evidence | Implementation | Tests | Status |
+|---|---|---|---|---|
+| REQ-006/011 | Five Jira workflow stages expose configurable deterministic checks and 25/75 weighted AI scoring | `data/config/stage-evaluations.json`, `data/config/intake-assessment.json`, `src/integrations/stage-evaluation.js`, `src/ai/intake-decision-support.js` | `test/intake-decision-support.test.js` | Implemented for the synthetic Jira-backed prototype |
+| REQ-018/027 | Stage-specific AI challenge, PDF evidence context, human-readable Jira publication, hidden JSON payload, and audit events | `app/api/jira/assessment/ai/route.js`, `app/api/jira/assessment/route.js`, `src/integrations/document-intelligence.js` | AI/document/security tests and build validation | Implemented; durable audit persistence deferred |
+| REQ-020/022 | Latest evaluation history, stale-result protection, weighted Proceed gate, and explicit next-stage confirmation | `app/demo/page.js`, `app/api/jira/assessment/route.js` | Evaluation helper and lifecycle regression tests | Implemented for current Jira-comment history model |
