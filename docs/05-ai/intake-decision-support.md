@@ -15,7 +15,7 @@ The live route is `POST /api/jira/assessment/ai` with `{ "issueKey": "FCRM-80", 
 - `assessment.aiContext`: counts of comments and attachments included in the context;
 - `aiError`: a non-authoritative availability message when the model is unavailable.
 
-The AI prompt explicitly says that attachment filenames and metadata are not attachment contents. The model must not infer evidence from a filename, change configured metrics, approve or reject an item, or claim a Jira mutation. A model failure leaves the deterministic evaluation available.
+For PDF attachments, the server downloads the Jira content through the authenticated Jira connection, sends it to Azure Document Intelligence `prebuilt-layout`, polls the analysis result, and passes extracted page text plus `jira-attachment:<id>` source references to the AI. Non-PDF attachments remain metadata-only for now. The AI must not infer evidence from a filename or failed extraction, change configured metrics, approve or reject an item, or claim a Jira mutation. A model or extraction failure leaves the deterministic evaluation available.
 
 The UI presents the weighted decision and AI response side by side. Publishing writes the deterministic assessment and, when present, the reviewed AI summary, rationale, recommendation, and proposed comment into one Jira comment through the existing Fulcrum service-account path. Publishing is the human checkpoint; the AI route never advances the workflow.
 

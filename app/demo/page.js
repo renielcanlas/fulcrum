@@ -78,6 +78,7 @@ export default function DemoPage() {
   const [attachmentError, setAttachmentError] = useState("");
   const [pendingCielAction, setPendingCielAction] = useState(null);
   const [intakeAssessment, setIntakeAssessment] = useState(null);
+  const [attachmentEvidence, setAttachmentEvidence] = useState([]);
   const [assessmentBusy, setAssessmentBusy] = useState(false);
   const [assessmentError, setAssessmentError] = useState("");
   const [transitionOffer, setTransitionOffer] = useState(false);
@@ -166,6 +167,7 @@ export default function DemoPage() {
     setActiveIssueKey(issueKey ?? "");
     if (activeView !== "work-item" || !issueKey) return;
     setIntakeAssessment(null);
+    setAttachmentEvidence([]);
     setAssessmentError("");
     fetch(`/api/jira?issue=${encodeURIComponent(issueKey)}`)
       .then(async (response) => {
@@ -287,6 +289,7 @@ export default function DemoPage() {
         stage: selectedWorkItem?.statusName,
         assessment: data.assessment,
       }));
+      setAttachmentEvidence(data.attachmentEvidence ?? []);
     } catch (error) {
       setAssessmentError(error.message ?? "intake_assessment_failed");
     } finally {
@@ -767,6 +770,7 @@ export default function DemoPage() {
               attachmentError={attachmentError}
               onAddAttachment={addAttachment}
               intakeAssessment={intakeAssessment}
+              attachmentEvidence={attachmentEvidence}
               assessmentBusy={assessmentBusy}
               assessmentError={assessmentError}
               transitionOffer={transitionOffer}
@@ -2169,6 +2173,7 @@ function IntakeAssessmentPanel({
   assessmentBusy,
   assessmentError,
   transitionOffer,
+  attachmentEvidence,
   onAssessIntake,
   onPublishIntake,
   onRequestMove,
@@ -2176,7 +2181,8 @@ function IntakeAssessmentPanel({
   onDismissTransition,
 }) {
   const [selectedVersion, setSelectedVersion] = useState(0);
-  useEffect(() => setSelectedVersion(0), [item?.key]);
+  const hasDraft = Boolean(intakeAssessment?.assessment);
+  useEffect(() => setSelectedVersion(hasDraft ? "draft" : 0), [item?.key, hasDraft]);
   const nextStages = {
     Intake: "Context and Research",
     "Context and Research": "Risk Assessment",
@@ -2190,9 +2196,9 @@ function IntakeAssessmentPanel({
     currentUser?.jiraIdentity?.jiraAccountId === item.assigneeAccountId,
   );
   const history = intakeAssessment?.history ?? [];
-  const published = history[selectedVersion] ?? intakeAssessment?.published;
-  const assessment = intakeAssessment?.assessment ?? published;
-  const draft = Boolean(intakeAssessment?.assessment);
+  const selectedPublished = selectedVersion === "draft" ? null : history[Number(selectedVersion)] ?? intakeAssessment?.published;
+  const assessment = selectedVersion === "draft" && hasDraft ? intakeAssessment.assessment : selectedPublished;
+  const draft = selectedVersion === "draft" && hasDraft;
   const canMove =
     canAdvance && !draft && assessment?.recommendation === "Proceed";
   return (
@@ -2212,27 +2218,36 @@ function IntakeAssessmentPanel({
               stage.
             </p>
           </div>
-          {published && !draft && (
+          {selectedPublished && !draft && (
             <div className="flex flex-col items-end gap-1">
               <span className="rounded-full bg-[#dcefe7] px-3 py-1 text-xs font-bold text-[#197443]">
                 Published by Fulcrum
               </span>
-              {published.publishedAt && (
+              {selectedPublished.publishedAt && (
                 <time
-                  dateTime={published.publishedAt}
+                  dateTime={selectedPublished.publishedAt}
                   className="text-[11px] text-slate-500"
                 >
-                  {new Date(published.publishedAt).toLocaleString()}
+                  {new Date(selectedPublished.publishedAt).toLocaleString()}
                 </time>
               )}
             </div>
           )}
         </div>
-        {history.length > 1 && (
+        {(history.length > 0 || hasDraft) && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#dcefe7] pt-4">
             <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-400">
               Assessment version
             </span>
+            {hasDraft && (
+              <button
+                type="button"
+                onClick={() => setSelectedVersion("draft")}
+                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition hover:bg-[#dcefe7] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] ${selectedVersion === "draft" ? "bg-[#087f70] text-white hover:bg-[#087f70]" : "bg-white text-[#087f70]"}`}
+              >
+                Current draft
+              </button>
+            )}
             {history.map((version, index) => (
               <button
                 key={version.commentId ?? index}
@@ -2341,8 +2356,20 @@ function IntakeAssessmentPanel({
                 )}
                 {assessment.aiContext && (
                   <p className="mt-3 text-[11px] text-slate-500">
-                    Reviewed Jira context: {assessment.aiContext.commentCount} comment(s) · {assessment.aiContext.attachmentCount} attachment(s). Attachment files are represented by their available metadata unless content extraction is supported.
+                    Reviewed Jira context: {assessment.aiContext.commentCount} comment(s) · {assessment.aiContext.attachmentCount} attachment(s) · {assessment.aiContext.extractedAttachmentCount ?? 0} PDF attachment(s) extracted with page references.
                   </p>
+                )}
+                {attachmentEvidence?.length > 0 && (
+                  <ul className="mt-3 space-y-1 text-[11px] text-slate-600">
+                    {attachmentEvidence.map((evidence) => (
+                      <li key={evidence.attachmentId} className="flex flex-wrap justify-between gap-2 rounded-md bg-white px-2 py-1.5">
+                        <span className="font-semibold">{evidence.filename}</span>
+                        <span className={evidence.status === "completed" ? "text-[#197443]" : "text-amber-700"}>
+                          {evidence.status === "completed" ? `${evidence.pages?.length ?? 0} page(s) extracted` : evidence.reason ?? evidence.status}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
                 {assessment.aiDecisionSupport.proposedComment && (
                   <div className="mt-3 rounded-lg bg-white p-3">
@@ -2566,6 +2593,7 @@ function JiraWorkItemView({
   attachmentError,
   onAddAttachment,
   intakeAssessment,
+  attachmentEvidence,
   assessmentBusy,
   assessmentError,
   transitionOffer,
@@ -2724,6 +2752,7 @@ function JiraWorkItemView({
       <PreviousAssessmentSummary
         item={item}
         intakeAssessment={intakeAssessment}
+        attachmentEvidence={attachmentEvidence}
       />
       <IntakeAssessmentPanel
         item={item}

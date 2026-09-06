@@ -8,11 +8,12 @@ const assessment = {version: "intake-v1", stage: "Intake", score: 80, maxScore: 
 const item = {key: "FCRM-80", summary: "Review payment controls", description: "Review the controls before launch.", statusName: "Intake", comments: [{author: "Maya Chen", body: "Please confirm the owner.", created: "2026-09-06T00:00:00Z"}], attachments: [{filename: "risk-brief.pdf", mimeType: "application/pdf", size: 1234, author: "Maya Chen"}]};
 
 test("intake AI context includes Jira comments, attachment inventory, and deterministic metrics", () => {
-  const input = buildIntakeDecisionSupportInput({item, assessment});
+  const input = buildIntakeDecisionSupportInput({item, assessment, attachmentEvidence: [{attachmentId: "1002", filename: "risk-brief.pdf", status: "completed", source: "jira-attachment:1002", content: "Page one text", pages: [{page: 1, text: "Page one text"}]}]});
   assert.match(input, /risk-brief\.pdf/);
   assert.match(input, /Please confirm the owner/);
   assert.match(input, /deterministicAssessment/);
   assert.match(input, /contentAvailableToModel/);
+  assert.match(input, /Page one text/);
 });
 
 test("intake decision support parses a constrained recommendation", async () => {
