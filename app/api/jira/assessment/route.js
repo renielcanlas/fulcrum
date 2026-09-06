@@ -170,7 +170,6 @@ export async function POST(request) {
         Intake: "Context and Research",
         "Context and Research": "Risk Assessment",
         "Risk Assessment": "Review",
-        Review: "Decision",
       };
       const nextStage = nextStages[stage];
       if (!nextStage)

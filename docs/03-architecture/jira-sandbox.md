@@ -22,16 +22,19 @@ The sandbox is scoped to the configured `FCRM` Jira project (`data/config/jira-i
 - Persona-code assignment: scenarios use readable codes such as `analyst-7` or `committee-1`; the server resolves those codes to verified Atlassian account IDs immediately before Jira assignment.
 - Preflight preview: the sandbox validates the complete scenario before Jira mutation and shows step-level status, warnings, and errors in the confirmation dialog.
 - Stage evaluation: a work item in any configured workflow stage can be evaluated against the checked-in deterministic and AI configuration in [`data/config/stage-evaluations.json`](../../data/config/stage-evaluations.json) and the Intake scoring configuration. The result is reviewable in the work-item view and, after explicit confirmation, published as a structured Jira comment by the FULCRUM service account.
+- Human Decision workflow: after a Review-stage evaluation, a Risk Committee persona can record the final Accepted or Rejected outcome. Rationale is required; the result is published as a structured Jira comment and the Jira item transitions to the matching terminal status.
 
 The checked-in scenarios demonstrate creating an initiative, provisioning a synthetic FCRM board, and cleaning up FCRM test work items. Scenario files are data, not executable JavaScript; unsupported actions fail at the server boundary. Cleanup remains available as an explicit scenario, but the AI builder does not generate destructive cleanup steps automatically.
 
 ## Stage evaluation increment
 
-The work-item page offers evaluation for the item’s current stage: `Intake`, `Context and Research`, `Risk Assessment`, `Review`, or `Decision`. Each stage has its own deterministic checklist, threshold, AI focus, questions, and evidence priorities. The AI reviews the live Jira context, comments, attachment inventory, and extracted PDF evidence, but it cannot change the configured scoring rules or make the decision.
+The work-item page offers evaluation for the item’s current stage: `Intake`, `Context and Research`, `Risk Assessment`, or `Review`. Each stage has its own deterministic checklist, threshold, AI focus, questions, and evidence priorities. The AI reviews the live Jira context, comments, attachment inventory, and extracted PDF evidence, but it cannot change the configured scoring rules or make the decision.
 
 The final score uses the configured 25% automatic and 75% AI weighting. The same weighting applies to the headline score, recommendation, evaluation history, Jira comment, and individual checklist metrics. Missing AI reviews are marked `uncertain` and make the AI result incomplete rather than silently treating it as complete.
 
 Evaluations are computed from the live Jira work item and published explicitly as versioned Jira comments by `fulcrum-bot`. The backend prevents duplicate publication, requires the latest published weighted recommendation to be `Proceed` before transition, and rejects transition when a new non-FULCRUM Jira comment makes the evaluation stale. A user must be the current Jira assignee to see and confirm the move action. The transition is explicit, uses the service account, and is followed by a fresh Jira read. No database persistence is required yet; Jira comments are the current history store.
+
+At the `Review` stage, only a signed-in `RISK_COMMITTEE` persona can publish a human outcome through `POST /api/jira/decision`, after a published Review evaluation recommends `Proceed`. Ciel and other AI paths cannot call this route. The decision comment records the actor, rationale, weighted evaluation reference, and outcome. The route then transitions Jira to `Accepted` or `Rejected`; those are terminal board outcomes and are not additional evaluation lanes.
 
 ## AI scenario builder
 
@@ -81,7 +84,7 @@ The `cleanup-fcrm` scenario is destructive: it searches the entire configured `F
 - The service-account flow uses the configured `JIRA_CLOUD_ID` and `JIRA_SITE_URL`; it does not perform interactive site selection.
 - The sandbox has no durable sync, webhook reconciliation, token vault, background refresh worker, rate-limit queue, or production observability.
 - Scenario execution is sequential and stops on the first failed step. It is not a general workflow engine and does not advance FULCRUM assessment state.
-- Scenario transition labels use the checked-in English workflow names, with aliases for the configured Jira workflow's localized `审查` (Review) and `决策` (Decision) statuses. Other workflow-specific labels must be added deliberately.
+- Scenario transition labels use the checked-in English workflow names, with aliases for the configured Jira workflow's localized `审查` (Review), `已接受` (Accepted), and `已拒绝` (Rejected) statuses. Other workflow-specific labels must be added deliberately.
 - The service-account credential must be granted only the Jira scopes and project permissions required by the sandbox. Production scope review must minimize permissions and separate read-only integration from any approved write-back feature.
 
 ## Traceability

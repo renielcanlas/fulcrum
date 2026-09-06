@@ -47,7 +47,7 @@ function wantsAssignment(message) {
   return looksLikeAssignmentRequest(message, (value) => Boolean(requestedPersona(value)));
 }
 
-const WORKFLOW_STATUSES = ["Intake", "Context and Research", "Risk Assessment", "Review", "Decision"];
+const WORKFLOW_STATUSES = ["Intake", "Context and Research", "Risk Assessment", "Review", "Accepted", "Rejected"];
 function wantsTransition(message) { return /\b(move|transition|change|set|advance)\b/i.test(message) && /\b(status|stage|workflow|intake|research|risk assessment|review|decision)\b/i.test(message); }
 function requestedStatus(message) { const normalized = String(message).toLowerCase(); return WORKFLOW_STATUSES.find((status) => normalized.includes(status.toLowerCase())); }
 

@@ -47,9 +47,22 @@ const jiraWorkflowStatuses = [
   "Context and Research",
   "Risk Assessment",
   "Review",
-  "Decision",
+  "Accepted",
+  "Rejected",
 ];
 const demoTourSteps = guidedDemos[0]?.steps ?? [];
+
+async function readApiJson(response, fallback) {
+  const raw = await response.text();
+  try {
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    const suffix = response.status === 404
+      ? "endpoint not found; redeploy the current application"
+      : `server returned ${response.status} ${response.statusText || "an HTML response"}`;
+    throw new Error(`${fallback}: ${suffix}`);
+  }
+}
 
 export default function DemoPage() {
   const router = useRouter();
@@ -82,6 +95,9 @@ export default function DemoPage() {
   const [assessmentBusy, setAssessmentBusy] = useState(false);
   const [assessmentError, setAssessmentError] = useState("");
   const [transitionOffer, setTransitionOffer] = useState(false);
+  const [decisionData, setDecisionData] = useState(null);
+  const [decisionBusy, setDecisionBusy] = useState(false);
+  const [decisionError, setDecisionError] = useState("");
   const [tourStep, setTourStep] = useState(null);
   const [tourRect, setTourRect] = useState(null);
 
@@ -146,7 +162,7 @@ export default function DemoPage() {
   useEffect(() => {
     fetch("/api/jira")
       .then(async (response) => {
-        const data = await response.json();
+        const data = await readApiJson(response, "jira_board_load_failed");
         if (!response.ok)
           throw new Error(data.error ?? "jira_board_load_failed");
         setBoardItems(data.items ?? []);
@@ -167,6 +183,8 @@ export default function DemoPage() {
     setActiveIssueKey(issueKey ?? "");
     if (activeView !== "work-item" || !issueKey) return;
     setIntakeAssessment(null);
+    setDecisionData(null);
+    setDecisionError("");
     setAttachmentEvidence([]);
     setAssessmentError("");
     fetch(`/api/jira?issue=${encodeURIComponent(issueKey)}`)
@@ -181,6 +199,9 @@ export default function DemoPage() {
         );
         const assessmentData = await assessmentResponse.json();
         if (assessmentResponse.ok) setIntakeAssessment(assessmentData);
+        const decisionResponse = await fetch(`/api/jira/decision?issue=${encodeURIComponent(issueKey)}`);
+        const decisionResponseData = await decisionResponse.json();
+        if (decisionResponse.ok) setDecisionData(decisionResponseData);
       })
       .catch((error) =>
         setSelectedWorkItem({
@@ -343,7 +364,7 @@ export default function DemoPage() {
       setTransitionOffer(false);
       await refreshWorkItem(activeIssueKey);
       const boardResponse = await fetch("/api/jira");
-      const boardData = await boardResponse.json();
+      const boardData = await readApiJson(boardResponse, "jira_board_refresh_failed");
       if (boardResponse.ok) setBoardItems(boardData.items ?? []);
     } catch (error) {
       setAssessmentError(error.message ?? "jira_transition_failed");
@@ -365,6 +386,25 @@ export default function DemoPage() {
     );
     const assessmentData = await assessmentResponse.json();
     if (assessmentResponse.ok) setIntakeAssessment(assessmentData);
+    const decisionResponse = await fetch(`/api/jira/decision?issue=${encodeURIComponent(issueKey)}`);
+    const decisionResponseData = await decisionResponse.json();
+    if (decisionResponse.ok) setDecisionData(decisionResponseData);
+  }
+
+  async function submitHumanDecision(decision) {
+    if (!activeIssueKey || decisionBusy) return;
+    setDecisionBusy(true);
+    setDecisionError("");
+    try {
+      const response = await fetch("/api/jira/decision", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({issueKey: activeIssueKey, decision})});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "jira_decision_failed");
+      await refreshWorkItem(activeIssueKey);
+    } catch (error) {
+      setDecisionError(error.message ?? "jira_decision_failed");
+    } finally {
+      setDecisionBusy(false);
+    }
   }
 
   async function sendCielMessage(text, applyJiraUpdate = false) {
@@ -565,9 +605,9 @@ export default function DemoPage() {
                   <button
                     type="button"
                     onClick={() => navigateTo("guided-demos")}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${activeView === "guided-demos" ? "bg-[rgba(9,167,141,0.11)] text-[rgb(25,66,71)]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
                   >
-                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-base text-slate-500">
+                    <span className={`grid h-7 w-7 place-items-center rounded-lg text-base ${activeView === "guided-demos" ? "bg-[rgb(9,167,141)] text-white" : "bg-slate-100 text-slate-500"}`}>
                       ▷
                     </span>
                     Guided demos
@@ -586,7 +626,7 @@ export default function DemoPage() {
               onAssigned={async () => {
                 await refreshWorkItem(activeIssueKey);
                 const boardResponse = await fetch("/api/jira");
-                const boardData = await boardResponse.json();
+                const boardData = await readApiJson(boardResponse, "jira_board_refresh_failed");
                 if (boardResponse.ok) setBoardItems(boardData.items ?? []);
               }}
             />
@@ -650,7 +690,7 @@ export default function DemoPage() {
                           ...boardItems.map(
                             (item) => item.statusName ?? item.status,
                           ),
-                        ]).size,
+                        ].filter((status) => status !== "Decision")).size,
                     "Jira statuses",
                   ],
                   ["FCRM", "Connected project"],
@@ -702,7 +742,7 @@ export default function DemoPage() {
                                 item.statusName ?? item.status ?? "Unknown",
                             ),
                           ]),
-                        ]
+                        ].filter((status) => status !== "Decision")
                     ).map((label, index) => (
                       <div
                         key={label}
@@ -711,7 +751,7 @@ export default function DemoPage() {
                         <div className="mb-3 flex items-start justify-between gap-2 px-1">
                           <div className="flex items-center gap-2">
                             <span
-                              className={`mt-0.5 h-2 w-2 rounded-full ${Object.values(tones)[index % Object.values(tones).length]}`}
+                              className={`mt-0.5 h-2 w-2 rounded-full ${label === "Accepted" ? "bg-[#197443]" : label === "Rejected" ? "bg-[#c2413b]" : Object.values(tones)[index % Object.values(tones).length]}`}
                             />
                             <h3 className="text-xs font-bold leading-4 text-slate-700">
                               {label}
@@ -769,6 +809,9 @@ export default function DemoPage() {
               attachmentError={attachmentError}
               onAddAttachment={addAttachment}
               intakeAssessment={intakeAssessment}
+              decisionData={decisionData}
+              decisionBusy={decisionBusy}
+              decisionError={decisionError}
               attachmentEvidence={attachmentEvidence}
               assessmentBusy={assessmentBusy}
               assessmentError={assessmentError}
@@ -778,6 +821,7 @@ export default function DemoPage() {
               onRequestMove={() => setTransitionOffer(true)}
               onMoveToNextStage={moveToNextStage}
               onDismissTransition={() => setTransitionOffer(false)}
+              onSubmitDecision={submitHumanDecision}
               onBack={() => {
                 setSelectedWorkItem(null);
                 setActiveView("board");
@@ -1852,10 +1896,10 @@ function JiraWorkItemProgress({ item, currentUser, onAssigned }) {
     "Context and Research",
     "Risk Assessment",
     "Review",
-    "Decision",
   ];
   const current = item?.statusName ?? "";
   const currentIndex = statuses.indexOf(current);
+  const terminalOutcome = current === "Accepted" || current === "Rejected" ? current : "";
   const [assignOpen, setAssignOpen] = useState(false);
   const [personas, setPersonas] = useState([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
@@ -1946,12 +1990,12 @@ function JiraWorkItemProgress({ item, currentUser, onAssigned }) {
             </a>
           )}
         </div>
-        <div className="overflow-x-auto pb-1">
-          <div className="flex min-w-[760px] items-stretch">
+        <div className="pb-1">
+          <div className="grid grid-cols-2 items-stretch sm:grid-cols-4">
             {statuses.map((status, index) => (
               <div
                 key={status}
-                className={`min-w-[150px] flex-1 border-y border-r px-2 py-2 ${currentIndex >= index && currentIndex >= 0 ? "border-[rgba(82,224,129,0.45)] bg-[rgba(82,224,129,0.06)]" : "border-slate-200 bg-white"}`}
+                className={`border-y border-r px-2 py-2 first:border-l ${currentIndex >= index && currentIndex >= 0 ? "border-[rgba(82,224,129,0.45)] bg-[rgba(82,224,129,0.06)]" : "border-slate-200 bg-white"}`}
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -1971,6 +2015,11 @@ function JiraWorkItemProgress({ item, currentUser, onAssigned }) {
             ))}
           </div>
         </div>
+        {terminalOutcome && (
+          <div className="px-4 pt-2 text-xs font-bold sm:px-5">
+            Final outcome: <span className={terminalOutcome === "Accepted" ? "text-[#197443]" : "text-[#c2413b]"}>{terminalOutcome}</span>
+          </div>
+        )}
       </section>
       <JiraAssignmentDialog
         open={assignOpen}
@@ -2152,13 +2201,13 @@ function CommentComposer({
 
 function isFulcrumComment(comment) {
   const body = String(comment?.body ?? "");
-  return body.includes("<!-- fulcrum-assessment:") || body.includes("<!-- fulcrum-evaluation:") || body.includes("FULCRUM_ASSESSMENT_JSON:") || body.includes("FULCRUM_EVALUATION_JSON:");
+  return body.includes("<!-- fulcrum-assessment:") || body.includes("<!-- fulcrum-evaluation:") || body.includes("<!-- fulcrum-decision:") || body.includes("FULCRUM_ASSESSMENT_JSON:") || body.includes("FULCRUM_EVALUATION_JSON:") || body.includes("FULCRUM_DECISION_JSON:");
 }
 
 function readableFulcrumComment(body) {
   return String(body ?? "")
-    .split(/\nFULCRUM_(?:ASSESSMENT|EVALUATION)_JSON:/i)[0]
-    .replace(/<!-- fulcrum-(?:assessment|evaluation):[^>]*-->/gi, "")
+    .split(/\nFULCRUM_(?:ASSESSMENT|EVALUATION|DECISION)_JSON:/i)[0]
+    .replace(/<!-- fulcrum-(?:assessment|evaluation|decision):[^>]*-->/gi, "")
     .trim() || "FULCRUM automated details are available in the evaluation above.";
 }
 
@@ -2247,10 +2296,9 @@ function IntakeAssessmentPanel({
     Intake: "Context and Research",
     "Context and Research": "Risk Assessment",
     "Risk Assessment": "Review",
-    Review: "Decision",
   };
   const stage = item?.statusName;
-  if (!stage || !nextStages[stage]) return null;
+  if (!stage || !["Intake", "Context and Research", "Risk Assessment", "Review"].includes(stage)) return null;
   const canAdvance = Boolean(
     item.assigneeAccountId &&
     currentUser?.jiraIdentity?.jiraAccountId === item.assigneeAccountId,
@@ -2261,7 +2309,7 @@ function IntakeAssessmentPanel({
   const draft = selectedVersion === "draft" && hasDraft;
   const weightedDecision = assessment?.weightedDecision ?? {score: assessment?.score ?? 0, maxScore: assessment?.maxScore ?? 0, recommendation: assessment?.recommendation ?? "Hold for remediation"};
   const canMove =
-    canAdvance && !draft && weightedDecision.recommendation === "Proceed";
+    Boolean(nextStages[stage]) && canAdvance && !draft && weightedDecision.recommendation === "Proceed";
   return (
     <>
       <section
@@ -2555,7 +2603,6 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
     "Context and Research",
     "Risk Assessment",
     "Review",
-    "Decision",
   ];
   const history = [...latestByStage.values()].sort(
     (left, right) =>
@@ -2630,6 +2677,47 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
   );
 }
 
+function HumanDecisionPanel({item, currentUser, intakeAssessment, decisionData, decisionBusy, decisionError, onSubmitDecision}) {
+  const [outcome, setOutcome] = useState("ACCEPTED");
+  const [rationale, setRationale] = useState("");
+  if (item?.statusName !== "Review") return null;
+  const latestDecision = decisionData?.decisions?.[0];
+  const publishedEvaluation = intakeAssessment?.published;
+  const ready = publishedEvaluation && (publishedEvaluation.weightedDecision?.recommendation ?? publishedEvaluation.recommendation) === "Proceed";
+  const isCommittee = currentUser?.role === "RISK_COMMITTEE";
+  function submit(event) { event.preventDefault(); onSubmitDecision({outcome, rationale}); }
+  return (
+    <section className="mt-8 rounded-xl border border-[#ead9b5] bg-[#fffaf0] p-4" aria-label="Human decision panel">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Human decision</p>
+          <h3 className="mt-1 text-lg font-bold text-[#102f33]">Final committee decision</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-600">AI and automated checks provide decision support; an authorized committee member accepts or rejects the initiative.</p>
+        </div>
+        {latestDecision && <span className="rounded-full bg-[#dcefe7] px-3 py-1 text-xs font-bold text-[#197443]">Decision recorded</span>}
+      </div>
+      {latestDecision ? (
+        <div className="mt-4 rounded-lg border border-[#ead9b5] bg-white p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2"><strong className={`text-sm ${latestDecision.outcome === "ACCEPTED" ? "text-[#197443]" : "text-[#c2413b]"}`}>{latestDecision.label}</strong><span className="text-xs text-slate-500">{latestDecision.actor?.name} · {latestDecision.publishedAt ? new Date(latestDecision.publishedAt).toLocaleString() : ""}</span></div>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{latestDecision.rationale}</p>
+          {latestDecision.conditions?.length > 0 && <ul className="mt-3 space-y-1 text-xs text-slate-600">{latestDecision.conditions.map((condition, index) => <li key={`${condition.description}-${index}`}>• {condition.description} · {condition.owner} · due {condition.dueDate} · {condition.status}</li>)}</ul>}
+        </div>
+      ) : !isCommittee ? (
+        <p className="mt-4 rounded-lg bg-white p-3 text-sm text-slate-600">Only a Risk Committee member can record the final decision.</p>
+      ) : !ready ? (
+        <p className="mt-4 rounded-lg bg-white p-3 text-sm text-slate-600">Publish a Review-stage evaluation with a weighted Proceed recommendation before recording the final outcome.</p>
+      ) : (
+        <form className="mt-4 space-y-4" onSubmit={submit}>
+          <label className="block text-xs font-bold uppercase tracking-wide text-slate-500">Outcome<select value={outcome} onChange={(event) => setOutcome(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"><option value="ACCEPTED">Accept initiative</option><option value="REJECTED">Reject initiative</option></select></label>
+          <label className="block text-xs font-bold uppercase tracking-wide text-slate-500">Rationale<textarea value={rationale} onChange={(event) => setRationale(event.target.value)} className="mt-2 min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]" placeholder="Explain the human decision and material considerations." /></label>
+          {decisionError && <p className="rounded-lg bg-red-50 p-3 text-xs font-semibold text-red-700" role="alert">{decisionError}</p>}
+          <div className="flex justify-end"><button type="submit" disabled={decisionBusy || rationale.trim().length < 10} className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] disabled:cursor-not-allowed disabled:opacity-40">{decisionBusy ? "Recording decision…" : "Record human decision"}</button></div>
+        </form>
+      )}
+    </section>
+  );
+}
+
 function JiraWorkItemView({
   item,
   currentUser,
@@ -2653,6 +2741,10 @@ function JiraWorkItemView({
   onMoveToNextStage,
   onDismissTransition,
   onBack,
+  decisionData,
+  decisionBusy,
+  decisionError,
+  onSubmitDecision,
 }) {
   const [openAttachment, setOpenAttachment] = useState(null);
   if (!item)
@@ -2807,6 +2899,15 @@ function JiraWorkItemView({
         onRequestMove={onRequestMove}
         onMoveToNextStage={onMoveToNextStage}
         onDismissTransition={onDismissTransition}
+      />
+      <HumanDecisionPanel
+        item={item}
+        currentUser={currentUser}
+        intakeAssessment={intakeAssessment}
+        decisionData={decisionData}
+        decisionBusy={decisionBusy}
+        decisionError={decisionError}
+        onSubmitDecision={onSubmitDecision}
       />
       {visibleComments.length > 0 && (
         <div className="mt-8 border-t border-slate-100 pt-6">

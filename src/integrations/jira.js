@@ -2,10 +2,12 @@ import {JIRA_PROJECT_KEY} from "./jira-config.js";
 const DEFAULT_FIELDS = ["summary", "status", "assignee", "updated", "duedate", "project", "issuetype"];
 const STATUS_ALIASES = {
   review: ["审查"],
-  decision: ["决策"]
+  accepted: ["已接受", "接受"],
+  rejected: ["已拒绝", "拒绝"]
 };
 const DISPLAY_STATUS_NAMES = new Map([
   ["审查", "Review"], ["决策", "Decision"],
+  ["已接受", "Accepted"], ["接受", "Accepted"], ["已拒绝", "Rejected"], ["拒绝", "Rejected"],
   ["上下文和研究", "Context and Research"], ["背景和研究", "Context and Research"],
   ["风险评估", "Risk Assessment"], ["接收", "Intake"], ["受理", "Intake"]
 ]);

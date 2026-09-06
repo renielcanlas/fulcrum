@@ -4,7 +4,7 @@ export const SCENARIO_ACTIONS = new Set(["create", "update", "transition", "assi
 const ACTION_ALIASES = {create_issue: "create", add_comment: "comment", move: "transition", delete_all_issues: "delete_all"};
 const CREATE_FIELDS = new Set(["summary", "description", "issueType", "labels"]);
 const UPDATE_FIELDS = new Set(["summary", "description", "priority", "labels", "assigneePersona", "duedate"]);
-const WORKFLOW_STATUSES = new Set(["Intake", "Context and Research", "Risk Assessment", "Review", "Decision"]);
+const WORKFLOW_STATUSES = new Set(["Intake", "Context and Research", "Risk Assessment", "Review", "Accepted", "Rejected"]);
 const MAX_STEPS = 50;
 
 export function validateJiraScenario(scenario) {

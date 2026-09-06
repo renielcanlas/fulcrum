@@ -52,6 +52,10 @@ Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assi
 
 If a new non-FULCRUM Jira comment is added after publication, the evaluation becomes stale and should be reassessed. Previous published evaluations remain available in stage history.
 
+## Record the final committee outcome
+
+When the item is in `Review`, a signed-in Risk Committee persona can record the final human outcome after a published weighted `Proceed` evaluation. Choose **Accept initiative** or **Reject initiative** and provide a rationale. FULCRUM writes the outcome to Jira through the service account, then transitions the item to `Accepted` or `Rejected`. Ciel and AI-generated recommendations cannot publish this outcome.
+
 ## Persona assignment format
 
 Use stable persona codes instead of names or Atlassian IDs:
@@ -82,7 +86,7 @@ The sandbox supports `create`, `update`, `transition`, `assign`, `comment`, and 
 
 Create steps should use `summary`, `description`, `issueType: "Task"`, and `labels`. Update steps should use supported Jira fields such as `summary`, `description`, `priority`, `labels`, `assigneePersona`, or `duedate`. Do not invent fields such as `ResearchOwner`, `ResearchPriority`, or `Notes`; Jira custom field IDs and allowed values must be deliberately configured before support is added.
 
-Transition targets are intents, not hardcoded Jira transition IDs. The server resolves the available transition for the issue and matches the English FCRM workflow names: `Intake`, `Context and Research`, `Risk Assessment`, `Review`, and `Decision`.
+Transition targets are intents, not hardcoded Jira transition IDs. The server resolves the available transition for the issue and matches the English FCRM workflow names: `Intake`, `Context and Research`, `Risk Assessment`, `Review`, `Accepted`, and `Rejected`.
 
 ## Validation indicators
 

@@ -138,7 +138,7 @@ The repository currently contains the architecture foundation and the first exec
 - Jira experimentation sandbox at `/sandbox`
 - live Jira OAuth connection and status flow when Atlassian environment variables are configured
 - fixed-project Jira search and sequential JSON scenario automation for synthetic work items
-- multi-stage FULCRUM evaluations for Intake, Context and Research, Risk Assessment, Review, and Decision, with configurable checks, stage-specific AI guidance, weighted 25/75 scoring, Jira publication, stale-result protection, and explicit next-stage transition confirmation
+- multi-stage FULCRUM evaluations for Intake, Context and Research, Risk Assessment, and Review, with configurable checks, stage-specific AI guidance, weighted 25/75 scoring, Jira publication, stale-result protection, and explicit next-stage transition confirmation; Review leads to a human committee outcome of Accepted or Rejected
 - active assessment context (`FA-2026-00124`)
 - typed backend tools over a demo governed repository
 - FCRM Analyst and Product Owner authorization checks
