@@ -1198,16 +1198,24 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
               <span className="flex min-h-4 items-center text-xs font-bold uppercase tracking-wide text-slate-500">
                 Priority
               </span>
-              <select
-                value={form.priority}
-                onChange={(event) => update("priority", event.target.value)}
-                className="mt-2 h-[47px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
-              >
-                <option>Highest</option>
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
-              </select>
+              <span className="relative mt-2 block">
+                <select
+                  value={form.priority}
+                  onChange={(event) => update("priority", event.target.value)}
+                  className="h-[47px] w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-3 pr-10 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+                >
+                  <option>Highest</option>
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+                <span
+                  className="pointer-events-none absolute inset-y-0 right-3 grid w-4 place-items-center text-sm text-slate-400"
+                  aria-hidden="true"
+                >
+                  ⌄
+                </span>
+              </span>
             </label>
             <label>
               <span className="flex min-h-4 items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -1223,20 +1231,26 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
                   Assign to me
                 </button>
               </span>
-              <input
-                list="initiative-personas"
-                value={form.owner}
-                onChange={(event) => update("owner", event.target.value)}
-                className="mt-2 h-[47px] w-full rounded-lg border border-slate-300 px-3 py-3 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
-                placeholder="Start typing a persona or team"
-              />
-              <datalist id="initiative-personas">
-                {personas.map((persona) => (
-                  <option key={persona.id} value={persona.displayName}>
-                    {persona.role}
-                  </option>
-                ))}
-              </datalist>
+              <span className="relative mt-2 block">
+                <select
+                  value={form.owner}
+                  onChange={(event) => update("owner", event.target.value)}
+                  className="h-[47px] w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-3 pr-10 text-sm outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]"
+                >
+                  <option value="">Select an owner</option>
+                  {personas.map((persona) => (
+                    <option key={persona.id} value={persona.displayName}>
+                      {persona.displayName} · {persona.role}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  className="pointer-events-none absolute inset-y-0 right-3 grid w-4 place-items-center text-sm text-slate-400"
+                  aria-hidden="true"
+                >
+                  ⌄
+                </span>
+              </span>
             </label>
             {["problem", "outcome", "scope", "users", "risk", "success"].map(
               (field) => (

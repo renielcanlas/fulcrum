@@ -126,6 +126,8 @@ Jira webhooks trigger reconciliation; they do not directly change FULCRUM risk s
 
 See the [Jira sandbox guide](docs/03-architecture/jira-sandbox.md) for the available experiments, route boundary, synthetic-data rules, and current limitations. Ciel can read linked live `FCRM-*` Jira work items and, after explicit confirmation, improve descriptions, reassign to verified synthetic personas, or request a workflow status transition through the server-side service-account adapter.
 
+See [Ciel action planning](docs/05-ai/ciel-action-planning.md) for how Azure-generated action plans are validated and converted into verified Jira operations without giving the model direct mutation authority.
+
 ## Current demo
 
 The repository currently contains the architecture foundation and the first executable Copilot increment:
@@ -146,6 +148,7 @@ The repository currently contains the architecture foundation and the first exec
 - Provider-neutral AI Gateway with safe no-key demo mode; Azure AI Foundry is the primary platform direction
 - Azure AI Document Intelligence planned for document extraction and evidence provenance
 - AI interaction audit records
+- Ciel action planning for supported Jira mutations: Azure returns a structured intent and response plan once, while Fulcrum validates, executes, verifies, and selects the final response deterministically
 - tests proving tool execution, access isolation, and decision non-mutation
 
 The broader assessment workflow, persistent datastore, durable Jira connection/sync services, and production knowledge corpus are staged for subsequent increments.
