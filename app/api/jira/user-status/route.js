@@ -1,4 +1,4 @@
-import {runtime} from "../../../../src/server/runtime.js";
+import {runtime, findDemoUser} from "../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../src/auth/session.js";
 
 const cookieName = "fulcrum_session";
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export function GET(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
-  const user = runtime.sessions.get(sessionId);
+  const user = runtime.sessions.get(sessionId) ?? (sessionId?.startsWith("demo:") ? findDemoUser(sessionId.slice("demo:".length)) : null);
   if (!user) return Response.json({authenticated: false, connected: false}, {status: 401});
   const connection = runtime.jiraConnections.get(sessionId);
   return Response.json({authenticated: true, connected: Boolean(connection), mode: connection?.mode ?? "oauth", siteName: connection?.siteName, siteUrl: connection?.siteUrl});

@@ -166,6 +166,16 @@ export async function commentJiraWorkItem({issueKey, body, cloudId, accessToken,
   return {issueKey, commentId: comment.id, commented: true};
 }
 
+export async function uploadJiraAttachment({issueKey, file, cloudId, accessToken, fetchImpl = fetch}) {
+  if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !file?.name || !cloudId || !accessToken) throw new Error("invalid_jira_attachment_upload");
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}/attachments`, {method: "POST", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`, "x-atlassian-token": "no-check"}, body: form});
+  if (!response.ok) throw new Error(`jira_attachment_upload_failed_${response.status}`);
+  const attachments = await response.json();
+  return {issueKey, attachments: Array.isArray(attachments) ? attachments.map((attachment) => ({id: attachment.id, filename: attachment.filename, mimeType: attachment.mimeType ?? "application/octet-stream", size: attachment.size ?? null, created: attachment.created ?? null, author: attachment.author?.displayName ?? "Current user"})) : []};
+}
+
 export async function deleteAllJiraWorkItems({projectKey = JIRA_PROJECT_KEY, cloudId, accessToken, fetchImpl = fetch}) {
   if (projectKey !== JIRA_PROJECT_KEY) throw new Error("invalid_cleanup_project");
   if (!cloudId || !accessToken) throw new Error("jira_connection_required");

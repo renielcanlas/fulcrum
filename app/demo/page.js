@@ -74,6 +74,8 @@ export default function DemoPage() {
   const [commentText, setCommentText] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [commentError, setCommentError] = useState("");
+  const [attachmentBusy, setAttachmentBusy] = useState(false);
+  const [attachmentError, setAttachmentError] = useState("");
   const [pendingCielAction, setPendingCielAction] = useState(null);
   const [intakeAssessment, setIntakeAssessment] = useState(null);
   const [assessmentBusy, setAssessmentBusy] = useState(false);
@@ -225,6 +227,36 @@ export default function DemoPage() {
       setCommentError(error.message ?? "jira_comment_failed");
     } finally {
       setCommentBusy(false);
+    }
+  }
+
+  async function addAttachment(file) {
+    if (!selectedWorkItem?.key || !file || attachmentBusy) return;
+    setAttachmentBusy(true);
+    setAttachmentError("");
+    try {
+      const form = new FormData();
+      form.append("issueKey", selectedWorkItem.key);
+      form.append("file", file);
+      const response = await fetch("/api/jira/attachment/upload", {
+        method: "POST",
+        credentials: "same-origin",
+        body: form,
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(
+          data.error === "authentication_required"
+            ? "Your Fulcrum session expired. Return to the landing page and enter the demo again."
+            : data.error === "jira_user_authorization_required"
+              ? "Authorize your Jira account before uploading an attachment."
+              : data.error ?? "jira_attachment_upload_failed",
+        );
+      await refreshWorkItem(selectedWorkItem.key);
+    } catch (error) {
+      setAttachmentError(error.message ?? "jira_attachment_upload_failed");
+    } finally {
+      setAttachmentBusy(false);
     }
   }
 
@@ -728,6 +760,9 @@ export default function DemoPage() {
               commentBusy={commentBusy}
               commentError={commentError}
               onAddComment={addComment}
+              attachmentBusy={attachmentBusy}
+              attachmentError={attachmentError}
+              onAddAttachment={addAttachment}
               intakeAssessment={intakeAssessment}
               assessmentBusy={assessmentBusy}
               assessmentError={assessmentError}
@@ -2445,6 +2480,9 @@ function JiraWorkItemView({
   commentBusy,
   commentError,
   onAddComment,
+  attachmentBusy,
+  attachmentError,
+  onAddAttachment,
   intakeAssessment,
   assessmentBusy,
   assessmentError,
@@ -2529,12 +2567,34 @@ function JiraWorkItemView({
         <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
           {item.description || "No description provided."}
         </p>
-        {item.attachments?.length > 0 && (
-          <div className="mt-6 border-t border-slate-100 pt-5">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">
-              Attachments
-            </h3>
-            <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50">
+        <div className="mt-6 border-t border-slate-100 pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Attachments</h3>
+            {userJiraConnected ? (
+              <label className="cursor-pointer rounded-lg border border-[#087f70] px-3 py-2 text-xs font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus-within:ring-2 focus-within:ring-[#b9e4d1]">
+                {attachmentBusy ? "Uploading…" : "Add attachment"}
+                <input
+                  type="file"
+                  className="sr-only"
+                  disabled={attachmentBusy}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) onAddAttachment(file);
+                  }}
+                />
+              </label>
+            ) : (
+              <a
+                href={`/api/jira/user-connect?returnTo=${encodeURIComponent(`/demo?view=work-item&issue=${item.key}`)}`}
+                className="cursor-pointer rounded-lg border border-[#087f70] px-3 py-2 text-xs font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
+              >
+                Connect Jira to attach
+              </a>
+            )}
+          </div>
+          {item.attachments?.length > 0 ? (
+          <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50">
               {item.attachments.map((attachment) => (
                 <li key={attachment.id} className="flex min-w-0 items-center gap-3 px-4 py-3">
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-sm text-[#087f70]" aria-hidden="true">↗</span>
@@ -2563,8 +2623,9 @@ function JiraWorkItemView({
                 </li>
               ))}
             </ul>
-          </div>
-        )}
+          ) : <p className="mt-3 text-sm text-slate-500">No attachments yet.</p>}
+          {attachmentError && <p className="mt-3 text-xs font-semibold text-red-700" role="alert">{attachmentError}</p>}
+        </div>
         {item.labels?.length > 0 && (
           <div className="mt-5 flex flex-wrap gap-2">
             {item.labels.map((label) => (

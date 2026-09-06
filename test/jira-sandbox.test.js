@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {assignJiraWorkItem, buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraAttachment, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
+import {assignJiraWorkItem, buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraAttachment, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem, uploadJiraAttachment} from "../src/integrations/jira.js";
 import {assignJiraPersona} from "../src/integrations/jira-assignment.js";
 import {assessIntake, formatIntakeAssessmentComment, parsePublishedIntakeAssessment, parsePublishedIntakeAssessments} from "../src/integrations/intake-assessment.js";
 
@@ -115,6 +115,18 @@ test("Jira attachment download uses the authenticated content endpoint", async (
   assert.equal(await response.text(), "file-content");
   assert.match(request.url, /attachment\/content\/1001$/);
   assert.equal(request.options.headers.authorization, "Bearer token-1");
+});
+
+test("Jira attachment upload uses the current user's authenticated endpoint", async () => {
+  let request;
+  const result = await uploadJiraAttachment({issueKey: "FCRM-80", file: new File(["pdf"], "brief.pdf", {type: "application/pdf"}), cloudId: "cloud-1", accessToken: "user-token", fetchImpl: async (url, options) => {
+    request = {url: url.toString(), options};
+    return new Response(JSON.stringify([{id: "1002", filename: "brief.pdf", mimeType: "application/pdf", size: 3}]), {status: 200});
+  }});
+  assert.equal(result.attachments[0].filename, "brief.pdf");
+  assert.match(request.url, /FCRM-80\/attachments$/);
+  assert.equal(request.options.headers.authorization, "Bearer user-token");
+  assert.equal(request.options.headers["x-atlassian-token"], "no-check");
 });
 
 test("Jira sandbox creates a basic Task with bearer auth", async () => {

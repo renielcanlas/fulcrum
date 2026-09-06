@@ -1,4 +1,4 @@
-import {runtime} from "../../../../src/server/runtime.js";
+import {runtime, findDemoUser} from "../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../src/auth/session.js";
 import {exchangeCode, getAccessibleResources} from "../../../../src/integrations/jira-oauth.js";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
-  const user = runtime.sessions.get(sessionId);
+  const user = runtime.sessions.get(sessionId) ?? (sessionId?.startsWith("demo:") ? findDemoUser(sessionId.slice("demo:".length)) : null);
   const params = new URL(request.url).searchParams;
   const destination = defaultDestination(request);
   if (!user) { destination.searchParams.set("jira", "authentication_required"); return Response.redirect(destination); }

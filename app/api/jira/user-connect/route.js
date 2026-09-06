@@ -1,4 +1,4 @@
-import {runtime} from "../../../../src/server/runtime.js";
+import {runtime, findDemoUser} from "../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../src/auth/session.js";
 import {buildAuthorizationUrl, USER_SCOPES} from "../../../../src/integrations/jira-oauth.js";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export function GET(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
-  const user = runtime.sessions.get(sessionId);
+  const user = runtime.sessions.get(sessionId) ?? (sessionId?.startsWith("demo:") ? findDemoUser(sessionId.slice("demo:".length)) : null);
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   if (!process.env.ATLASSIAN_USER_CLIENT_ID || !process.env.ATLASSIAN_USER_CLIENT_SECRET) return Response.json({error: "jira_user_oauth_3lo_credentials_missing"}, {status: 503});
   const params = new URL(request.url).searchParams;
