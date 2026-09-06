@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {assignJiraWorkItem, buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
+import {assignJiraWorkItem, buildJql, commentJiraWorkItem, createJiraWorkItem, deleteAllJiraWorkItems, fetchJiraWorkItems, getJiraAttachment, getJiraProjectPermissions, getJiraWorkItem, normalizeIssue, transitionJiraWorkItem, updateJiraWorkItem} from "../src/integrations/jira.js";
 import {assignJiraPersona} from "../src/integrations/jira-assignment.js";
 import {assessIntake, formatIntakeAssessmentComment, parsePublishedIntakeAssessment, parsePublishedIntakeAssessments} from "../src/integrations/intake-assessment.js";
 
@@ -96,13 +96,25 @@ test("Ciel can retrieve a linked Jira story with service-account auth", async ()
   let request;
   const item = await getJiraWorkItem({issueKey: "FCRM-80", cloudId: "cloud-1", accessToken: "token-1", siteUrl: "https://example.atlassian.net", fetchImpl: async (url, options) => {
     request = {url: url.toString(), options};
-    return new Response(JSON.stringify({id: "80", key: "FCRM-80", fields: {summary: "Story", description: {type: "doc", content: [{type: "paragraph", content: [{type: "text", text: "Details"}]}]}, status: {name: "Intake"}, labels: ["synthetic"], project: {key: "FCRM"}, issuetype: {name: "Task"}}}), {status: 200});
+    return new Response(JSON.stringify({id: "80", key: "FCRM-80", fields: {summary: "Story", description: {type: "doc", content: [{type: "paragraph", content: [{type: "text", text: "Details"}]}]}, status: {name: "Intake"}, labels: ["synthetic"], project: {key: "FCRM"}, issuetype: {name: "Task"}, attachment: [{id: "1001", filename: "brief.pdf", mimeType: "application/pdf", size: 2048, author: {displayName: "Daniel Reyes"}}]}}), {status: 200});
   }});
   assert.equal(item.description, "Details");
   assert.equal(item.statusName, "Intake");
   assert.equal(item.url, "https://example.atlassian.net/browse/FCRM-80");
+  assert.deepEqual(item.attachments, [{id: "1001", filename: "brief.pdf", mimeType: "application/pdf", size: 2048, created: null, author: "Daniel Reyes"}]);
   assert.equal(request.options.headers.authorization, "Bearer token-1");
   assert.match(request.url, /FCRM-80\?fields=/);
+});
+
+test("Jira attachment download uses the authenticated content endpoint", async () => {
+  let request;
+  const response = await getJiraAttachment({issueKey: "FCRM-80", attachmentId: "1001", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options) => {
+    request = {url: url.toString(), options};
+    return new Response("file-content", {status: 200, headers: {"content-type": "application/pdf"}});
+  }});
+  assert.equal(await response.text(), "file-content");
+  assert.match(request.url, /attachment\/content\/1001$/);
+  assert.equal(request.options.headers.authorization, "Bearer token-1");
 });
 
 test("Jira sandbox creates a basic Task with bearer auth", async () => {

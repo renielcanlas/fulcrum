@@ -2456,6 +2456,7 @@ function JiraWorkItemView({
   onDismissTransition,
   onBack,
 }) {
+  const [openAttachment, setOpenAttachment] = useState(null);
   if (!item)
     return <p className="text-sm text-slate-500">Loading Jira work item…</p>;
   if (item.error)
@@ -2528,6 +2529,42 @@ function JiraWorkItemView({
         <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
           {item.description || "No description provided."}
         </p>
+        {item.attachments?.length > 0 && (
+          <div className="mt-6 border-t border-slate-100 pt-5">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">
+              Attachments
+            </h3>
+            <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50">
+              {item.attachments.map((attachment) => (
+                <li key={attachment.id} className="flex min-w-0 items-center gap-3 px-4 py-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-sm text-[#087f70]" aria-hidden="true">↗</span>
+                  <div className="min-w-0 flex-1">
+                    {(/\.pdf$/i.test(attachment.filename ?? "") || attachment.mimeType === "application/pdf") ? (
+                      <button
+                        type="button"
+                        onClick={() => setOpenAttachment(attachment)}
+                        className="block max-w-full cursor-pointer break-words text-left text-sm font-semibold text-[#087f70] underline-offset-2 transition hover:text-[#102f33] hover:underline focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
+                      >
+                        {attachment.filename}
+                      </button>
+                    ) : (
+                      <a
+                        href={`/api/jira/attachment?issue=${encodeURIComponent(item.key)}&attachment=${encodeURIComponent(attachment.id)}&filename=${encodeURIComponent(attachment.filename)}`}
+                        download={attachment.filename}
+                        className="block break-words text-sm font-semibold text-[#087f70] underline-offset-2 transition hover:text-[#102f33] hover:underline focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
+                      >
+                        {attachment.filename}
+                      </a>
+                    )}
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      {attachment.mimeType}{attachment.size ? ` · ${(attachment.size / 1024).toFixed(1)} KB` : ""}{attachment.author && attachment.author !== "Unknown" ? ` · ${attachment.author}` : ""}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {item.labels?.length > 0 && (
           <div className="mt-5 flex flex-wrap gap-2">
             {item.labels.map((label) => (
@@ -2593,6 +2630,41 @@ function JiraWorkItemView({
         commentError={commentError}
         onAddComment={onAddComment}
       />
+      {openAttachment && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#102f33]/70 p-4 sm:p-8"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpenAttachment(null);
+          }}
+        >
+          <section
+            className="flex h-[min(88vh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="attachment-dialog-title"
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#087f70]">Jira attachment</p>
+                <h2 id="attachment-dialog-title" className="truncate text-sm font-bold text-[#102f33]">{openAttachment.filename}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenAttachment(null)}
+                className="shrink-0 cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
+              >
+                Close
+              </button>
+            </div>
+            <iframe
+              title={openAttachment.filename}
+              src={`/api/jira/attachment?issue=${encodeURIComponent(item.key)}&attachment=${encodeURIComponent(openAttachment.id)}&filename=${encodeURIComponent(openAttachment.filename)}`}
+              className="min-h-0 flex-1 bg-slate-100"
+            />
+          </section>
+        </div>
+      )}
     </section>
   );
 }
