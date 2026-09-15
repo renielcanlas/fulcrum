@@ -42,6 +42,18 @@ const tones = {
 };
 const cielStorageKey = "fulcrum-ciel-chat";
 const cielResponseStorageKey = "fulcrum-ciel-response-id";
+const goldenInitiativeDraft = {
+  summary: "Launch U.S.–Philippines Instant Remittance",
+  problem: "Customers need a faster, lower-friction way to send money from the United States to recipients in the Philippines.",
+  outcome: "Launch a bounded digital remittance service with traceable FCRM controls and an explicit committee decision path.",
+  scope: "U.S. senders, Philippines recipients, mobile and web channels, local payment partner, and an initial transaction limit of $1,000.",
+  users: "Existing U.S. customers, Philippines recipients, operations teams, FCRM analysts, and the local payment partner.",
+  risk: "Cross-border instant payments, transaction velocity, sanctions and screening dependency, fraud, and third-party partner risk.",
+  success: "Decision-ready assessment with evidence lineage, effective controls, assigned owners, and monitored launch conditions.",
+  labels: "payments, remittance, geographic-expansion, golden-demo",
+  priority: "High",
+  owner: "Maya Chen",
+};
 const jiraWorkflowStatuses = [
   "Intake",
   "Context and Research",
@@ -50,7 +62,6 @@ const jiraWorkflowStatuses = [
   "Accepted",
   "Rejected",
 ];
-const demoTourSteps = guidedDemos[0]?.steps ?? [];
 
 async function readApiJson(response, fallback) {
   const raw = await response.text();
@@ -67,6 +78,7 @@ async function readApiJson(response, fallback) {
 export default function DemoPage() {
   const router = useRouter();
   const [signedIn, setSignedIn] = useState(null);
+  const [sessionError, setSessionError] = useState("");
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
     "Hi, I’m Ciel. I can help you understand this initiative and its decision trail.",
@@ -98,14 +110,24 @@ export default function DemoPage() {
   const [decisionData, setDecisionData] = useState(null);
   const [decisionBusy, setDecisionBusy] = useState(false);
   const [decisionError, setDecisionError] = useState("");
-  const [tourStep, setTourStep] = useState(null);
+  const [tour, setTour] = useState(null);
   const [tourRect, setTourRect] = useState(null);
+  const activeTour = tour ? guidedDemos.find((demo) => demo.id === tour.id) : null;
+  const tourStep = activeTour?.steps?.[tour?.step ?? 0] ?? null;
 
   useEffect(() => {
-    if (tourStep === null) return;
+    if (!tourStep) {
+      setTourRect(null);
+      return;
+    }
+    if (tourStep.view && activeView !== tourStep.view) {
+      setActiveView(tourStep.view);
+      router.replace(tourStep.view === "board" ? "/demo" : `/demo?view=${tourStep.view}`);
+      return;
+    }
     const updateTourTarget = () => {
       const target = document.querySelector(
-        `[data-tour="${demoTourSteps[tourStep].target}"]`,
+        `[data-tour="${tourStep.target}"]`,
       );
       setTourRect(target?.getBoundingClientRect() ?? null);
     };
@@ -116,7 +138,22 @@ export default function DemoPage() {
       window.removeEventListener("resize", updateTourTarget);
       window.removeEventListener("scroll", updateTourTarget, true);
     };
-  }, [tourStep]);
+  }, [activeView, router, tourStep]);
+
+  function startTour(demo) {
+    if (!demo?.steps?.length) return;
+    setTour({ id: demo.id, step: 0 });
+  }
+
+  function advanceTour() {
+    setTour((current) => {
+      if (!current) return null;
+      const demo = guidedDemos.find((item) => item.id === current.id);
+      return current.step + 1 >= (demo?.steps?.length ?? 0)
+        ? null
+        : { ...current, step: current.step + 1 };
+    });
+  }
 
   function navigateTo(view) {
     if (view === "sandbox") {
@@ -129,12 +166,43 @@ export default function DemoPage() {
   }
 
   useEffect(() => {
-    fetch("/api/session")
-      .then((response) => response.json())
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 10000);
+    fetch("/api/session", {
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = await readApiJson(response, "session_load_failed");
+        if (!response.ok) throw new Error(data.error ?? "session_load_failed");
+        return data;
+      })
       .then((data) => {
         if (data.user) setSignedIn(data.user);
         else router.replace("/");
-      });
+      })
+      .catch((error) => {
+        // React Strict Mode intentionally runs effects once, cleans them up,
+        // then runs them again in development. That cleanup abort is expected
+        // and must not replace a successful second session request with an
+        // error screen.
+        if (error.name === "AbortError" && !timedOut) return;
+        setSessionError(
+          error.name === "AbortError"
+            ? "session_load_timeout"
+            : error.message ?? "session_load_failed",
+        );
+      })
+      .finally(() => window.clearTimeout(timeout));
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [router]);
 
   useEffect(() => {
@@ -524,6 +592,44 @@ export default function DemoPage() {
     await loadTrace();
   }
 
+  if (sessionError)
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f5f7f7] p-5 text-[rgb(25,66,71)]">
+        <section className="w-full max-w-lg rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-red-700">
+            Demo session could not load
+          </p>
+          <h1 className="mt-2 text-xl font-bold text-slate-950">
+            FULCRUM is ready, but the login session did not return.
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Refresh the page and sign in again. If this persists, check that the
+            deployed app exposes <code>/api/session</code> and that cookies are
+            enabled for this site.
+          </p>
+          <p className="mt-3 rounded-lg bg-red-50 p-3 font-mono text-xs text-red-800">
+            {sessionError}
+          </p>
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600"
+            >
+              Return to landing page
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+
   if (!signedIn)
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f5f7f7] text-sm text-slate-500">
@@ -653,7 +759,7 @@ export default function DemoPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTourStep(0)}
+                onClick={() => startTour(guidedDemos.find((demo) => demo.id === "welcome-tour"))}
                 className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
               >
                 Welcome tour
@@ -664,11 +770,7 @@ export default function DemoPage() {
             <GuidedDemosScreen
               demos={guidedDemos}
               onStart={(demo) => {
-                if (demo.id === "welcome-tour") {
-                  setActiveView("board");
-                  setTourStep(0);
-                  router.replace("/demo");
-                }
+                startTour(demo);
               }}
             />
           ) : activeView === "board" ? (
@@ -838,19 +940,15 @@ export default function DemoPage() {
           )}
         </section>
       </div>
-      {tourStep !== null && (
+      {tourStep && (
         <GuidedDemoTour
-          step={demoTourSteps[tourStep]}
-          index={tourStep}
-          total={demoTourSteps.length}
+          step={tourStep}
+          index={tour?.step ?? 0}
+          total={activeTour?.steps?.length ?? 0}
           rect={tourRect}
-          onBack={() => setTourStep((current) => Math.max(0, current - 1))}
-          onNext={() =>
-            setTourStep((current) =>
-              current + 1 >= demoTourSteps.length ? null : current + 1,
-            )
-          }
-          onClose={() => setTourStep(null)}
+          onBack={() => setTour((current) => current && ({ ...current, step: Math.max(0, current.step - 1) }))}
+          onNext={advanceTour}
+          onClose={() => setTour(null)}
         />
       )}
       <button
@@ -1199,6 +1297,12 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
     setPrepared(false);
     setForm((current) => ({ ...current, [field]: value }));
   }
+  function loadGoldenInitiative() {
+    setForm(goldenInitiativeDraft);
+    setPrepared(false);
+    setCreatedItem(null);
+    setCreateError("");
+  }
   const description = [
     form.owner && `Accountable owner\n${form.owner}`,
     form.problem && `Problem / opportunity\n${form.problem}`,
@@ -1241,11 +1345,21 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
   }
   return (
     <div>
-      <ScreenHeading
-        eyebrow="Initiative formulation"
-        title="Shape a decision-ready Jira initiative"
-        description="Capture the business context FULCRUM needs before the work item enters the governed workflow. This form prepares the minimum Jira story structure; it does not create a Jira item yet."
-      />
+      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <ScreenHeading
+          eyebrow="Initiative formulation"
+          title="Shape a decision-ready Jira initiative"
+          description="Capture the business context FULCRUM needs before the work item enters the governed workflow. This form prepares the minimum Jira story structure; it does not create a Jira item yet."
+        />
+        <button
+          type="button"
+          data-tour="golden-load"
+          onClick={loadGoldenInitiative}
+          className="shrink-0 rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2]"
+        >
+          Load Golden Initiative
+        </button>
+      </div>
       <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
         <form
           onSubmit={(event) => {
@@ -1267,7 +1381,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
             </p>
           </div>
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
-            <label className="sm:col-span-2">
+            <label className="sm:col-span-2" data-tour="initiative-summary">
               <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 Summary <span className="text-red-600">*</span>
               </span>
@@ -1302,7 +1416,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
                 </span>
               </span>
             </label>
-            <label>
+            <label data-tour="initiative-owner">
               <span className="flex min-h-4 items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                 <span>Accountable owner</span>
                 <button
@@ -1339,7 +1453,11 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
             </label>
             {["problem", "outcome", "scope", "users", "risk", "success"].map(
               (field) => (
-                <label key={field} className="sm:col-span-2">
+                <label
+                  key={field}
+                  data-tour={field === "problem" ? "initiative-context" : undefined}
+                  className="sm:col-span-2"
+                >
                   <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     {
                       {
@@ -1380,6 +1498,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
             </p>
             <button
               type="submit"
+              data-tour="initiative-prepare"
               className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d]"
             >
               Prepare Jira story
@@ -1398,6 +1517,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
             <button
               type="button"
               onClick={() => setCreateConfirm(true)}
+              data-tour="initiative-create"
               className="mt-3 rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2]"
             >
               Create initiative in Jira
@@ -1508,6 +1628,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
                 type="button"
                 onClick={createInJira}
                 disabled={createBusy}
+                data-tour="initiative-confirm"
                 className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
               >
                 {createBusy ? "Creating…" : "Confirm and create"}
@@ -1569,7 +1690,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
       ["Robert Kim", "RobertKim@instantbox.live", "Risk Committee"],
     ];
     return (
-      <div>
+      <div data-tour="workspace-jira">
         <ScreenHeading {...screen} />
         <div className="space-y-5">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
@@ -1597,7 +1718,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
                 </p>
               </div>
               <code className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
-                Genius123!
+                genius123!
               </code>
             </div>
             <div className="overflow-x-auto">
@@ -1621,7 +1742,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
                       </td>
                       <td className="px-3 py-3 text-slate-600">{role}</td>
                       <td className="px-3 py-3 font-mono text-xs text-slate-600">
-                        Genius123!
+                        genius123!
                       </td>
                     </tr>
                   ))}
@@ -1738,7 +1859,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
     ),
   };
   return (
-    <div>
+    <div data-tour={`workspace-${view}`}>
       {view !== "initiatives" && <ScreenHeading {...screen} />}
       <div className="space-y-5">{content[view] ?? content.initiatives}</div>
     </div>
@@ -1826,7 +1947,7 @@ function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
     : { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
   return (
     <div
-      className="fixed inset-0 z-[70]"
+      className="pointer-events-none fixed inset-0 z-[70]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="demo-tour-title"
@@ -1843,7 +1964,7 @@ function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
         />
       )}
       <section
-        className="absolute max-h-[calc(100vh-40px)] w-[min(320px,calc(100vw-40px))] overflow-y-auto rounded-xl bg-white p-5 shadow-2xl"
+        className="pointer-events-auto absolute max-h-[calc(100vh-40px)] w-[min(320px,calc(100vw-40px))] overflow-y-auto rounded-xl bg-white p-5 shadow-2xl"
         style={tooltipStyle}
       >
         <div className="flex items-start justify-between gap-3">
@@ -1868,6 +1989,11 @@ function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
           </button>
         </div>
         <p className="mt-3 text-sm leading-6 text-slate-600">{step.text}</p>
+        {step.interactive && (
+          <p className="mt-3 rounded-lg bg-[#eef8f2] px-3 py-2 text-xs font-semibold leading-5 text-[#197443]">
+            Try the highlighted control, then select Next.
+          </p>
+        )}
         <div className="mt-5 flex items-center justify-between gap-2">
           <button
             type="button"

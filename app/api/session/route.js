@@ -1,8 +1,14 @@
-import {runtime, findDemoUser} from "../../../src/server/runtime.js";
+import {runtime as appRuntime, findDemoUser} from "../../../src/server/runtime.js";
 import {parseCookie} from "../../../src/auth/session.js";
 
+// This route reads cookies and uses the Node-backed demo session/audit stores.
+// Keep it dynamic and out of edge/static execution so login never waits on a
+// mismatched deployment runtime.
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const cookieName="fulcrum_session";
-function user(request) { const sid = parseCookie(request.headers.get("cookie") ?? "", cookieName); return runtime.sessions.get(sid) ?? (sid?.startsWith("demo:") ? findDemoUser(sid.slice("demo:".length)) : null); }
+function user(request) { const sid = parseCookie(request.headers.get("cookie") ?? "", cookieName); return appRuntime.sessions.get(sid) ?? (sid?.startsWith("demo:") ? findDemoUser(sid.slice("demo:".length)) : null); }
 function cookie(value, maxAge) { return `${cookieName}=${value}; HttpOnly; SameSite=Lax; Path=/${process.env.NODE_ENV === "production" ? "; Secure" : ""}; Max-Age=${maxAge}`; }
 export function GET(request) { return Response.json({user:user(request)}, {headers:{"cache-control":"no-store"}}); }
 export async function POST(request) {
@@ -17,17 +23,17 @@ export async function POST(request) {
   // persona act as the previous Atlassian user.
   const sid = `demo:${selected.id}`;
   if (previousSid) {
-    runtime.jiraConnections.delete(previousSid);
-    runtime.sessions.destroy(previousSid);
+    appRuntime.jiraConnections.delete(previousSid);
+    appRuntime.sessions.destroy(previousSid);
   }
-  if (previousUser) runtime.jiraConnections.delete(previousUser.id);
-  runtime.jiraConnections.delete(sid);
-  runtime.jiraConnections.delete(selected.id);
+  if (previousUser) appRuntime.jiraConnections.delete(previousUser.id);
+  appRuntime.jiraConnections.delete(sid);
+  appRuntime.jiraConnections.delete(selected.id);
 
   if (previousUser && previousUser.id !== selected.id) {
-    runtime.audit.record({eventType:"UserSessionEnded",actorId:previousUser.id,actorType:"DEMO_PERSONA",entityId:previousUser.id,metadata:{reason:"persona_switch",jiraUserConnectionRevoked:true}});
+    appRuntime.audit.record({eventType:"UserSessionEnded",actorId:previousUser.id,actorType:"DEMO_PERSONA",entityId:previousUser.id,metadata:{reason:"persona_switch",jiraUserConnectionRevoked:true}});
   }
-  runtime.audit.record({eventType:"UserSessionStarted",actorId:selected.id,actorType:"DEMO_PERSONA",userRole:selected.role,entityId:selected.id,metadata:{reason:"persona_selected",previousPersonaId:previousUser?.id ?? null}});
+  appRuntime.audit.record({eventType:"UserSessionStarted",actorId:selected.id,actorType:"DEMO_PERSONA",userRole:selected.role,entityId:selected.id,metadata:{reason:"persona_selected",previousPersonaId:previousUser?.id ?? null}});
   return new Response(JSON.stringify({user:selected,sessionRefreshed:true}),{headers:{"cache-control":"no-store","content-type":"application/json","set-cookie":cookie(sid,28800)}});
 }
-export function DELETE(request) { const sid=parseCookie(request.headers.get("cookie") ?? "",cookieName); const selected=user(request); runtime.jiraConnections.delete(sid); if(selected) runtime.jiraConnections.delete(selected.id); runtime.sessions.destroy(sid); if(selected)runtime.audit.record({eventType:"UserSessionEnded",actorId:selected.id,actorType:"DEMO_PERSONA",entityId:selected.id,metadata:{jiraUserConnectionRevoked:true}}); return new Response(JSON.stringify({ok:true}),{headers:{"content-type":"application/json","set-cookie":cookie("",0)}}); }
+export function DELETE(request) { const sid=parseCookie(request.headers.get("cookie") ?? "",cookieName); const selected=user(request); appRuntime.jiraConnections.delete(sid); if(selected) appRuntime.jiraConnections.delete(selected.id); appRuntime.sessions.destroy(sid); if(selected)appRuntime.audit.record({eventType:"UserSessionEnded",actorId:selected.id,actorType:"DEMO_PERSONA",entityId:selected.id,metadata:{jiraUserConnectionRevoked:true}}); return new Response(JSON.stringify({ok:true}),{headers:{"content-type":"application/json","set-cookie":cookie("",0)}}); }

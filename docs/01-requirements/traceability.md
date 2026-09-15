@@ -11,6 +11,7 @@ The authoritative matrix is maintained as implementation begins. Required column
 | REQ-025 | Synthetic persona entry to `/demo` and `/sandbox` | `app/page.js`, `app/api/session/route.js`, `app/sandbox/page.js` | `test/security.test.js` | Implemented for demo only |
 | REQ-026/027 | Session gate, backend-only credentials, audit events for Jira actions | Sandbox route handlers and `src/audit/audit.js` | `test/security.test.js`, `test/jira-sandbox.test.js` | Implemented for current demo boundary |
 | REQ-028 | Next.js App Router landing, demo, and sandbox surfaces | `app/page.js`, `app/demo/page.js`, `app/sandbox/page.js` | `npm run build` | Implemented locally; durable deployment state deferred |
+| REQ-028/030 | Guided workbench tours for feature orientation and synthetic Golden Initiative creation | `data/config/guided-demos.json`, `app/demo/page.js`, `.github/agents/guided-demo-builder.agent.md` | `test/guided-demos.test.js`, `npm run build` | Implemented; guided writes remain behind existing confirmation and Jira controls |
 
 ## Current evaluation increment
 
