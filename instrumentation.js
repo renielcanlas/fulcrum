@@ -1,6 +1,7 @@
 import {registerOTel} from "@vercel/otel";
+import {registerAzureTelemetry} from "./src/observability/azure-telemetry.js";
 
-export function register() {
+export async function register() {
   registerOTel({
     serviceName: "fulcrum",
     instrumentationConfig: {
@@ -9,4 +10,5 @@ export function register() {
       },
     },
   });
+  await registerAzureTelemetry();
 }

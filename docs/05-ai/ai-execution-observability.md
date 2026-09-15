@@ -6,7 +6,9 @@ The Next.js root layout also enables Vercel Web Analytics and Speed Insights. We
 
 Each record includes the run and correlation IDs, task contract, provider, deployment, instruction version, assessment/user references, call type, input hash, tool names, latency, token usage when returned, status, and a bounded error class/message. Raw prompts, outputs, credentials, and hidden chain-of-thought are not recorded.
 
-The telemetry store emits an OpenTelemetry span named `fulcrum.ai.<task>`. The Vercel OTel initializer in [`instrumentation.js`](../../instrumentation.js) exports these spans to Vercel Tracing/Observability, alongside automatic route and outbound-fetch spans. The current store is in-memory for the synthetic demo; durable PostgreSQL persistence remains a later increment.
+The telemetry store emits an OpenTelemetry span named `fulcrum.ai.<task>`. The Vercel OTel initializer in [`instrumentation.js`](../../instrumentation.js) exports these spans to Vercel Tracing/Observability, alongside automatic route and outbound-fetch spans. When `APPLICATIONINSIGHTS_CONNECTION_STRING` is configured, the same redacted AI spans are also exported to Azure Application Insights through the Azure Monitor OpenTelemetry exporter. This keeps Vercel route/session tracing and Azure model-operational telemetry available together without sending prompts or responses.
+
+Azure OpenAI resource metrics and diagnostic logs are configured separately in Azure Monitor. Enable the approved request/usage metrics on the Azure OpenAI resource and route them to the Application Insights workspace; do not enable raw prompt/response capture for this synthetic demo. The current application telemetry store is in-memory; durable PostgreSQL persistence remains a later increment.
 
 AI execution telemetry is operational evidence, not authoritative audit. Existing deterministic audit events remain the business/governance record and can use the AI correlation ID to relate an action to model activity.
 

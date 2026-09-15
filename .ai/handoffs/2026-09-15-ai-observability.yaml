@@ -1,5 +1,5 @@
 schema_version: "1.0"
-task: "Record redacted AI execution telemetry and export provider spans to Vercel Observability"
+task: "Record redacted AI execution telemetry and export provider spans to Vercel Observability and Azure Application Insights"
 requirements: ["REQ-013", "REQ-014", "REQ-018", "REQ-027"]
 files_changed:
   - "package.json"
@@ -9,6 +9,7 @@ files_changed:
   - "src/ai/orchestrator.js"
   - "src/ai/execution-record.js"
   - "src/observability/ai-telemetry.js"
+  - "src/observability/azure-telemetry.js"
   - "src/server/runtime.js"
   - "test/ai-telemetry.test.js"
   - "docs/05-ai/ai-execution-observability.md"
@@ -16,7 +17,8 @@ files_changed:
 artifacts_changed: []
 decisions:
   - "Instrument provider calls centrally so Azure, OpenAI-compatible, and fake providers share the same execution contract."
-  - "Export redacted OpenTelemetry spans to Vercel Observability while keeping authoritative business audit separate."
+  - "Export redacted OpenTelemetry spans to Vercel Observability and, when configured, Azure Application Insights while keeping authoritative business audit separate."
+  - "Use the Azure exporter with its own tracer provider so Vercel's global OTel provider remains responsible for Vercel tracing and session features."
   - "Keep the demo telemetry store in memory until durable persistence is implemented."
 unresolved_questions:
   - "Which durable store and retention policy will hold AI execution records in production?"
@@ -28,6 +30,6 @@ tests_performed:
 known_risks:
   - "The in-memory telemetry store is not durable across Vercel function instances."
   - "Streaming responses may not expose provider token usage at completion."
-recommended_next_action: "Enable Vercel Web Analytics and Speed Insights, redeploy, send one Ciel request, and verify fulcrum.ai spans in Vercel Tracing/Observability."
+recommended_next_action: "Set APPLICATIONINSIGHTS_CONNECTION_STRING in Vercel Production and Preview server environments, redeploy, send one Ciel request, verify fulcrum.ai spans in Vercel Tracing/Observability and Application Insights Transaction search, then configure Azure OpenAI diagnostic settings for approved metrics only."
 producer: "Codex"
 timestamp: "2026-09-15T00:00:00+08:00"

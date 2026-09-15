@@ -35,7 +35,7 @@ Recommended external dependencies: Supabase PostgreSQL or equivalent managed Pos
 
 ## Environment configuration
 
-Configure Azure AI Foundry endpoint/API version, deployment names for fast/reasoning/embedding routes, Azure credential mode, Document Intelligence endpoint, database URL, session secret, Jira OAuth client ID/secret, and callback URLs in Vercel project environment variables for Development, Preview, and Production as appropriate. Vercel encrypts environment variables at rest; changes apply to new deployments, so rotate/redeploy deliberately. [Vercel environment variables](https://vercel.com/docs/environment-variables)
+Configure Azure AI Foundry endpoint/API version, deployment names for fast/reasoning/embedding routes, Azure credential mode, Document Intelligence endpoint, optional `APPLICATIONINSIGHTS_CONNECTION_STRING`, database URL, session secret, Jira OAuth client ID/secret, and callback URLs in Vercel project environment variables for Development, Preview, and Production as appropriate. Vercel encrypts environment variables at rest; changes apply to new deployments, so rotate/redeploy deliberately. [Vercel environment variables](https://vercel.com/docs/environment-variables)
 
 Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix. Never use that prefix for OpenAI, Jira, database, or session secrets.
 
@@ -50,7 +50,11 @@ Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix.
 7. Deploy a Preview from a branch and run unit, integration, authorization, security, and smoke tests.
 8. Verify streaming, tool calls, Azure model routing, Document Intelligence extraction/provenance, audit persistence, session behavior across repeated requests, and Jira failure/reconciliation behavior.
 9. Promote to Production only after secrets, data handling, security, and human-governance checks pass.
-10. Monitor function errors/duration, AI latency/tokens/cost, database health, queue lag, Jira sync health, authorization failures, and audit completeness.
+10. Monitor function errors/duration, AI latency/tokens/cost, database health, queue lag, Jira sync health, authorization failures, and audit completeness. When configured, verify `fulcrum.ai.*` spans in both Vercel Tracing/Observability and Azure Application Insights.
+
+## AI observability destinations
+
+The application keeps Vercel's OpenTelemetry provider for route, outbound-fetch, and session tracing. If `APPLICATIONINSIGHTS_CONNECTION_STRING` is present, redacted AI execution spans are additionally exported to the linked Application Insights resource. Azure OpenAI resource metrics and diagnostic settings remain an Azure portal configuration: route approved request/usage metrics to Application Insights, and do not enable raw prompt/response capture for the synthetic demo. See [`docs/05-ai/ai-execution-observability.md`](../05-ai/ai-execution-observability.md) for the field-level redaction contract.
 
 ## Solo-developer deployment commands
 
