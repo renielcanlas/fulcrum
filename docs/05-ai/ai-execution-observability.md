@@ -2,9 +2,11 @@
 
 FULCRUM records one redacted execution record for each provider call. The record is created by `InstrumentedProvider` in [`src/ai/provider.js`](../../src/ai/provider.js), normalized by [`src/ai/execution-record.js`](../../src/ai/execution-record.js), and stored/exported by [`src/observability/ai-telemetry.js`](../../src/observability/ai-telemetry.js).
 
+The Next.js root layout also enables Vercel Web Analytics and Speed Insights. Web Analytics covers page usage, while Speed Insights covers Core Web Vitals; neither is treated as model telemetry.
+
 Each record includes the run and correlation IDs, task contract, provider, deployment, instruction version, assessment/user references, call type, input hash, tool names, latency, token usage when returned, status, and a bounded error class/message. Raw prompts, outputs, credentials, and hidden chain-of-thought are not recorded.
 
-The telemetry store emits an OpenTelemetry span named `fulcrum.ai.<task>`. With `APPLICATIONINSIGHTS_CONNECTION_STRING` configured, the Azure Monitor OpenTelemetry initializer in [`instrumentation.js`](../../instrumentation.js) exports these spans to Azure Application Insights. The current store is in-memory for the synthetic demo; durable PostgreSQL persistence remains a later increment.
+The telemetry store emits an OpenTelemetry span named `fulcrum.ai.<task>`. The Vercel OTel initializer in [`instrumentation.js`](../../instrumentation.js) exports these spans to Vercel Tracing/Observability, alongside automatic route and outbound-fetch spans. The current store is in-memory for the synthetic demo; durable PostgreSQL persistence remains a later increment.
 
 AI execution telemetry is operational evidence, not authoritative audit. Existing deterministic audit events remain the business/governance record and can use the AI correlation ID to relate an action to model activity.
 

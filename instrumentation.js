@@ -1,17 +1,12 @@
-export async function register() {
-  if (
-    process.env.NEXT_RUNTIME === "nodejs" &&
-    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
-  ) {
-    const { useAzureMonitor } = await import(
-      "@azure/monitor-opentelemetry"
-    );
+import {registerOTel} from "@vercel/otel";
 
-    useAzureMonitor({
-      azureMonitorExporterOptions: {
-        connectionString:
-          process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+export function register() {
+  registerOTel({
+    serviceName: "fulcrum",
+    instrumentationConfig: {
+      fetch: {
+        propagateContextUrls: ["openai.azure.com", "cognitiveservices.azure.com"],
       },
-    });
-  }
+    },
+  });
 }
