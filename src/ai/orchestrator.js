@@ -9,7 +9,8 @@ export class CopilotOrchestrator {
   async respond({interactionId, conversationId, previousResponseId, user, assessmentId, message, stream = false, allowAssessmentTools = true}) {
     const started = Date.now();
     const scope = assessmentId ? `Active assessment: ${assessmentId}` : "No FULCRUM assessment is linked to this conversation.";
-    const request = {instructions: INSTRUCTIONS, input: [{role:"user", content:`${scope}\nUser role: ${user.role}\nQuestion: ${message}`}], tools: allowAssessmentTools ? toolDefinitions(this.tools.names()) : [], stream, previousResponseId};
+    const telemetryContext = {correlationId: interactionId, interactionId, conversationId, task:"fulcrum-assistant.v1", instructionVersion:"ciel-instructions.v1", assessmentId, userId:user.id, callType:"initial"};
+    const request = {instructions: INSTRUCTIONS, input: [{role:"user", content:`${scope}\nUser role: ${user.role}\nQuestion: ${message}`}], tools: allowAssessmentTools ? toolDefinitions(this.tools.names()) : [], stream, previousResponseId, telemetryContext};
     let response = await this.provider.generateResponse(request);
     const toolsUsed = [];
     if (!stream && response.output) {
@@ -27,10 +28,10 @@ export class CopilotOrchestrator {
       if (toolOutputs.length) {
         // Responses API tool continuations must retain the complete model output,
         // including any reasoning items that accompany a function call.
-        response = await this.provider.generateResponse({...request, previousResponseId: undefined, input:[...request.input, ...response.output, ...toolOutputs]});
+        response = await this.provider.generateResponse({...request, telemetryContext:{...telemetryContext, callType:"tool-continuation"}, previousResponseId: undefined, input:[...request.input, ...response.output, ...toolOutputs]});
       }
     }
-    this.audit.record({interactionId, conversationId, assessmentId, userId:user.id, userRole:user.role, provider:"openai-compatible", model:this.provider.model ?? "fake", toolsInvoked:toolsUsed, responseClassification:"GOVERNED_COPILOT_RESPONSE", latencyMs:Date.now()-started, tokenUsage:response.usage ?? null});
+    this.audit.record({interactionId, conversationId, assessmentId, userId:user.id, userRole:user.role, provider:this.provider.providerName ?? "openai-compatible", model:this.provider.model ?? "fake", toolsInvoked:toolsUsed, responseClassification:"GOVERNED_COPILOT_RESPONSE", latencyMs:Date.now()-started, tokenUsage:response.usage ?? null});
     return response;
   }
 }

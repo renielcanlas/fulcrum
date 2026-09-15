@@ -1,3 +1,5 @@
+import {createExecutionRecord} from "./execution-record.js";
+
 export class AIProvider {
   async generateResponse() { throw new Error("NOT_IMPLEMENTED"); }
 }
@@ -8,7 +10,7 @@ export function normalizePreviousResponseId(value) {
 }
 
 export class OpenAIProvider extends AIProvider {
-  constructor({apiKey, model = "gpt-5"} = {}) { super(); this.apiKey = apiKey; this.model = model; }
+  constructor({apiKey, model = "gpt-5"} = {}) { super(); this.apiKey = apiKey; this.model = model; this.providerName = "openai-compatible"; }
 
   async generateResponse({instructions, input, tools, text, stream = false, previousResponseId}) {
     if (!this.apiKey) throw new Error("OPENAI_API_KEY is required for OpenAIProvider");
@@ -20,7 +22,7 @@ export class OpenAIProvider extends AIProvider {
 }
 
 export class AzureOpenAIProvider extends AIProvider {
-  constructor({endpoint, apiKey, deployment, apiVersion = "v1"} = {}) { super(); this.endpoint = endpoint?.replace(/\/$/, ""); this.apiKey = apiKey; this.deployment = deployment; this.apiVersion = apiVersion; }
+  constructor({endpoint, apiKey, deployment, apiVersion = "v1"} = {}) { super(); this.endpoint = endpoint?.replace(/\/$/, ""); this.apiKey = apiKey; this.deployment = deployment; this.model = deployment; this.apiVersion = apiVersion; this.providerName = "azure"; }
 
   async generateResponse({instructions, input, tools, text, stream = false, previousResponseId}) {
     if (!this.endpoint || !this.apiKey || !this.deployment) throw new Error("AZURE_AI_FOUNDRY configuration is incomplete");
@@ -38,6 +40,48 @@ export class AzureOpenAIProvider extends AIProvider {
 }
 
 export class FakeProvider extends AIProvider {
-  constructor(responses = []) { super(); this.responses = [...responses]; this.calls = []; }
+  constructor(responses = []) { super(); this.responses = [...responses]; this.calls = []; this.providerName = "fake"; this.model = "fake"; }
   async generateResponse(request) { this.calls.push(request); return this.responses.shift() ?? {output_text:"I need more information.", output:[]}; }
+}
+
+export class InstrumentedProvider extends AIProvider {
+  constructor(provider, telemetry) {
+    super();
+    this.provider = provider;
+    this.telemetry = telemetry;
+    this.model = provider.model;
+    this.providerName = provider.providerName ?? provider.constructor.name;
+  }
+
+  async generateResponse(request = {}) {
+    const {telemetryContext, ...providerRequest} = request;
+    const started = Date.now();
+    const startedAt = new Date().toISOString();
+    try {
+      const response = await this.provider.generateResponse(providerRequest);
+      this.telemetry?.record(createExecutionRecord({
+        context: telemetryContext,
+        provider: this.providerName,
+        deployment: this.model,
+        request: providerRequest,
+        response,
+        startedAt,
+        latencyMs: Date.now() - started,
+        status: "SUCCEEDED",
+      }));
+      return response;
+    } catch (error) {
+      this.telemetry?.record(createExecutionRecord({
+        context: telemetryContext,
+        provider: this.providerName,
+        deployment: this.model,
+        request: providerRequest,
+        startedAt,
+        latencyMs: Date.now() - started,
+        status: "FAILED",
+        error,
+      }));
+      throw error;
+    }
+  }
 }
