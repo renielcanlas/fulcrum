@@ -364,7 +364,6 @@ export default function DemoPage() {
     if (!activeIssueKey || assessmentBusy) return;
     setAssessmentBusy(true);
     setAssessmentError("");
-    setTransitionOffer(false);
     try {
       const response = await fetch("/api/jira/assessment/ai", {
         method: "POST",
