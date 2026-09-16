@@ -22,7 +22,6 @@ const workflow = [
 const navItems = [
   ["board", "Board", "▦"],
   ["initiatives", "Initiatives", "◫"],
-  ["controls", "Risk & controls", "◈"],
   ["sandbox", "Sandbox", "⚗"],
   ["help-center", "Help center", "?"],
 ];
@@ -1795,6 +1794,8 @@ function WorkspaceScreen({ view, onNavigate, onOpenTrace, trace, currentUser }) 
               ["Human decisions", "What the system calculates and what people decide."],
               ["Jira integration", "Which system owns which information."],
               ["Ciel and AI", "What Ciel can explain, draft, and never decide."],
+              ["Risk & controls", "How risks, mitigations, and residual exposure are reviewed."],
+              ["Sandbox usage", "How to experiment safely with synthetic Jira scenarios."],
               ["Guided demos", "How to learn the workbench step by step."],
             ].map(([title, text]) => (
               <button key={title} type="button" onClick={() => setHelpTopic(title)} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#087f70]">
@@ -1833,6 +1834,17 @@ function WorkspaceScreen({ view, onNavigate, onOpenTrace, trace, currentUser }) 
           <p className="text-sm leading-7 text-slate-600">Ciel can explain scores, find evidence, identify gaps, draft text, and prepare bounded Jira actions. It cannot approve, reject, vote, change risk ratings, bypass permissions, invent evidence, or directly mutate authoritative state.</p>
           <div className="mt-5 grid gap-4 md:grid-cols-2"><div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"><p className="font-bold text-emerald-950">Good questions for Ciel</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-emerald-950"><li>Why is residual risk High?</li><li>Which evidence supports this finding?</li><li>What information is still missing?</li><li>Draft a Jira description or challenge.</li></ul></div><div className="rounded-xl border border-rose-100 bg-rose-50 p-4"><p className="font-bold text-rose-950">What Ciel cannot do</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-rose-950"><li>Make the committee decision</li><li>Change a rating or scoring rule</li><li>Invent evidence or citations</li><li>Write to Jira without confirmation</li></ul></div></div>
           <p className="mt-4 text-sm leading-7 text-slate-600">AI output is an observation or draft. The surrounding deterministic services validate permissions, tools, schemas, and any confirmed action.</p>
+        </InfoCard>}
+        {helpTopic === "Risk & controls" && <InfoCard title="Risk & controls" id="help-risk-and-controls">
+          <p className="text-sm leading-7 text-slate-600">This topic explains how FULCRUM connects identified risks to the controls intended to reduce them. It helps reviewers distinguish the exposure before mitigation from the residual risk after controls are considered.</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-3"><div className="rounded-xl border border-rose-100 bg-rose-50 p-4"><p className="font-bold text-rose-950">Risk finding</p><p className="mt-2 text-sm leading-6 text-rose-950">A material exposure or concern identified from initiative context and evidence.</p></div><div className="rounded-xl border border-blue-100 bg-blue-50 p-4"><p className="font-bold text-blue-950">Control</p><p className="mt-2 text-sm leading-6 text-blue-950">A preventive or detective measure that reduces exposure or improves confidence.</p></div><div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"><p className="font-bold text-emerald-950">Residual risk</p><p className="mt-2 text-sm leading-6 text-emerald-950">The remaining exposure after configured control effects are applied.</p></div></div>
+          <p className="mt-5 text-sm leading-7 text-slate-600"><strong className="text-slate-900">Important:</strong> controls mitigate risk; they do not eliminate it. The rating is calculated deterministically from configured parameters, and authorized humans review whether the result is acceptable.</p>
+        </InfoCard>}
+        {helpTopic === "Sandbox usage" && <InfoCard title="Sandbox usage" id="help-sandbox-usage">
+          <p className="text-sm leading-7 text-slate-600">The Sandbox is a safe experimentation surface for the Jira adapter and Ciel’s bounded Jira actions. It uses synthetic work items and is separate from the governed assessment workspace.</p>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-7 text-slate-600"><li>Use Jira search to inspect the fixed synthetic FCRM project.</li><li>Use Scenario automator to review or draft a bounded scenario.</li><li>Inspect validation before execution.</li><li>Confirm each write explicitly; the server performs the permitted Jira operation.</li><li>Use cleanup only when you intend to remove the synthetic items returned by the sandbox search.</li></ol>
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="font-bold text-amber-950">Safety boundary</p><p className="mt-2 text-sm leading-6 text-amber-950">Do not use real customer data, production Jira projects, real credentials, or unreviewed custom fields in the Sandbox. Jira remains authoritative for the test work items; FULCRUM does not silently change assessment decisions.</p></div>
+          <button type="button" onClick={() => onNavigate("sandbox")} className="mt-4 text-sm font-bold text-[#087f70]">Open Sandbox →</button>
         </InfoCard>}
         {helpTopic === "Guided demos" && <InfoCard title="Guided demos" id="help-guided-demos">
           <p className="text-sm leading-7 text-slate-600">The welcome tour explains the main workbench areas. The Golden Initiative flow demonstrates loading synthetic context, reviewing the owner and story, and confirming a Jira creation.</p>
