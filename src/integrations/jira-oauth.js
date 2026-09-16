@@ -69,6 +69,22 @@ export function jiraServiceAccountConfigured(env = process.env) {
   return Boolean(env.ATLASSIAN_CLIENT_ID && env.ATLASSIAN_CLIENT_SECRET && env.JIRA_CLOUD_ID && env.JIRA_SITE_URL);
 }
 
+export function guidedDemoApiTokenConfigured(env = process.env) {
+  return Boolean(env.JIRA_GUIDED_DEMO_EMAIL && env.JIRA_GUIDED_DEMO_API_TOKEN && env.JIRA_CLOUD_ID && env.JIRA_SITE_URL);
+}
+
+export function getGuidedDemoConnection({env = process.env} = {}) {
+  if (!guidedDemoApiTokenConfigured(env)) return null;
+  return {
+    mode: "guided_demo_api_token",
+    cloudId: env.JIRA_CLOUD_ID,
+    siteUrl: env.JIRA_SITE_URL,
+    siteName: env.JIRA_SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+    apiTokenEmail: env.JIRA_GUIDED_DEMO_EMAIL,
+    apiToken: env.JIRA_GUIDED_DEMO_API_TOKEN,
+  };
+}
+
 export async function getServiceAccountAccessToken({clientId, clientSecret, fetchImpl = fetch, now = () => Date.now()} = {}) {
   if (!clientId || !clientSecret) throw new Error("jira_service_account_not_configured");
   if (serviceTokenCache?.clientId === clientId && serviceTokenCache.expiresAt > now() + SERVICE_TOKEN_SAFETY_MS) return serviceTokenCache.accessToken;

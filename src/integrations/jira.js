@@ -14,6 +14,18 @@ const DISPLAY_STATUS_NAMES = new Map([
 const DISPLAY_ISSUE_TYPES = new Map([["任务", "Task"]]);
 const JIRA_LANGUAGE_HEADERS = {"accept-language": "en-US", "x-force-accept-language": "true"};
 
+function jiraRestRequest({cloudId, accessToken, siteUrl, apiTokenEmail, apiToken}) {
+  const usingApiToken = Boolean(apiTokenEmail && apiToken && siteUrl);
+  return {
+    baseUrl: usingApiToken
+      ? `${siteUrl.replace(/\/$/, "")}/rest/api/3`
+      : `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3`,
+    authorization: usingApiToken
+      ? `Basic ${Buffer.from(`${apiTokenEmail}:${apiToken}`).toString("base64")}`
+      : `Bearer ${accessToken}`,
+  };
+}
+
 function displayStatusName(status, category) {
   const name = status?.trim();
   if (!name) return "Unknown";
@@ -161,27 +173,30 @@ export async function getJiraProjectPermissions({projectKey = JIRA_PROJECT_KEY, 
   return (await response.json()).permissions ?? {};
 }
 
-export async function commentJiraWorkItem({issueKey, body, cloudId, accessToken, fetchImpl = fetch}) {
+export async function commentJiraWorkItem({issueKey, body, cloudId, accessToken, siteUrl, apiTokenEmail, apiToken, fetchImpl = fetch}) {
   if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !body?.trim()) throw new Error("invalid_comment");
-  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}/comment`, {method: "POST", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: `Bearer ${accessToken}`}, body: JSON.stringify({body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: body.trim()}]}]}})});
+  const request = jiraRestRequest({cloudId, accessToken, siteUrl, apiTokenEmail, apiToken});
+  const response = await fetchImpl(`${request.baseUrl}/issue/${encodeURIComponent(issueKey)}/comment`, {method: "POST", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: request.authorization}, body: JSON.stringify({body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: body.trim()}]}]}})});
   if (!response.ok) throw new Error(`jira_comment_failed_${response.status}`);
   const comment = await response.json();
   return {issueKey, commentId: comment.id, commented: true};
 }
 
-export async function uploadJiraAttachment({issueKey, file, cloudId, accessToken, fetchImpl = fetch}) {
-  if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !file?.name || !cloudId || !accessToken) throw new Error("invalid_jira_attachment_upload");
+export async function uploadJiraAttachment({issueKey, file, cloudId, accessToken, siteUrl, apiTokenEmail, apiToken, fetchImpl = fetch}) {
+  if (!/^[A-Z][A-Z0-9_]{1,9}-[1-9][0-9]*$/.test(issueKey) || !file?.name || !cloudId || (!accessToken && !(apiTokenEmail && apiToken && siteUrl))) throw new Error("invalid_jira_attachment_upload");
+  const request = jiraRestRequest({cloudId, accessToken, siteUrl, apiTokenEmail, apiToken});
   const form = new FormData();
   form.append("file", file, file.name);
-  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue/${encodeURIComponent(issueKey)}/attachments`, {method: "POST", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`, "x-atlassian-token": "no-check"}, body: form});
+  const response = await fetchImpl(`${request.baseUrl}/issue/${encodeURIComponent(issueKey)}/attachments`, {method: "POST", headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: request.authorization, "x-atlassian-token": "no-check"}, body: form});
   if (!response.ok) throw new Error(`jira_attachment_upload_failed_${response.status}`);
   const attachments = await response.json();
   return {issueKey, attachments: Array.isArray(attachments) ? attachments.map((attachment) => ({id: attachment.id, filename: attachment.filename, mimeType: attachment.mimeType ?? "application/octet-stream", size: attachment.size ?? null, created: attachment.created ?? null, author: attachment.author?.displayName ?? "Current user"})) : []};
 }
 
-export async function getJiraCurrentUser({cloudId, accessToken, fetchImpl = fetch}) {
-  if (!cloudId || !accessToken) throw new Error("jira_user_identity_lookup_invalid");
-  const response = await fetchImpl(`https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/myself`, {headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: `Bearer ${accessToken}`} });
+export async function getJiraCurrentUser({cloudId, accessToken, siteUrl, apiTokenEmail, apiToken, fetchImpl = fetch}) {
+  if (!cloudId || (!accessToken && !(apiTokenEmail && apiToken && siteUrl))) throw new Error("jira_user_identity_lookup_invalid");
+  const request = jiraRestRequest({cloudId, accessToken, siteUrl, apiTokenEmail, apiToken});
+  const response = await fetchImpl(`${request.baseUrl}/myself`, {headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, authorization: request.authorization} });
   if (!response.ok) throw new Error(`jira_user_identity_lookup_failed_${response.status}`);
   const user = await response.json();
   return {accountId: user.accountId ?? null, displayName: user.displayName ?? user.emailAddress ?? "Unknown Jira user"};

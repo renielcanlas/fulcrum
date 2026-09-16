@@ -328,7 +328,6 @@ test("UAT: landing Start demo begins the guided login journey", async ({page}) =
   await expect(page.getByRole("heading", {name: "Know when FULCRUM suggests the next step"})).toBeVisible(); await next();
   await expect(page.getByRole("heading", {name: "Publish the evaluation to Jira"})).toBeVisible();
   await page.getByRole("button", {name: "Publish evaluation to Jira"}).click(); await next();
-  await expect(page.getByRole("heading", {name: "Re-evaluate when the result needs another look"})).toBeVisible(); await next();
   await expect(page.getByRole("heading", {name: "Comments stay connected to Jira"})).toBeVisible(); await next();
   await expect(page.getByRole("heading", {name: "Add a contextual comment"})).toBeVisible();
   await expect(page.getByPlaceholder("Write a comment to add to Jira…")).toHaveValue(/FULCRUM review:/);
@@ -712,8 +711,12 @@ test("UAT: disconnected Jira user is prompted before adding a comment or attachm
   await mockSessionAndCommonApis(page, users[0]);
   await page.route("**/api/jira/user-status", (route) => route.fulfill({json: {connected: false}}));
   await page.goto("/demo?view=work-item&issue=FCRM-101");
-  await expect(page.getByRole("link", {name: "Add comment", exact: true})).toBeVisible();
-  await expect(page.getByRole("link", {name: "Connect Jira to attach", exact: true})).toBeVisible();
+  await expect(page.getByRole("button", {name: "Add comment", exact: true})).toBeVisible();
+  await expect(page.getByRole("button", {name: "Connect Jira to attach", exact: true})).toBeVisible();
+  await page.getByRole("button", {name: "Add comment", exact: true}).click();
+  await expect(page.getByRole("heading", {name: "Connect Jira in a new tab"})).toBeVisible();
+  await expect(page.getByText("Use the Jira account authorized for this Fulcrum session.")).toBeVisible();
+  await expect(page.getByRole("link", {name: /Open Jira authorization/})).toHaveAttribute("target", "_blank");
 });
 
 test("UAT: first-time work item assessment offers Evaluate Intake", async ({page}) => {

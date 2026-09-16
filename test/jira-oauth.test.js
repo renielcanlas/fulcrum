@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildAuthorizationUrl, getServiceAccountAccessToken, getServiceAccountConnection, JiraConnectionStore, jiraServiceAccountConfigured, USER_SCOPES} from "../src/integrations/jira-oauth.js";
+import {buildAuthorizationUrl, getGuidedDemoConnection, getServiceAccountAccessToken, getServiceAccountConnection, guidedDemoApiTokenConfigured, JiraConnectionStore, jiraServiceAccountConfigured, USER_SCOPES} from "../src/integrations/jira-oauth.js";
+
+test("guided demo API token connection is server-side and explicitly configured", () => {
+  const env = {JIRA_GUIDED_DEMO_EMAIL: "maya.chen@fulcrum.demo", JIRA_GUIDED_DEMO_API_TOKEN: "secret-token", JIRA_CLOUD_ID: "cloud-1", JIRA_SITE_URL: "https://example.atlassian.net"};
+  assert.equal(guidedDemoApiTokenConfigured(env), true);
+  assert.deepEqual(getGuidedDemoConnection({env}), {mode: "guided_demo_api_token", cloudId: "cloud-1", siteUrl: "https://example.atlassian.net", siteName: "example.atlassian.net", apiTokenEmail: "maya.chen@fulcrum.demo", apiToken: "secret-token"});
+});
 
 test("Jira OAuth state is bound to the user and single-use", () => {
   const store = new JiraConnectionStore({now: () => 1000});

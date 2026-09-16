@@ -1,6 +1,7 @@
 import {runtime, findDemoUser} from "../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../src/auth/session.js";
 import {commentJiraWorkItem, jiraErrorStatus} from "../../../../src/integrations/jira.js";
+import {getGuidedDemoConnection} from "../../../../src/integrations/jira-oauth.js";
 import {JIRA_PROJECT_KEY} from "../../../../src/integrations/jira-config.js";
 
 const cookieName = "fulcrum_session";
@@ -11,15 +12,16 @@ export async function POST(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
   const user = await runtime.sessions.getAsync(sessionId);
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
-  const connection = await runtime.jiraConnections.getAsync(sessionId);
-  if (!connection) return Response.json({error: "jira_user_authorization_required"}, {status: 409});
   let body;
   try { body = await request.json(); } catch { return Response.json({error: "invalid_json"}, {status: 400}); }
+  const guidedDemo = body.guidedDemo === true && user.id === "po-1";
+  const connection = guidedDemo ? getGuidedDemoConnection() : await runtime.jiraConnections.getAsync(sessionId);
+  if (!connection) return Response.json({error: guidedDemo ? "jira_guided_demo_token_missing" : "jira_user_authorization_required"}, {status: 409});
   const issueKey = String(body.issueKey ?? "").toUpperCase();
   if (!issueKey.startsWith(`${JIRA_PROJECT_KEY}-`)) return Response.json({error: "invalid_jira_project"}, {status: 400});
   try {
-    const result = await commentJiraWorkItem({issueKey, body: body.body, cloudId: connection.cloudId, accessToken: connection.accessToken});
-    runtime.audit.record({eventType: "JiraCommentAdded", actorId: user.id, actorType: "DEMO_PERSONA", userRole: user.role, entityId: issueKey, metadata: {connection: "user_oauth"}});
+    const result = await commentJiraWorkItem({issueKey, body: body.body, ...connection});
+    runtime.audit.record({eventType: "JiraCommentAdded", actorId: user.id, actorType: guidedDemo ? "GUIDED_DEMO_AUTOMATION" : "DEMO_PERSONA", userRole: user.role, entityId: issueKey, metadata: {connection: connection.mode ?? "user_oauth"}});
     return Response.json({ok: true, ...result});
   } catch (error) {
     const statusCode = jiraErrorStatus(error);

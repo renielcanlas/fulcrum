@@ -6,7 +6,7 @@ For the separate hackathon Jira test account, the persona email mapping is:
 
 | Persona | Jira test-account email |
 | --- | --- |
-| Maya Chen | `menebi8777@dd2car.com` |
+| Maya Chen | `wi9i7gurq@yzcalo.com` |
 | Marcus Thompson | `sheelaghyirs@instantbox.live` |
 | Daniel Reyes | `danielreye@instantbox.live` |
 | Priya Shah | `priyashah@instantbox.live` |

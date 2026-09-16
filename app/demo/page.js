@@ -378,11 +378,29 @@ export default function DemoPage() {
 
   useEffect(() => {
     if (activeView !== "work-item") return;
-    fetch("/api/jira/user-status")
-      .then((response) => response.json())
-      .then((data) => setJiraUserConnected(Boolean(data.connected)))
-      .catch(() => setJiraUserConnected(false));
-  }, [activeView]);
+    let cancelled = false;
+    const checkConnection = () => {
+      const statusUrl = tour?.id === "landing-start-demo"
+        ? "/api/jira/user-status?guidedDemo=true"
+        : "/api/jira/user-status";
+      fetch(statusUrl, {cache: "no-store"})
+        .then((response) => response.json())
+        .then((data) => {
+          if (!cancelled) setJiraUserConnected(Boolean(data.connected));
+        })
+        .catch(() => {
+          if (!cancelled) setJiraUserConnected(false);
+        });
+    };
+    checkConnection();
+    const interval = jiraUserConnected ? null : window.setInterval(checkConnection, 2500);
+    window.addEventListener("focus", checkConnection);
+    return () => {
+      cancelled = true;
+      if (interval) window.clearInterval(interval);
+      window.removeEventListener("focus", checkConnection);
+    };
+  }, [activeView, jiraUserConnected, tour?.id]);
 
   async function addComment() {
     const body = commentText.trim() || (
@@ -400,6 +418,7 @@ export default function DemoPage() {
         body: JSON.stringify({
           issueKey: selectedWorkItem.key,
           body,
+          guidedDemo: tour?.id === "landing-start-demo",
         }),
       });
       const data = await response.json();
@@ -434,6 +453,7 @@ export default function DemoPage() {
       const form = new FormData();
       form.append("issueKey", selectedWorkItem.key);
       form.append("file", file);
+      form.append("guidedDemo", String(tour?.id === "landing-start-demo"));
       const response = await fetch("/api/jira/attachment/upload", {
         method: "POST",
         credentials: "same-origin",
@@ -1787,7 +1807,7 @@ function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace
 
   if (view === "jira") {
     const personas = [
-      ["Maya Chen", "menebi8777@dd2car.com", "Product Owner"],
+      ["Maya Chen", "wi9i7gurq@yzcalo.com", "Product Owner"],
       ["Marcus Thompson", "sheelaghyirs@instantbox.live", "Product Owner"],
       ["Daniel Reyes", "danielreye@instantbox.live", "FCRM Analyst"],
       ["Priya Shah", "priyashah@instantbox.live", "FCRM Analyst"],
@@ -2702,6 +2722,44 @@ function JiraAssignmentDialog({
   );
 }
 
+function JiraAuthorizationPrompt({open, onClose, returnTo, demoCredentials}) {
+  if (!open) return null;
+  const authUrl = `/api/jira/user-connect?returnTo=${encodeURIComponent(returnTo)}`;
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#102f33]/65 p-4" role="presentation">
+      <section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="jira-auth-title">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#087f70]">Jira authorization</p>
+            <h2 id="jira-auth-title" className="mt-2 text-xl font-bold text-[#102f33]">Connect Jira in a new tab</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close Jira authorization dialog" className="cursor-pointer text-2xl leading-none text-slate-400 hover:text-slate-800">×</button>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-slate-600">
+          Open the Jira authorization page in a separate tab, complete sign-in and consent there, then return to this tab. FULCRUM will check for the connection automatically.
+        </p>
+        {demoCredentials ? (
+          <div className="mt-4 rounded-xl border border-[#b9e4d1] bg-[#eef8f2] p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">Synthetic demo Jira account</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Use these credentials only for the authorized demo environment.</p>
+            <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              <div><dt className="text-xs font-semibold text-slate-500">User</dt><dd className="font-bold text-[#102f33]">{demoCredentials.displayName}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">Email</dt><dd className="break-all font-bold text-[#102f33]">{demoCredentials.email}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">Password</dt><dd className="font-mono font-bold text-[#102f33]">{demoCredentials.password}</dd></div>
+            </dl>
+          </div>
+        ) : (
+          <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">Use the Jira account authorized for this Fulcrum session. Fulcrum never displays or stores your Jira password.</p>
+        )}
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <button type="button" onClick={onClose} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Not now</button>
+          <a href={authUrl} target="_blank" rel="noopener noreferrer" className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#17494d]">Open Jira authorization ↗</a>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function CommentComposer({
   item,
   userJiraConnected,
@@ -2711,6 +2769,7 @@ function CommentComposer({
   commentBusy,
   commentError,
   onAddComment,
+  onOpenJiraAuth,
 }) {
   return (
     <div className="mt-8 border-t border-slate-100 pt-6" data-tour="comments-panel">
@@ -2760,12 +2819,13 @@ function CommentComposer({
           <p className="text-sm leading-6 text-slate-600">
             Connect your Jira account before adding a comment.
           </p>
-          <a
-            href={`/api/jira/user-connect?returnTo=${encodeURIComponent(`/demo?view=work-item&issue=${item.key}`)}`}
+          <button
+            type="button"
+            onClick={onOpenJiraAuth}
             className="cursor-pointer rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
           >
             Add comment
-          </a>
+          </button>
         </div>
       )}
     </div>
@@ -3395,6 +3455,10 @@ function JiraWorkItemView({
   onSubmitDecision,
 }) {
   const [openAttachment, setOpenAttachment] = useState(null);
+  const [jiraAuthPromptOpen, setJiraAuthPromptOpen] = useState(false);
+  const guidedDemoAuth = guidedStepId
+    ? {displayName: "Maya Chen", email: "wi9i7gurq@yzcalo.com", password: "genius123!"}
+    : null;
   if (!item)
     return <p className="text-sm text-slate-500">Loading Jira work item…</p>;
   if (item.error)
@@ -3483,12 +3547,13 @@ function JiraWorkItemView({
                 )}
               </div>
             ) : (
-              <a
-                href={`/api/jira/user-connect?returnTo=${encodeURIComponent(`/demo?view=work-item&issue=${item.key}`)}`}
+              <button
+                type="button"
+                onClick={() => setJiraAuthPromptOpen(true)}
                 className="cursor-pointer rounded-lg border border-[#087f70] px-3 py-2 text-xs font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
               >
                 Connect Jira to attach
-              </a>
+              </button>
             )}
           </div>
           {item.attachments?.length > 0 ? (
@@ -3624,6 +3689,13 @@ function JiraWorkItemView({
         commentBusy={commentBusy}
         commentError={commentError}
         onAddComment={onAddComment}
+        onOpenJiraAuth={() => setJiraAuthPromptOpen(true)}
+      />
+      <JiraAuthorizationPrompt
+        open={jiraAuthPromptOpen}
+        onClose={() => setJiraAuthPromptOpen(false)}
+        returnTo={`/demo?view=work-item&issue=${encodeURIComponent(item.key)}`}
+        demoCredentials={guidedDemoAuth}
       />
       {openAttachment && (
         <div

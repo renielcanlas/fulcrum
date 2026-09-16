@@ -1,6 +1,7 @@
 import {runtime, findDemoUser} from "../../../../../src/server/runtime.js";
 import {parseCookie} from "../../../../../src/auth/session.js";
 import {getJiraCurrentUser, uploadJiraAttachment, jiraErrorStatus} from "../../../../../src/integrations/jira.js";
+import {getGuidedDemoConnection} from "../../../../../src/integrations/jira-oauth.js";
 import {JIRA_PROJECT_KEY} from "../../../../../src/integrations/jira-config.js";
 
 const cookieName = "fulcrum_session";
@@ -12,20 +13,21 @@ export async function POST(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
   const user = await runtime.sessions.getAsync(sessionId);
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
-  const connection = await runtime.jiraConnections.getAsync(sessionId);
-  if (!connection) return Response.json({error: "jira_user_authorization_required"}, {status: 409});
   try {
     const form = await request.formData();
     const issueKey = String(form.get("issueKey") ?? "").toUpperCase();
+    const guidedDemo = form.get("guidedDemo") === "true" && user.id === "po-1";
+    const connection = guidedDemo ? getGuidedDemoConnection() : await runtime.jiraConnections.getAsync(sessionId);
+    if (!connection) return Response.json({error: guidedDemo ? "jira_guided_demo_token_missing" : "jira_user_authorization_required"}, {status: 409});
     const file = form.get("file");
     if (!issueKey.startsWith(`${JIRA_PROJECT_KEY}-`)) return Response.json({error: "invalid_jira_project"}, {status: 400});
     if (!file || typeof file.arrayBuffer !== "function" || !file.name) return Response.json({error: "attachment_file_required"}, {status: 400});
     if (file.size > MAX_ATTACHMENT_BYTES) return Response.json({error: "attachment_too_large", maxBytes: MAX_ATTACHMENT_BYTES}, {status: 413});
-    const jiraUser = await getJiraCurrentUser({cloudId: connection.cloudId, accessToken: connection.accessToken});
+    const jiraUser = await getJiraCurrentUser({...connection});
     const expectedAccountId = user.jiraIdentity?.jiraAccountId;
     if (expectedAccountId && jiraUser.accountId !== expectedAccountId) return Response.json({error: "jira_user_identity_mismatch", jiraUser: jiraUser.displayName}, {status: 409});
-    const result = await uploadJiraAttachment({issueKey, file, cloudId: connection.cloudId, accessToken: connection.accessToken});
-    runtime.audit.record({eventType: "JiraAttachmentUploaded", actorId: user.id, actorType: "DEMO_PERSONA", userRole: user.role, entityId: issueKey, metadata: {connection: "user_oauth", filename: file.name, size: file.size, mimeType: file.type || "application/octet-stream"}});
+    const result = await uploadJiraAttachment({issueKey, file, ...connection});
+    runtime.audit.record({eventType: "JiraAttachmentUploaded", actorId: user.id, actorType: guidedDemo ? "GUIDED_DEMO_AUTOMATION" : "DEMO_PERSONA", userRole: user.role, entityId: issueKey, metadata: {connection: connection.mode ?? "user_oauth", filename: file.name, size: file.size, mimeType: file.type || "application/octet-stream"}});
     return Response.json({ok: true, ...result});
   } catch (error) {
     const statusCode = jiraErrorStatus(error);

@@ -10,7 +10,7 @@ The hackathon Jira board uses a separate test account. These credentials are for
 
 | Persona | Jira test-account email |
 | --- | --- |
-| Maya Chen | `menebi8777@dd2car.com` |
+| Maya Chen | `wi9i7gurq@yzcalo.com` |
 | Marcus Thompson | `sheelaghyirs@instantbox.live` |
 | Daniel Reyes | `danielreye@instantbox.live` |
 | Priya Shah | `priyashah@instantbox.live` |

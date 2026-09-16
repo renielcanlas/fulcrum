@@ -205,6 +205,16 @@ test("Jira sandbox adds a comment to an issue", async () => {
   assert.match(request.options.body, /Synthetic analyst note/);
 });
 
+test("guided demo Jira API token uses direct site basic authentication", async () => {
+  let request;
+  await commentJiraWorkItem({issueKey: "FCRM-9", body: "Guided demo note.", cloudId: "cloud-1", siteUrl: "https://example.atlassian.net", apiTokenEmail: "maya.chen@fulcrum.demo", apiToken: "demo-token", fetchImpl: async (url, options) => {
+    request = {url: url.toString(), options};
+    return new Response(JSON.stringify({id: "comment-demo"}), {status: 201});
+  }});
+  assert.equal(request.url, "https://example.atlassian.net/rest/api/3/issue/FCRM-9/comment");
+  assert.equal(request.options.headers.authorization, `Basic ${Buffer.from("maya.chen@fulcrum.demo:demo-token").toString("base64")}`);
+});
+
 test("Jira sandbox matches localized workflow status aliases", async () => {
   const requests = [];
   const result = await transitionJiraWorkItem({issueKey: "FCRM-9", status: "Review", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options = {}) => {
