@@ -217,9 +217,9 @@ test("UAT: Product Owner sees the full guided-demo entry points", async ({page})
   await expect(page.getByRole("button", {name: "Welcome tour"})).toBeVisible();
   await page.getByRole("button", {name: "Welcome tour"}).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("heading", {name: "Live Jira board"})).toBeVisible();
+  await expect(page.getByRole("heading", {name: "Start with the dashboard"})).toBeVisible();
   await page.getByRole("button", {name: "Next", exact: true}).click();
-  await expect(page.getByRole("heading", {name: "At-a-glance context"})).toBeVisible();
+  await expect(page.getByRole("heading", {name: "Live Jira board"})).toBeVisible();
 });
 
 test("UAT: guided demos expose both welcome and golden-initiative tours", async ({page}) => {
@@ -590,6 +590,39 @@ test("UAT: non-committee users see the human-decision governance boundary", asyn
   await page.goto("/demo?view=work-item&issue=FCRM-101");
   await expect(page.getByText("Only a Risk Committee member can record the final decision.", {exact: true})).toBeVisible();
   await expect(page.getByRole("button", {name: "Record human decision"})).toHaveCount(0);
+});
+
+test("UAT: non-Product Owners cannot reach Initiatives through direct URLs or the Welcome Tour", async ({page}) => {
+  await mockSessionAndCommonApis(page, users[1]);
+  await page.goto("/demo?view=initiatives");
+  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page.getByRole("heading", {name: "Initiatives", exact: true})).toHaveCount(0);
+  await page.getByRole("button", {name: "Welcome tour"}).click();
+  await expect(page.getByRole("heading", {name: "Start with the dashboard"})).toBeVisible();
+  for (let step = 0; step < 12; step += 1) {
+    const initiativeStep = page.getByRole("heading", {name: "Formulate an initiative"});
+    await expect(initiativeStep).toHaveCount(0);
+    const next = page.getByRole("button", {name: "Next", exact: true});
+    if (await next.count() === 0) break;
+    await next.click();
+  }
+  await expect(page.getByRole("heading", {name: "Formulate an initiative"})).toHaveCount(0);
+});
+
+test("UAT: shared workspace information is linked through Help center for every non-Product Owner", async ({page}) => {
+  await mockSessionAndCommonApis(page, users[1]);
+  await page.goto("/demo");
+  const navigation = page.getByRole("navigation", {name: "Demo navigation"});
+  await expect(navigation.locator("button").filter({hasText: "Evidence & lineage"})).toHaveCount(0);
+  await expect(navigation.locator("button").filter({hasText: "Risk & controls"})).toHaveCount(0);
+  await expect(navigation.locator("button").filter({hasText: "Decisions"})).toHaveCount(0);
+  await expect(navigation.locator("button").filter({hasText: "Jira integration"})).toHaveCount(0);
+  await navigation.locator("button").filter({hasText: "Help center"}).click();
+  await expect(page.getByRole("heading", {name: "Help center", exact: true})).toBeVisible();
+  for (const topic of ["Evidence & lineage", "Risk & controls", "Human decisions", "Jira integration"]) {
+    await expect(page.getByRole("button", {name: new RegExp(`${topic}.*Read guide`, "i")})).toBeVisible();
+  }
+  await expect(navigation.getByRole("button", {name: "Initiatives", exact: true})).toHaveCount(0);
 });
 
 test("UAT: Sandbox custom scenario rejects malformed JSON visibly", async ({page}) => {

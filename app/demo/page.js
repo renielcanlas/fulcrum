@@ -112,7 +112,16 @@ export default function DemoPage() {
   const [decisionError, setDecisionError] = useState("");
   const [tour, setTour] = useState(null);
   const [tourRect, setTourRect] = useState(null);
-  const activeTour = tour ? guidedDemos.find((demo) => demo.id === tour.id) : null;
+  const activeTour = tour
+    ? (() => {
+        const demo = guidedDemos.find((item) => item.id === tour.id);
+        if (!demo) return null;
+        const steps = demo.steps.filter((step) =>
+          !step.roles || step.roles.includes(signedIn?.role),
+        );
+        return {...demo, steps};
+      })()
+    : null;
   const tourStep = activeTour?.steps?.[tour?.step ?? 0] ?? null;
 
   useEffect(() => {
@@ -154,7 +163,7 @@ export default function DemoPage() {
   function advanceTour() {
     setTour((current) => {
       if (!current) return null;
-      const demo = guidedDemos.find((item) => item.id === current.id);
+      const demo = activeTour;
       return current.step + 1 >= (demo?.steps?.length ?? 0)
         ? null
         : { ...current, step: current.step + 1 };
@@ -162,7 +171,7 @@ export default function DemoPage() {
   }
 
   function navigateTo(view) {
-    if (view === "initiatives" && signedIn?.role !== "PRODUCT_OWNER") return;
+    if ((view === "initiatives" || view === "guided-demos") && signedIn?.role !== "PRODUCT_OWNER") return;
     if (view === "sandbox") {
       if (!sandboxAllowed) return;
       window.open("/sandbox", "_blank", "noopener,noreferrer");
@@ -252,7 +261,7 @@ export default function DemoPage() {
   useEffect(() => {
     const view = new URLSearchParams(window.location.search).get("view");
     if (!view || !signedIn) return;
-    if (view === "initiatives" && signedIn.role !== "PRODUCT_OWNER") {
+    if ((view === "initiatives" || view === "guided-demos") && signedIn.role !== "PRODUCT_OWNER") {
       setActiveView("board");
       router.replace("/demo");
       return;
@@ -760,8 +769,8 @@ export default function DemoPage() {
             />
           )}
           {activeView === "board" && (
-            <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-              <div>
+            <>
+              <div className="mb-5">
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[rgb(9,167,141)]">
                   Interactive synthetic workspace
                 </p>
@@ -773,20 +782,29 @@ export default function DemoPage() {
                   across a traceable lifecycle.
                 </p>
               </div>
-              <button
-                onClick={() => setChatOpen(true)}
-                className="hidden rounded-lg bg-[rgb(82,224,129)] px-4 py-2.5 text-sm font-bold text-[rgb(12,34,38)] shadow-sm transition hover:bg-[rgb(110,235,151)] sm:block"
-              >
-                Ask Ciel
-              </button>
-              <button
-                type="button"
-                onClick={() => startTour(guidedDemos.find((demo) => demo.id === "welcome-tour"))}
-                className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-              >
-                Welcome tour
-              </button>
-            </div>
+              <div data-tour="dashboard-actions" className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#cfe3d8] bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#087f70]">Get oriented</p>
+                  <p className="mt-1 text-sm text-slate-600">Ask about the current workbench or take a guided tour of the decision journey.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setChatOpen(true)}
+                    className="rounded-lg bg-[rgb(82,224,129)] px-4 py-2.5 text-sm font-bold text-[rgb(12,34,38)] shadow-sm transition hover:bg-[rgb(110,235,151)]"
+                  >
+                    Ask Ciel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startTour(guidedDemos.find((demo) => demo.id === "welcome-tour"))}
+                    className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Welcome tour
+                  </button>
+                </div>
+              </div>
+            </>
           )}
           {activeView === "guided-demos" ? (
             <GuidedDemosScreen

@@ -5,13 +5,11 @@
     "description": "A guided orientation to the workbench, decision lineage, risk controls, Jira context, and Ciel.",
     "kind": "tour",
     "steps": [
+      {"view":"board","target":"dashboard-actions","title":"Start with the dashboard","text":"Ask Ciel can explain the current workbench, while Welcome tour walks through the decision journey. Both actions stay inside the governed demo workspace."},
       {"view":"board","target":"board","title":"Live Jira board","text":"This board reflects the current synthetic FCRM work items and workflow status from Jira."},
       {"view":"board","target":"metrics","title":"At-a-glance context","text":"These summary cards show item volume, workflow coverage, the connected project, and whether the board is live."},
-      {"view":"initiatives","target":"workspace-initiatives","title":"Formulate an initiative","text":"Start with a decision-ready business change. Capture the owner, outcome, scope, affected users, risk context, and success criteria before creating work in Jira."},
-      {"view":"evidence","target":"workspace-evidence","title":"Trace evidence and lineage","text":"Evidence & lineage connects source records and extracted facts to the findings and controls behind a decision."},
-      {"view":"controls","target":"workspace-controls","title":"Understand risk and controls","text":"Risk & controls keeps inherent risk, control coverage, and residual-risk reasoning visible for review."},
-      {"view":"decisions","target":"workspace-decisions","title":"Keep humans in charge","text":"The Decisions view separates analyst recommendations and overrides from the committee’s authoritative outcome."},
-      {"view":"jira","target":"workspace-jira","title":"Stay connected to delivery","text":"Jira integration shows how the governed assessment relates to the synthetic delivery work system without making Jira the risk authority."},
+      {"view":"initiatives","target":"workspace-initiatives","roles":["PRODUCT_OWNER"],"title":"Formulate an initiative","text":"Product Owners start with a decision-ready business change. Capture the owner, outcome, scope, affected users, risk context, and success criteria before creating work in Jira."},
+      {"view":"help-center","target":"workspace-help-center","title":"Find the deeper information in Help center","text":"The Help center contains focused guides for Evidence & lineage, Risk & controls, Human decisions, Jira integration, Ciel and AI, Sandbox usage, and Guided demos. Use those topics whenever you want the explanation behind a workspace feature."},
       {"view":"board","target":"ciel","title":"Ask Ciel","text":"Use Ciel, the FULCRUM AI Assistant, to explore the current initiative and decision context. Ciel explains and drafts; authorized humans decide."}
     ]
   },
