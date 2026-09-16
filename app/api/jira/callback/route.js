@@ -16,7 +16,7 @@ export async function GET(request) {
   if (params.get("error")) { destination.searchParams.set("jira", "consent_denied"); return Response.redirect(destination); }
   try {
     const redirectUri = process.env.ATLASSIAN_REDIRECT_URI || `${new URL(request.url).origin}/api/jira/callback`;
-    const attempt = runtime.jiraConnections.consumeState(params.get("state"), user.id);
+    const attempt = await runtime.jiraConnections.consumeStateAsync(params.get("state"), user.id);
     if (attempt.returnTo) {
       const safe = attempt.returnTo.startsWith("/") && !attempt.returnTo.startsWith("//") ? attempt.returnTo : "/demo";
       const target = new URL(safe, request.url);

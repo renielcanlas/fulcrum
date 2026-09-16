@@ -9,6 +9,21 @@ test("Jira OAuth state is bound to the user and single-use", () => {
   assert.throws(() => store.consumeState(state, "analyst-7"), /invalid_oauth_state/);
 });
 
+test("Jira connection store reloads encrypted connection metadata through persistence", async () => {
+  const saved = new Map();
+  const persistence = {
+    async saveJiraConnection(userId, connection) { saved.set(userId, connection); },
+    async getJiraConnection(userId) { return saved.get(userId) ?? null; },
+    async deleteJiraConnection(userId) { saved.delete(userId); }
+  };
+  const first = new JiraConnectionStore({persistence});
+  first.set("session-1", {cloudId:"cloud-1", accessToken:"encrypted-at-rest-by-adapter"});
+  const second = new JiraConnectionStore({persistence});
+  assert.deepEqual(await second.getAsync("session-1"), {cloudId:"cloud-1", accessToken:"encrypted-at-rest-by-adapter"});
+  second.delete("session-1");
+  assert.equal(await second.getAsync("session-1"), null);
+});
+
 test("Jira authorization URL requests sandbox consent", () => {
   const url = buildAuthorizationUrl({clientId: "client-1", redirectUri: "http://localhost:3000/api/jira/callback", state: "state-1"});
   assert.equal(url.origin, "https://auth.atlassian.com");

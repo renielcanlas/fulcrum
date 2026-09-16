@@ -30,8 +30,9 @@ function recordSpan(tracer, record) {
 export class AiTelemetryStore {
   #records = [];
 
-  constructor({tracer = trace.getTracer("fulcrum.ai", "1.0.0")} = {}) {
+  constructor({tracer = trace.getTracer("fulcrum.ai", "1.0.0"), persist = null} = {}) {
     this.tracer = tracer;
+    this.persist = persist;
   }
 
   record(record) {
@@ -39,6 +40,7 @@ export class AiTelemetryStore {
     this.#records.push(record);
     recordSpan(this.tracer, record);
     recordSpan(getAzureTracer(), record);
+    if (this.persist) void Promise.resolve(this.persist(record)).catch(() => {});
     return record;
   }
 

@@ -2,6 +2,9 @@ import {randomUUID} from "node:crypto";
 
 export class AuditLog {
   #events = [];
+  #persist;
+
+  constructor({persist = null} = {}) { this.#persist = persist; }
 
   record(event) {
     const safe = {...event};
@@ -12,12 +15,15 @@ export class AuditLog {
     delete safe.apiKey;
     delete safe.eventId;
     delete safe.timestamp;
-    this.#events.push(Object.freeze({
+    const stored = Object.freeze({
       eventId: randomUUID(),
       interactionId: event.interactionId,
       timestamp: new Date().toISOString(),
       ...safe
-    }));
+    });
+    this.#events.push(stored);
+    if (this.#persist) void Promise.resolve(this.#persist(stored)).catch(() => {});
+    return stored;
   }
 
   all() { return [...this.#events]; }

@@ -12,7 +12,7 @@ export async function POST(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
   const user = runtime.sessions.get(sessionId) ?? (sessionId?.startsWith("demo:") ? findDemoUser(sessionId.slice("demo:".length)) : null);
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
-  const connection = runtime.jiraConnections.get(sessionId);
+  const connection = await runtime.jiraConnections.getAsync(sessionId);
   if (!connection) return Response.json({error: "jira_user_authorization_required"}, {status: 409});
   try {
     const form = await request.formData();

@@ -13,11 +13,19 @@ export class JiraConnectionStore {
   #attempts = new Map();
   #connections = new Map();
   #now;
+  #persistence;
 
-  constructor({now = () => Date.now()} = {}) { this.#now = now; }
+  constructor({now = () => Date.now(), persistence = null} = {}) { this.#now = now; this.#persistence = persistence; }
   createState(userId, metadata = {}) {
     const state = randomBytes(32).toString("base64url");
-    this.#attempts.set(state, {userId, ...metadata, expiresAt: this.#now() + STATE_TTL_MS});
+    const attempt = {userId, ...metadata, expiresAt: this.#now() + STATE_TTL_MS};
+    this.#attempts.set(state, attempt);
+    if (this.#persistence) void Promise.resolve(this.#persistence.saveOAuthState(state, attempt)).catch(() => {});
+    return state;
+  }
+  async createStateAsync(userId, metadata = {}) {
+    const state = this.createState(userId, metadata);
+    if (this.#persistence) await this.#persistence.saveOAuthState(state, this.#attempts.get(state));
     return state;
   }
   consumeState(state, userId) {
@@ -26,9 +34,31 @@ export class JiraConnectionStore {
     if (!attempt || attempt.expiresAt <= this.#now() || attempt.userId !== userId) throw new Error("invalid_oauth_state");
     return attempt;
   }
-  set(userId, connection) { this.#connections.set(userId, Object.freeze({...connection})); }
+  async consumeStateAsync(state, userId) {
+    try { return this.consumeState(state, userId); } catch (error) {
+      if (error.message !== "invalid_oauth_state" || !this.#persistence) throw error;
+      const attempt = await this.#persistence.consumeOAuthState(state, userId, new Date(this.#now()));
+      if (!attempt) throw error;
+      return attempt;
+    }
+  }
+  set(userId, connection) {
+    const safe = Object.freeze({...connection});
+    this.#connections.set(userId, safe);
+    if (this.#persistence) void Promise.resolve(this.#persistence.saveJiraConnection(userId, safe)).catch(() => {});
+  }
   get(userId) { return this.#connections.get(userId) ?? null; }
-  delete(userId) { this.#connections.delete(userId); }
+  async getAsync(userId) {
+    const cached = this.get(userId);
+    if (cached || !this.#persistence) return cached;
+    const connection = await this.#persistence.getJiraConnection(userId);
+    if (connection) this.#connections.set(userId, Object.freeze({...connection}));
+    return connection;
+  }
+  delete(userId) {
+    this.#connections.delete(userId);
+    if (this.#persistence) void Promise.resolve(this.#persistence.deleteJiraConnection(userId)).catch(() => {});
+  }
 }
 
 export function jiraOAuthConfigured(env = process.env) {

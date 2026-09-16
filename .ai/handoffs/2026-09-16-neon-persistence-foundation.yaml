@@ -1,0 +1,36 @@
+schema_version: "1.0"
+task: "Persist FULCRUM-owned audit, AI telemetry, OAuth state, and encrypted Jira connections in Neon PostgreSQL"
+requirements: ["REQ-018", "REQ-027"]
+files_changed:
+  - "package.json"
+  - "package-lock.json"
+  - ".env.example"
+  - "src/db/neon.js"
+  - "db/migrations/001_initial.sql"
+  - "scripts/migrate.js"
+  - "app/api/health/route.js"
+  - "src/db/persistence.js"
+  - "src/audit/audit.js"
+  - "src/integrations/jira-oauth.js"
+  - "test/jira-oauth.test.js"
+  - "docs/11-decisions/ADR-036-neon-persistence-boundary.md"
+artifacts_changed:
+  - "Neon migration 001_initial applied to the configured development database"
+decisions:
+  - "Use Neon serverless PostgreSQL through DATABASE_URL/POSTGRES_URL and keep credentials server-only."
+  - "Introduce schema tables for audit events, AI execution records, sessions, and Jira connections before switching application writes."
+  - "Keep the synthetic assessment fixture and demo sessions lightweight; do not mirror Jira-owned content into PostgreSQL."
+unresolved_questions:
+  - "Which domain entities should be normalized first versus stored as versioned JSON snapshots?"
+  - "What encryption/key-management boundary will protect persisted Jira OAuth tokens?"
+tests_performed:
+  - "npm test: 73 passed"
+  - "npm run build: passed"
+  - "npm run db:migrate: applied 001_initial"
+  - "Neon connectivity check: configured and reachable"
+known_risks:
+  - "Application domain assessment state is still read-only/in-memory; this change does not yet provide durable assessment commands."
+  - "Jira token persistence requires FULCRUM_DATA_ENCRYPTION_KEY in each Vercel environment."
+recommended_next_action: "Add FULCRUM_DATA_ENCRYPTION_KEY to Vercel, verify /api/health, then migrate authoritative assessment commands and snapshots."
+producer: "Codex"
+timestamp: "2026-09-16T00:00:00+08:00"
