@@ -42,7 +42,9 @@ export async function POST(request) {
     appRuntime.audit.record({eventType:"UserSessionEnded",actorId:endedUser.id,actorType:"DEMO_PERSONA",entityId:endedUser.id,metadata:{reason:"persona_switch",jiraUserConnectionRevoked:true}});
   }
   appRuntime.audit.record({eventType:"UserSessionStarted",actorId:selected.id,actorType:"DEMO_PERSONA",userRole:selected.role,entityId:selected.id,metadata:{reason:"persona_selected",previousPersonaId:previousUser?.id ?? null}});
-  const sid = await appRuntime.sessions.createAsync(selected);
-  return new Response(JSON.stringify({user:selected,sessionRefreshed:Boolean(previousUser)}),{headers:{"cache-control":"no-store","content-type":"application/json","set-cookie":cookie(sid,28800)}});
+  const sessionMinutes = (await appRuntime.configuration.get("application")).config.demoSessionMinutes;
+  const maxAge = sessionMinutes * 60;
+  const sid = await appRuntime.sessions.createAsync(selected, maxAge * 1000);
+  return new Response(JSON.stringify({user:selected,sessionRefreshed:Boolean(previousUser)}),{headers:{"cache-control":"no-store","content-type":"application/json","set-cookie":cookie(sid,maxAge)}});
 }
 export async function DELETE(request) { const sid=sessionId(request); const selected=await user(request); appRuntime.jiraConnections.delete(sid); if(selected) appRuntime.jiraConnections.delete(selected.id); await appRuntime.sessions.destroyAsync(sid); if(selected)appRuntime.audit.record({eventType:"UserSessionEnded",actorId:selected.id,actorType:"DEMO_PERSONA",entityId:selected.id,metadata:{jiraUserConnectionRevoked:true}}); return new Response(JSON.stringify({ok:true}),{headers:{"content-type":"application/json","set-cookie":cookie("",0)}}); }

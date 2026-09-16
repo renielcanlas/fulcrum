@@ -1,0 +1,21 @@
+handoff_id: 2026-09-16-runtime-configuration
+status: complete
+objective: Add an authenticated configuration section for validated runtime settings that do not require redeploy.
+changes:
+  - Added persisted Neon configuration registry and migration 003.
+  - Added analyst-only GET/PUT configuration API with validation and audit events.
+  - Added Configuration section to the FULCRUM workbench.
+  - Added risk, assessment, application, and non-secret integration settings.
+  - Changed session lifetime to a 15-minute default in minutes and enforced the synthetic Sandbox flag across links, navigation, direct entry, and APIs.
+  - Kept credentials, API keys, OAuth secrets, tokens, and encryption keys outside the configuration UI.
+requirements_traceability:
+  - REQ-011
+  - REQ-015
+  - REQ-028
+validation:
+  tests: 'npm test: 74 passed'
+  build: 'npm run build: passed'
+  migration: '003_configurations applied to configured Neon database'
+  diff_check: 'git diff --check: passed'
+open_questions:
+  - Wire each configurable assessment family to its recalculation/publishing path as it graduates from the synthetic fixture.

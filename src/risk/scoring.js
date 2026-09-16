@@ -5,7 +5,7 @@ const CONTROL_VALUE = Object.freeze({INEFFECTIVE: 0, PARTIAL: 0.5, EFFECTIVE: 1}
  * Small, transparent demo calculator. Production weights and thresholds must
  * be approved, versioned configuration rather than constants in this module.
  */
-export function calculateRisk({riskFactors, controls, configuration = {id: "FULCRUM-SYNTH-CONFIG-1.2", mitigationScale: 18, thresholds: {mediumMax: 69, highMin: 70}}}) {
+export function calculateRisk({riskFactors, controls, configuration = {id: "FULCRUM-SYNTH-CONFIG-1.2", mitigationScale: 18, thresholds: {mediumMax: 49, highMin: 70}}}) {
   if (!Array.isArray(riskFactors) || !riskFactors.length) throw new Error("RISK_FACTORS_REQUIRED");
   if (!Array.isArray(controls) || !controls.length) throw new Error("CONTROLS_REQUIRED");
   const factorValues = riskFactors.map(factor => ({riskFactorId: factor.id, rating: factor.rating, value: RATING_VALUE[factor.rating] ?? (() => { throw new Error(`INVALID_RATING_${factor.rating}`); })()}));
@@ -14,7 +14,7 @@ export function calculateRisk({riskFactors, controls, configuration = {id: "FULC
   const averageControlEffectiveness = controlValues.reduce((sum, item) => sum + item.value, 0) / controlValues.length;
   const mitigation = Math.round(averageControlEffectiveness * configuration.mitigationScale);
   const residualScore = Math.max(0, inherentScore - mitigation);
-  const residualRating = residualScore >= configuration.thresholds.highMin ? "HIGH" : residualScore > configuration.thresholds.mediumMax ? "MEDIUM" : "LOW";
+  const residualRating = residualScore > configuration.thresholds.highMin ? "HIGH" : residualScore > configuration.thresholds.mediumMax ? "MEDIUM" : "LOW";
   return {
     configurationId: configuration.id,
     calculationVersion: "FULCRUM-DEMO-SCORING-1.0",

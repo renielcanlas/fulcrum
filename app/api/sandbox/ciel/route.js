@@ -8,6 +8,7 @@ import {resolveJiraConnection} from "../../../../src/integrations/jira-connectio
 import {fillActionResponse, planCielAction} from "../../../../src/ai/ciel-action-plan.js";
 import {looksLikeAssignmentRequest, refersToCurrentUser} from "../../../../src/ai/ciel-intent.js";
 import {cielDebug, cielDebugError} from "../../../../src/debug/ciel-debug.js";
+import {requireSandbox} from "../../../../src/configuration/feature-access.js";
 
 export const maxDuration = 60;
 const sandboxUser = findDemoUser("analyst-7");
@@ -86,6 +87,7 @@ async function improveJiraStory({issue, message, onAzureRequest, onAzureResponse
 }
 
 export async function POST(request) {
+  try { await requireSandbox(runtime); } catch (error) { return Response.json({error:error.message}, {status:403}); }
   const actingUser = await sessionUser(request) ?? sandboxUser;
   let body;
   try { body = await request.json(); } catch { return Response.json({error: "invalid_json"}, {status: 400}); }

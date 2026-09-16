@@ -26,6 +26,18 @@ export function createDatabasePersistence({env = process.env, sql = databaseConf
   if (!sql) return null;
   const key = encryptionKey(env);
   return {
+    async getConfiguration(configKey) {
+      const rows = await sql`select config, version, updated_by, updated_at from fulcrum_configurations where config_key = ${configKey}`;
+      if (!rows[0]) return null;
+      return {config: rows[0].config, version: rows[0].version, updatedBy: rows[0].updated_by, updatedAt: rows[0].updated_at};
+    },
+    async saveConfiguration(configKey, config, updatedBy) {
+      const rows = await sql`insert into fulcrum_configurations (config_key, config, updated_by)
+        values (${configKey}, ${JSON.stringify(config)}, ${updatedBy ?? null})
+        on conflict (config_key) do update set config = excluded.config, version = fulcrum_configurations.version + 1, updated_by = excluded.updated_by, updated_at = now()
+        returning version, updated_at`;
+      return {version: rows[0]?.version ?? 1, updatedAt: rows[0]?.updated_at ?? new Date().toISOString()};
+    },
     async saveSession(sessionId, user, expiresAt) {
       await sql`insert into fulcrum_sessions (session_id, user_id, user_profile, expires_at)
         values (${sessionId}, ${user.id}, ${JSON.stringify(user)}, ${new Date(expiresAt).toISOString()})

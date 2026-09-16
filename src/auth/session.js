@@ -3,10 +3,10 @@ import {randomBytes} from "node:crypto";
 export class SessionStore {
   #sessions = new Map();
   constructor({ttlMs = 8 * 60 * 60 * 1000, now = () => Date.now(), persistence = null} = {}) { this.ttlMs = ttlMs; this.now = now; this.persistence = persistence; }
-  create(user) { const id = randomBytes(32).toString("base64url"); this.#sessions.set(id, {user, expiresAt:this.now() + this.ttlMs}); return id; }
-  async createAsync(user) {
-    const id = this.create(user);
-    if (this.persistence?.saveSession) await this.persistence.saveSession(id, user, this.now() + this.ttlMs);
+  create(user, ttlMs = this.ttlMs) { const id = randomBytes(32).toString("base64url"); this.#sessions.set(id, {user, expiresAt:this.now() + ttlMs}); return id; }
+  async createAsync(user, ttlMs = this.ttlMs) {
+    const id = this.create(user, ttlMs);
+    if (this.persistence?.saveSession) await this.persistence.saveSession(id, user, this.now() + ttlMs);
     return id;
   }
   get(id) { const session = id && this.#sessions.get(id); if (!session || session.expiresAt <= this.now()) { if (id) this.#sessions.delete(id); return null; } return session.user; }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import jiraConfig from "../../data/config/jira-integration.json" with { type: "json" };
 import CielChat from "../../src/components/ciel-chat.js";
 
@@ -14,6 +15,8 @@ const cielResponseStorageKey = "fulcrum-ciel-response-id";
 const scenarioResponseStorageKey = "fulcrum-scenario-response-id";
 
 export default function SandboxPage() {
+  const router = useRouter();
+  const [sandboxAllowed, setSandboxAllowed] = useState(null);
   const [view, setView] = useState("search");
   const [connection, setConnection] = useState(null);
   const [aiStatus, setAiStatus] = useState(null);
@@ -38,6 +41,17 @@ export default function SandboxPage() {
   const [scenarioResponseId, setScenarioResponseId] = useState("");
 
   useEffect(() => {
+    fetch("/api/features", {cache:"no-store"})
+      .then((response) => response.ok ? response.json() : {allowSyntheticSandbox:false})
+      .then((features) => {
+        const allowed = Boolean(features.allowSyntheticSandbox);
+        setSandboxAllowed(allowed);
+        if (!allowed) router.replace("/");
+      })
+      .catch(() => router.replace("/"));
+  }, [router]);
+
+  useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(cielStorageKey) ?? "null");
       if (Array.isArray(saved) && saved.length) setCielMessages(saved);
@@ -60,6 +74,7 @@ export default function SandboxPage() {
   useEffect(() => { if (!cielReady) return; if (scenarioResponseId) localStorage.setItem(scenarioResponseStorageKey, scenarioResponseId); else localStorage.removeItem(scenarioResponseStorageKey); }, [scenarioResponseId, cielReady]);
 
   useEffect(() => {
+    if (sandboxAllowed !== true) return;
     async function initialize() {
       const [statusResponse, scenariosResponse, aiStatusResponse] =
         await Promise.all([
@@ -74,7 +89,9 @@ export default function SandboxPage() {
       if (data.scenarios?.[0]) setSelectedId(data.scenarios[0].id);
     }
     initialize().catch(() => setConnection({ connected: false }));
-  }, []);
+  }, [sandboxAllowed]);
+
+  if (sandboxAllowed !== true) return <main className="flex min-h-screen items-center justify-center bg-[#f5f7f7] text-sm text-slate-500">Sandbox is currently unavailable.</main>;
 
   let scenario = scenarios.find((item) => item.id === selectedId);
   if (selectedId === "custom") {

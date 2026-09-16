@@ -1,11 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
   const repoDocs = "https://github.com/renielcanlas/fulcrum/blob/main";
+  const [sandboxAllowed, setSandboxAllowed] = useState(true);
   const openLogin = () => router.push("/login");
+  useEffect(() => {
+    fetch("/api/features", {cache:"no-store"}).then((response) => response.ok ? response.json() : null).then((features) => {
+      if (features) setSandboxAllowed(Boolean(features.allowSyntheticSandbox));
+    }).catch(() => {});
+  }, []);
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-[rgb(25,66,71)]">
       <nav className="sticky top-0 z-40 border-b border-[#d8e1e1]/80 bg-[#f5f7f7]/90 backdrop-blur-md">
@@ -94,14 +101,14 @@ export default function Home() {
           <p className="mt-5 text-xs text-slate-500">
             AI prepares. Deterministic systems explain. Humans decide.
           </p>
-          <a
+          {sandboxAllowed && <a
             href="/sandbox"
             target="_blank"
             rel="noreferrer"
             className="mt-4 inline-flex text-sm font-bold text-[rgb(9,167,141)] hover:text-[rgb(25,66,71)]"
           >
             Explore the sandbox →
-          </a>
+          </a>}
         </div>
         <div
           aria-label="Future FULCRUM system diagram or vector video placeholder"
@@ -281,14 +288,14 @@ export default function Home() {
                 Describe a synthetic Jira experiment, see the first JSON draft immediately, and review deterministic validation before any confirmed Jira change.
               </p>
             </div>
-            <a
+            {sandboxAllowed && <a
               href="/sandbox"
               target="_blank"
               rel="noreferrer"
               className="shrink-0 text-sm font-bold text-[rgb(9,167,141)] hover:text-[rgb(25,66,71)]"
             >
               Open sandbox →
-            </a>
+            </a>}
           </div>
           <div
             id="ai-usage"

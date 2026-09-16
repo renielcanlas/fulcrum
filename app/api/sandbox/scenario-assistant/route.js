@@ -1,6 +1,7 @@
 import {runtime} from "../../../../src/server/runtime.js";
 import {DEMO_USERS, findDemoUser} from "../../../../src/auth/demo-users.js";
 import {validateJiraScenario} from "../../../../src/integrations/jira-scenario.js";
+import {requireSandbox} from "../../../../src/configuration/feature-access.js";
 
 export const maxDuration = 60;
 const ALLOWED_ACTIONS = new Set(["create", "update", "transition", "assign", "comment", "delete_all"]);
@@ -52,6 +53,7 @@ function getResponseText(result) {
 }
 
 export async function POST(request) {
+  try { await requireSandbox(runtime); } catch (error) { return Response.json({error:error.message}, {status:403}); }
   try {
     const body = await request.json();
     if (!body.message?.trim()) return Response.json({error: "message_required"}, {status: 400});

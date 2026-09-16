@@ -24,6 +24,7 @@ const navItems = [
   ["initiatives", "Initiatives", "◫"],
   ["sandbox", "Sandbox", "⚗"],
   ["help-center", "Help center", "?"],
+  ["configuration", "Configuration", "⚙"],
 ];
 const jiraBoardUrl =
   "https://geniushacks.atlassian.net/jira/software/projects/KAN/boards/2?filter=&groupBy=none&atlOrigin=eyJpIjoiYjY1ZTgwYTY3NWM5NGU3ZWEwMDEyZjZlNmQwODAzMjQiLCJwIjoiaiJ9";
@@ -84,6 +85,7 @@ export default function DemoPage() {
   const [trace, setTrace] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [activeView, setActiveView] = useState("board");
+  const [sandboxAllowed, setSandboxAllowed] = useState(null);
   const [chatReady, setChatReady] = useState(false);
   const [previousResponseId, setPreviousResponseId] = useState("");
   const [boardItems, setBoardItems] = useState(null);
@@ -111,6 +113,12 @@ export default function DemoPage() {
   const [tourRect, setTourRect] = useState(null);
   const activeTour = tour ? guidedDemos.find((demo) => demo.id === tour.id) : null;
   const tourStep = activeTour?.steps?.[tour?.step ?? 0] ?? null;
+
+  useEffect(() => {
+    fetch("/api/features", {cache:"no-store"}).then((response) => response.ok ? response.json() : null).then((features) => {
+      if (features) setSandboxAllowed(Boolean(features.allowSyntheticSandbox));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!tourStep) {
@@ -154,6 +162,7 @@ export default function DemoPage() {
 
   function navigateTo(view) {
     if (view === "sandbox") {
+      if (!sandboxAllowed) return;
       window.open("/sandbox", "_blank", "noopener,noreferrer");
       return;
     }
@@ -634,6 +643,8 @@ export default function DemoPage() {
       </main>
     );
 
+  const visibleNavItems = navItems.filter(([id]) => (id !== "configuration" || signedIn.role === "FCRM_ANALYST") && (id !== "sandbox" || sandboxAllowed === true));
+
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-[rgb(25,66,71)]">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(12,34,38,0.97)] text-white shadow-lg shadow-slate-900/10 backdrop-blur">
@@ -670,7 +681,7 @@ export default function DemoPage() {
         className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3 lg:hidden"
         aria-label="Mobile demo navigation"
       >
-        {navItems.map(([id, label]) => (
+        {visibleNavItems.map(([id, label]) => (
           <button
             key={id}
             onClick={() => navigateTo(id)}
@@ -691,7 +702,7 @@ export default function DemoPage() {
             </p>
           </div>
           <nav className="space-y-1" aria-label="Demo navigation">
-            {navItems.map(([id, label, icon]) => (
+            {visibleNavItems.map(([id, label, icon]) => (
               <Fragment key={id}>
                 <button
                   onClick={() => navigateTo(id)}
@@ -931,6 +942,7 @@ export default function DemoPage() {
             <WorkspaceScreen
               view={activeView}
               onNavigate={navigateTo}
+              onSandboxChange={setSandboxAllowed}
               onOpenTrace={loadTrace}
               trace={trace}
               currentUser={signedIn}
@@ -1575,7 +1587,7 @@ function InitiativeForm({ currentUser }) {
   );
 }
 
-function WorkspaceScreen({ view, onNavigate, onOpenTrace, trace, currentUser }) {
+function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace, currentUser }) {
   const [helpTopic, setHelpTopic] = useState(null);
   const screens = {
     initiatives: {
@@ -1613,6 +1625,11 @@ function WorkspaceScreen({ view, onNavigate, onOpenTrace, trace, currentUser }) 
       title: "Help center",
       description:
         "Learn what each part of FULCRUM means and how information moves through the workbench.",
+    },
+    configuration: {
+      eyebrow: "Governed administration",
+      title: "Configuration",
+      description: "Update approved risk, assessment, application, and integration settings without redeploying the application.",
     },
   };
   const screen = screens[view] ?? screens.initiatives;
@@ -1715,6 +1732,7 @@ function WorkspaceScreen({ view, onNavigate, onOpenTrace, trace, currentUser }) 
   }
 
   const content = {
+    configuration: <ConfigurationScreen currentUser={currentUser} onSandboxChange={onSandboxChange} />,
     initiatives: (
           <InitiativeForm currentUser={currentUser} />
     ),
@@ -1934,6 +1952,207 @@ function ScreenHeading({ eyebrow, title, description }) {
       </p>
     </div>
   );
+}
+
+function ConfigurationScreen({onSandboxChange}) {
+  const [configuration, setConfiguration] = useState(null);
+  const [drafts, setDrafts] = useState({});
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/configuration", {cache:"no-store"})
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? "configuration_load_failed");
+        setConfiguration(body.configuration);
+        setDrafts(body.configuration);
+      })
+      .catch((loadError) => setError(loadError.message ?? "configuration_load_failed"));
+  }, []);
+
+  function update(section, key, value) {
+    setDrafts((current) => ({...current, [section]: {...current[section], [key]: value}}));
+  }
+
+  function updateRisk(key, value) {
+    setDrafts((current) => ({...current, risk: {...current.risk, [key]: value}}));
+  }
+
+  function updateRiskValue(key, value) {
+    setDrafts((current) => ({...current, risk: {...current.risk, thresholds: {...current.risk.thresholds, [key]: value}}}));
+  }
+
+  async function save(section) {
+    setBusy(section);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/configuration", {method:"PUT", headers:{"content-type":"application/json"}, body:JSON.stringify({section, values:drafts[section]})});
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "configuration_save_failed");
+      setConfiguration((current) => ({...current, [section]: body.config}));
+      setDrafts((current) => ({...current, [section]: body.config}));
+      if (section === "application") onSandboxChange?.(Boolean(body.config.allowSyntheticSandbox));
+      setMessage(`${section} configuration saved. New calculations use it when they run.`);
+    } catch (saveError) {
+      setError(saveError.message ?? "configuration_save_failed");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  if (error) return <InfoCard title="Configuration unavailable"><p className="text-sm text-red-700">{error}</p></InfoCard>;
+  if (!configuration) return <InfoCard title="Configuration"><p className="text-sm text-slate-500">Loading configuration…</p></InfoCard>;
+  const risk = drafts.risk;
+  const assessments = drafts.assessments;
+  const application = drafts.application;
+  const integrations = drafts.integrations;
+  const isDirty = (section) => configurationFingerprint(configuration[section]) !== configurationFingerprint(drafts[section]);
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
+        <p className="font-bold">Configuration boundary</p>
+        <p className="mt-1">These settings are persisted in Neon and take effect without a redeploy. Secrets, API keys, OAuth client secrets, and encryption keys remain server-only Vercel environment variables and are intentionally not editable here.</p>
+      </div>
+      {message && <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">{message}</p>}
+      <ConfigCard title="Risk assessment methodology" description="Set the rating boundaries and how strongly effective controls can reduce the score.">
+        <details className="mb-5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700">
+          <summary className="cursor-pointer px-4 py-3 font-bold text-slate-800">Learn more about risk scoring</summary>
+          <div className="border-t border-slate-200 px-4 py-4 leading-6">
+            <ol className="list-decimal space-y-2 pl-5"><li>FULCRUM starts with the risks in the initiative. More serious risk factors create a higher starting score.</li><li>Controls reduce that starting score based on how effective they are.</li><li>The remaining score is compared with S1 and S2 to determine Low, Medium, or High.</li></ol>
+            <div className="mt-4 rounded-lg border border-white bg-white p-3 text-xs leading-5"><p className="font-bold text-slate-900">Simple example</p><p className="mt-1">If the starting score is 78, controls are 50% effective on average, and the mitigation cap is 18 points, the controls reduce the score by 9 points: <strong>78 − (50% × 18) = 69</strong>.</p></div>
+            <p className="mt-3 text-xs text-slate-500">The mitigation cap is fixed score points, not a percentage. The percentage comes from control effectiveness; the cap determines how many points that effectiveness can remove.</p>
+          </div>
+        </details>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ThresholdRange thresholds={risk.thresholds} onChangeS1={(value) => updateRiskValue("mediumMax", value)} onChangeS2={(value) => updateRiskValue("highMin", value)} />
+          <MitigationScaleControl value={risk.mitigationScale} onChange={(value) => update("risk", "mitigationScale", value)} />
+        </div>
+        <ConfigSaveButton dirty={isDirty("risk")} busy={busy === "risk"} onClick={() => save("risk")} />
+      </ConfigCard>
+      <ConfigCard title="Assessment decision support" description="Set how the final readiness score is weighted and when FULCRUM suggests moving to the next workflow step.">
+        <details className="mb-5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700">
+          <summary className="cursor-pointer px-4 py-3 font-bold text-slate-800">Learn more about decision support</summary>
+          <div className="border-t border-slate-200 px-4 py-4 leading-6"><p>The AutoScore comes from deterministic checks such as completeness, ownership, labels, and collaboration. The AI score is Ciel’s advisory review of the same assessment context.</p><p className="mt-3">The weighting slider combines those two scores into one readiness score. It does not approve, reject, or move the work automatically.</p><p className="mt-3">The proceed threshold is the point at which FULCRUM suggests moving to the next workflow step. An authorized human still reviews the evidence and confirms what happens next.</p></div>
+        </details>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DecisionWeightControl value={assessments.aiPercent} onChange={(aiPercent) => setDrafts((current) => ({...current, assessments: {...current.assessments, aiPercent, automaticPercent: 100 - aiPercent}}))} />
+          <ProceedThresholdControl value={assessments.proceedThreshold} onChange={(value) => update("assessments", "proceedThreshold", value)} />
+        </div>
+        <ConfigSaveButton dirty={isDirty("assessments")} busy={busy === "assessments"} onClick={() => save("assessments")} />
+      </ConfigCard>
+      <ConfigCard title="Application behavior" description="Operational settings that are safe to change at runtime.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ConfigInput label="Session lifetime (minutes)" helper="New sessions expire after this many minutes. Existing sessions keep their current expiry." type="number" value={application.demoSessionMinutes} onChange={(event) => update("application", "demoSessionMinutes", event.target.value)} />
+          <label className="flex items-center gap-3 self-end pb-2 text-sm font-semibold text-slate-800"><input type="checkbox" checked={application.allowSyntheticSandbox} onChange={(event) => update("application", "allowSyntheticSandbox", event.target.checked)} /> Allow synthetic Sandbox</label>
+        </div>
+        <ConfigSaveButton dirty={isDirty("application")} busy={busy === "application"} onClick={() => save("application")} />
+      </ConfigCard>
+      <ConfigCard title="Integration behavior" description="Non-secret Jira and document-processing settings. Credentials and tokens stay in Vercel environment variables or encrypted persistence.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ConfigInput label="Jira project key" value={integrations.jiraProjectKey} onChange={(event) => update("integrations", "jiraProjectKey", event.target.value)} />
+          <ConfigInput label="Jira site URL" value={integrations.jiraSiteUrl} onChange={(event) => update("integrations", "jiraSiteUrl", event.target.value)} />
+          <ConfigInput label="Jira board ID" type="number" value={integrations.jiraBoardId} onChange={(event) => update("integrations", "jiraBoardId", event.target.value)} />
+          <div className="flex flex-col gap-3 self-end pb-2 text-sm font-semibold text-slate-800"><label><input type="checkbox" checked={integrations.jiraOAuthEnabled} onChange={(event) => update("integrations", "jiraOAuthEnabled", event.target.checked)} /> <span className="ml-2">Enable Jira OAuth</span></label><label><input type="checkbox" checked={integrations.documentIntelligenceEnabled} onChange={(event) => update("integrations", "documentIntelligenceEnabled", event.target.checked)} /> <span className="ml-2">Enable document extraction</span></label></div>
+        </div>
+        <ConfigSaveButton dirty={isDirty("integrations")} busy={busy === "integrations"} onClick={() => save("integrations")} />
+      </ConfigCard>
+      <p className="text-xs leading-5 text-slate-500">Loaded configuration version: {Object.values(configuration).map((item) => item?.version).filter(Boolean).join(" · ") || "database defaults"}. Changes are audited with the acting FULCRUM user.</p>
+    </div>
+  );
+}
+
+function ConfigCard({title, description, children}) {
+  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-bold text-slate-950">{title}</h2><p className="mt-1 text-sm leading-6 text-slate-500">{description}</p><div className="mt-5">{children}</div></section>;
+}
+
+function ConfigInput({label, helper, type="text", readOnly=false, value, onChange}) {
+  return <label className="block text-sm font-semibold text-slate-800">{label}<input type={type} readOnly={readOnly} value={value ?? ""} onChange={onChange} className="mt-2 min-h-10 w-full rounded-lg border border-slate-300 px-3 text-sm font-normal outline-none focus:border-[#087f70] read-only:bg-slate-50" />{helper && <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{helper}</span>}</label>;
+}
+
+function MitigationScaleControl({value, onChange}) {
+  const points = Number(value);
+  const explanation = points <= 10
+    ? "Stricter: even effective controls can remove only a small number of points."
+    : points >= 31
+      ? "More lenient: effective controls can remove a larger number of points."
+      : "Balanced: controls have a moderate ability to reduce the score.";
+  return <div className="rounded-xl border border-slate-200 bg-slate-50 p-5"><p className="text-sm font-bold text-slate-900">Control mitigation strength</p><p className="mt-1 text-xs leading-5 text-slate-500">Sets the maximum number of score points that fully effective controls can remove.</p><label className="mt-5 block text-sm font-semibold text-slate-800" htmlFor="mitigation-scale-slider"><div className="flex items-center gap-3"><input id="mitigation-scale-slider" aria-label="Maximum control mitigation points" type="range" min="0" max="50" value={points} onChange={(event) => onChange(Number(event.target.value))} className="h-2 w-full accent-[#194247]" /><output className="min-w-16 rounded-lg bg-white px-2 py-1 text-center text-sm font-bold text-slate-800">{points} pts</output></div></label><span className="mt-3 block rounded-lg bg-white px-3 py-2 text-xs leading-5 text-slate-600">{explanation}</span></div>;
+}
+
+function DecisionWeightControl({value, onChange}) {
+  const aiPercent = Number(value);
+  return <div className="rounded-xl border border-slate-200 bg-slate-50 p-5"><p className="text-sm font-bold text-slate-900">AI and AutoScore weighting</p><p className="mt-1 text-xs leading-5 text-slate-500">Choose how much the advisory AI score contributes to the final readiness score.</p><label className="mt-5 block text-sm font-semibold text-slate-800" htmlFor="ai-weight-slider"><div className="flex items-center gap-3"><input id="ai-weight-slider" aria-label="AI score weighting percentage" type="range" min="0" max="100" value={aiPercent} onChange={(event) => onChange(Number(event.target.value))} className="h-2 w-full accent-[#194247]" /><output className="min-w-24 rounded-lg bg-white px-2 py-1 text-center text-sm font-bold text-slate-800">AI {aiPercent}%</output></div></label><div className="mt-3 flex justify-between text-[10px] font-bold text-slate-400"><span>0% AI / 100% Auto</span><span>100% AI / 0% Auto</span></div><p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs leading-5 text-slate-600">At 80, the final score uses 80% of the AI score and 20% of the AutoScore. AI remains advisory.</p></div>;
+}
+
+function ProceedThresholdControl({value, onChange}) {
+  const threshold = Number(value);
+  return <div className="rounded-xl border border-slate-200 bg-slate-50 p-5"><p className="text-sm font-bold text-slate-900">Proceed-to-next-step threshold</p><p className="mt-1 text-xs leading-5 text-slate-500">The final score must reach this value before FULCRUM suggests moving to the next workflow area.</p><label className="mt-5 block text-sm font-semibold text-slate-800" htmlFor="proceed-threshold-slider"><div className="flex items-center gap-3"><input id="proceed-threshold-slider" aria-label="Proceed to next step threshold" type="range" min="0" max="100" value={threshold} onChange={(event) => onChange(Number(event.target.value))} className="h-2 w-full accent-[#194247]" /><output className="min-w-16 rounded-lg bg-white px-2 py-1 text-center text-sm font-bold text-slate-800">{threshold}</output></div></label><div className="mt-3 flex justify-between text-[10px] font-bold text-slate-400"><span>0</span><span>100</span></div><p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs leading-5 text-slate-600">This is a suggestion threshold, not an automatic approval or transition. A person still confirms the next step.</p></div>;
+}
+
+function ThresholdRange({thresholds, onChangeS1, onChangeS2}) {
+  const s1 = Number(thresholds.mediumMax);
+  const s2 = Number(thresholds.highMin);
+  const trackRef = useRef(null);
+  const [dragging, setDragging] = useState(null);
+
+  useEffect(() => {
+    if (!dragging) return undefined;
+    const move = (event) => {
+      const track = trackRef.current;
+      if (!track) return;
+      const bounds = track.getBoundingClientRect();
+      const value = Math.max(0, Math.min(100, Math.round(((event.clientX - bounds.left) / bounds.width) * 100)));
+      if (dragging === "s1") onChangeS1(Math.max(5, Math.min(value, s2 - 5)));
+      if (dragging === "s2") onChangeS2(Math.min(95, Math.max(value, s1 + 5)));
+    };
+    const stop = () => setDragging(null);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop, {once:true});
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+  }, [dragging, onChangeS1, onChangeS2, s1, s2]);
+
+  function nudge(handle, direction) {
+    if (handle === "s1") onChangeS1(Math.max(5, Math.min(s2 - 5, s1 + direction)));
+    if (handle === "s2") onChangeS2(Math.min(95, Math.max(s1 + 5, s2 + direction)));
+  }
+
+  function handleKeyDown(handle, event) {
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown") { event.preventDefault(); nudge(handle, -1); }
+    if (event.key === "ArrowRight" || event.key === "ArrowUp") { event.preventDefault(); nudge(handle, 1); }
+    if (event.key === "Home") { event.preventDefault(); handle === "s1" ? onChangeS1(5) : onChangeS2(s1 + 5); }
+    if (event.key === "End") { event.preventDefault(); handle === "s1" ? onChangeS1(s2 - 5) : onChangeS2(95); }
+  }
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+      <p className="text-sm font-bold text-slate-900">Risk rating boundaries</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">Sets where the Low, Medium, and High score ranges begin and end.</p>
+      <div ref={trackRef} className="relative mt-3 h-10 select-none touch-none">
+        <div className="absolute left-0 right-0 top-3 h-3 rounded-full" style={{background:`linear-gradient(to right, #22c55e 0%, #facc15 ${s1}%, #facc15 ${s2}%, #ef4444 ${Math.min(100, s2 + 10)}%, #ef4444 100%)`}} />
+        <button type="button" role="slider" aria-label="S1 low-risk ceiling" aria-valuemin="5" aria-valuemax={s2 - 5} aria-valuenow={s1} onPointerDown={(event) => {event.preventDefault(); setDragging("s1");}} onKeyDown={(event) => handleKeyDown("s1", event)} className="absolute top-0 z-20 h-9 w-2 -translate-x-1/2 cursor-ew-resize rounded-sm border-2 border-white bg-slate-700 shadow-md focus:outline-none focus:ring-2 focus:ring-slate-400" style={{left:`${s1}%`}} />
+        <button type="button" role="slider" aria-label="S2 high-risk floor" aria-valuemin={s1 + 5} aria-valuemax="95" aria-valuenow={s2} onPointerDown={(event) => {event.preventDefault(); setDragging("s2");}} onKeyDown={(event) => handleKeyDown("s2", event)} className="absolute top-0 z-10 h-9 w-2 -translate-x-1/2 cursor-ew-resize rounded-sm border-2 border-white bg-slate-700 shadow-md focus:outline-none focus:ring-2 focus:ring-slate-400" style={{left:`${s2}%`}} />
+      </div>
+      <div className="flex justify-between text-[10px] font-bold text-slate-400"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 text-center text-xs"><div className="border-r border-emerald-200 bg-emerald-50 px-3 py-2"><p className="font-bold text-emerald-800">Low</p><p className="mt-1 text-emerald-700">0–{s1}</p></div><div className="border-r border-amber-200 bg-amber-50 px-3 py-2"><p className="font-bold text-amber-800">Medium</p><p className="mt-1 text-amber-700">{s1 + 1}–{s2}</p></div><div className="bg-red-50 px-3 py-2"><p className="font-bold text-red-800">High</p><p className="mt-1 text-red-700">{s2 + 1}–100</p></div></div>
+    </div>
+  );
+}
+
+function configurationFingerprint(value) {
+  if (Array.isArray(value)) return `[${value.map(configurationFingerprint).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${configurationFingerprint(value[key])}`).join(",")}}`;
+  if (typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value)) return String(Number(value));
+  return JSON.stringify(value);
+}
+
+function ConfigSaveButton({dirty, busy, onClick}) {
+  if (!dirty) return null;
+  return <div className="mt-5 flex items-center gap-3"><span className="text-xs font-semibold text-amber-700">Unsaved changes</span><button type="button" onClick={onClick} disabled={busy} className="rounded-lg bg-[rgb(25,66,71)] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#087f70] disabled:opacity-50">{busy ? "Saving…" : "Save configuration"}</button></div>;
 }
 
 function InfoCard({ title, children, id }) {
