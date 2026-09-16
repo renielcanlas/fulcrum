@@ -1268,7 +1268,7 @@ function InitiativeDetail({ trace }) {
   );
 }
 
-function InitiativeForm({ onOpenTrace, currentUser }) {
+function InitiativeForm({ currentUser }) {
   const [form, setForm] = useState({
     summary: "",
     problem: "",
@@ -1281,7 +1281,6 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
     priority: "Medium",
     owner: "",
   });
-  const [prepared, setPrepared] = useState(false);
   const [createConfirm, setCreateConfirm] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [createdItem, setCreatedItem] = useState(null);
@@ -1294,12 +1293,10 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
       .catch(() => setPersonas([]));
   }, []);
   function update(field, value) {
-    setPrepared(false);
     setForm((current) => ({ ...current, [field]: value }));
   }
   function loadGoldenInitiative() {
     setForm(goldenInitiativeDraft);
-    setPrepared(false);
     setCreatedItem(null);
     setCreateError("");
   }
@@ -1325,6 +1322,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
         body: JSON.stringify({
           summary: form.summary.trim(),
           description,
+          owner: form.owner,
           issueType: "Task",
           labels: form.labels
             .split(",")
@@ -1349,7 +1347,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
         <ScreenHeading
           eyebrow="Initiative formulation"
           title="Shape a decision-ready Jira initiative"
-          description="Capture the business context FULCRUM needs before the work item enters the governed workflow. This form prepares the minimum Jira story structure; it does not create a Jira item yet."
+          description="Capture the business context FULCRUM needs before the work item enters the governed workflow. Creation happens after the confirmation dialog."
         />
         <button
           type="button"
@@ -1360,11 +1358,11 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
           Load Golden Initiative
         </button>
       </div>
-      <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+      <div className="w-full">
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            setPrepared(true);
+            setCreateConfirm(true);
           }}
           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
         >
@@ -1498,31 +1496,13 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
             </p>
             <button
               type="submit"
-              data-tour="initiative-prepare"
-              className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d]"
+              disabled={createBusy || Boolean(createdItem)}
+              data-tour="initiative-create"
+              className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Prepare Jira story
+              Create initiative
             </button>
           </div>
-          {prepared && (
-            <p
-              className="mt-4 rounded-lg bg-[#dcefe7] px-3 py-2 text-xs font-semibold text-[#197443]"
-              role="status"
-            >
-              Story draft prepared for review. Confirm below when you are ready
-              to create it in Jira.
-            </p>
-          )}
-          {prepared && !createdItem && (
-            <button
-              type="button"
-              onClick={() => setCreateConfirm(true)}
-              data-tour="initiative-create"
-              className="mt-3 rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2]"
-            >
-              Create initiative in Jira
-            </button>
-          )}
           {createdItem && (
             <p
               className="mt-4 rounded-lg bg-[#dcefe7] px-3 py-2 text-xs font-semibold text-[#197443]"
@@ -1543,50 +1523,6 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
             </p>
           )}
         </form>
-        <aside className="h-fit rounded-2xl border border-[#cfe3d8] bg-[#f7fbf8] p-5 sm:p-7">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
-            Decision context preview
-          </p>
-          <h2 className="mt-1 text-xl font-bold text-[#102f33]">
-            What FULCRUM will evaluate
-          </h2>
-          <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-600">
-            <li>
-              <strong className="text-slate-800">Business context:</strong> why
-              the change is needed and what outcome it should produce.
-            </li>
-            <li>
-              <strong className="text-slate-800">Delivery scope:</strong>{" "}
-              affected users, markets, data, constraints, and success criteria.
-            </li>
-            <li>
-              <strong className="text-slate-800">Accountability:</strong> a
-              named owner and useful classification labels.
-            </li>
-            <li>
-              <strong className="text-slate-800">Governance:</strong> risk and
-              compliance considerations that can guide later evaluation.
-            </li>
-          </ul>
-          {form.summary && (
-            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                Draft preview
-              </p>
-              <h3 className="mt-2 font-bold text-slate-900">{form.summary}</h3>
-              <p className="mt-3 whitespace-pre-wrap text-xs leading-5 text-slate-600">
-                {description || "Add context to preview the Jira description."}
-              </p>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={onOpenTrace}
-            className="mt-6 text-sm font-bold text-[#087f70] transition hover:text-[#102f33]"
-          >
-            View the golden decision trace →
-          </button>
-        </aside>
       </div>
       {createConfirm && (
         <div
@@ -1607,7 +1543,7 @@ function InitiativeForm({ onOpenTrace, currentUser }) {
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               This will create a Task in the FCRM project using the FULCRUM
-              service account. Review the prepared story before confirming.
+              service account. Review the story and accountable owner before confirming.
             </p>
             <div className="mt-4 rounded-lg bg-slate-50 p-3 text-sm">
               <p className="font-bold text-slate-900">{form.summary}</p>
@@ -1775,7 +1711,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
 
   const content = {
     initiatives: (
-      <InitiativeForm onOpenTrace={onOpenTrace} currentUser={currentUser} />
+          <InitiativeForm currentUser={currentUser} />
     ),
     evidence: (
       <InfoCard title="Evidence coverage">

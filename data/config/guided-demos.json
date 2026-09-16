@@ -25,9 +25,8 @@
       {"view":"initiatives","target":"golden-load","title":"Load the golden flow","text":"Click “Load Golden Initiative” to populate the synthetic Launch U.S.–Philippines Instant Remittance example. You can inspect or edit every field before continuing.","interactive":true},
       {"view":"initiatives","target":"initiative-summary","title":"Start with the business change","text":"The summary becomes the Jira work-item title. The golden flow describes a cross-border instant-remittance launch with a clear product and geographic change.","interactive":true},
       {"view":"initiatives","target":"initiative-context","title":"Add governed context","text":"Review the problem, outcome, scope, affected users, risk considerations, and success criteria. These fields create the context FULCRUM evaluates later.","interactive":true},
-      {"view":"initiatives","target":"initiative-prepare","title":"Prepare before publishing","text":"Click “Prepare Jira story” when the context is ready. This is a review checkpoint; it does not create anything yet.","interactive":true},
-      {"view":"initiatives","target":"initiative-create","title":"Review the write action","text":"After preparation, choose “Create initiative in Jira” to open the final confirmation dialog.","interactive":true},
-      {"view":"initiatives","target":"initiative-confirm","title":"Confirm the synthetic write","text":"Confirm only when the prepared story looks right. The server-side Jira adapter performs the write, and the resulting work item can be opened in FULCRUM.","interactive":true}
+      {"view":"initiatives","target":"initiative-create","title":"Review the write action","text":"Choose “Create initiative” when the context is ready. The confirmation dialog is the final checkpoint before the Jira write.","interactive":true},
+      {"view":"initiatives","target":"initiative-confirm","title":"Confirm the synthetic write","text":"Confirm only when the story and accountable owner look right. The server-side Jira adapter creates the work item, assigns the owner, and verifies the Jira result.","interactive":true}
     ]
   }
 ]

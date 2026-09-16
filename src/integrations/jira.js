@@ -63,14 +63,15 @@ export function validateCreateInput({projectKey, summary, description = "", issu
   if (!Array.isArray(labels) || labels.some(label => !/^[A-Za-z0-9_-]{1,50}$/.test(label))) throw new Error("invalid_labels");
 }
 
-export async function createJiraWorkItem({projectKey, summary, description = "", issueType = "Task", labels = [], cloudId, accessToken, fetchImpl = fetch}) {
+export async function createJiraWorkItem({projectKey, summary, description = "", issueType = "Task", labels = [], assigneeAccountId = null, cloudId, accessToken, fetchImpl = fetch}) {
   validateCreateInput({projectKey, summary, description, issueType, labels});
   if (!cloudId || !accessToken) throw new Error("jira_connection_required");
+  if (assigneeAccountId && assigneeAccountId.startsWith("jira-")) throw new Error("invalid_assignee");
   const url = `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue`;
   const response = await fetchImpl(url, {
     method: "POST",
     headers: {accept: "application/json", ...JIRA_LANGUAGE_HEADERS, "content-type": "application/json", authorization: `Bearer ${accessToken}`},
-    body: JSON.stringify({fields: {project: {key: projectKey}, summary: summary.trim(), description: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: description}]}]}, issuetype: {name: issueType}, labels}})
+    body: JSON.stringify({fields: {project: {key: projectKey}, summary: summary.trim(), description: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: description}]}]}, issuetype: {name: issueType}, labels, ...(assigneeAccountId ? {assignee: {accountId: assigneeAccountId}} : {})}})
   });
   if (!response.ok) throw new Error(`jira_create_failed_${response.status}`);
   const created = await response.json();

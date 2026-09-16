@@ -134,9 +134,9 @@ test("Jira current-user lookup returns the OAuth token identity", async () => {
   assert.deepEqual(user, {accountId: "account-1", displayName: "Maya Chen"});
 });
 
-test("Jira sandbox creates a basic Task with bearer auth", async () => {
+test("Jira sandbox creates a Task with a verified accountable-owner field", async () => {
   let requestOptions;
-  const created = await createJiraWorkItem({projectKey: "ABC", summary: "Review payment controls", description: "Assess launch readiness.", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options) => {
+  const created = await createJiraWorkItem({projectKey: "ABC", summary: "Review payment controls", description: "Assess launch readiness.", assigneeAccountId: "712020:maya", cloudId: "cloud-1", accessToken: "token-1", fetchImpl: async (url, options) => {
     requestOptions = {url, options};
     return new Response(JSON.stringify({id: "2", key: "ABC-2"}), {status: 201});
   }});
@@ -144,6 +144,7 @@ test("Jira sandbox creates a basic Task with bearer auth", async () => {
   assert.equal(requestOptions.options.method, "POST");
   assert.equal(requestOptions.options.headers.authorization, "Bearer token-1");
   assert.match(requestOptions.options.body, /Review payment controls/);
+  assert.deepEqual(JSON.parse(requestOptions.options.body).fields.assignee, {accountId: "712020:maya"});
 });
 
 test("Jira assignment uses the dedicated assignee endpoint", async () => {

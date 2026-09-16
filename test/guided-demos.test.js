@@ -27,9 +27,8 @@ test("guided demos are authored as view-aware, targetable definitions", () => {
 test("golden initiative demo preserves the guarded creation checkpoints", () => {
   const demo = guidedDemos.find((item) => item.id === "create-golden-initiative");
   const targets = demo.steps.map((step) => step.target);
-  assert.deepEqual(targets.slice(-4), [
+  assert.deepEqual(targets.slice(-3), [
     "initiative-context",
-    "initiative-prepare",
     "initiative-create",
     "initiative-confirm",
   ]);
