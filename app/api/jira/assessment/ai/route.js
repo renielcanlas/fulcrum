@@ -5,6 +5,9 @@ import { extractJiraPdfAttachments } from "../../../../../src/integrations/docum
 import { resolveJiraConnection } from "../../../../../src/integrations/jira-connection.js";
 import { evaluationStages, evaluateStage, formatStageEvaluationComment, getStageEvaluationConfig } from "../../../../../src/integrations/stage-evaluation.js";
 import { runtime } from "../../../../../src/server/runtime.js";
+import { findDemoUser } from "../../../../../src/server/runtime.js";
+import { parseCookie } from "../../../../../src/auth/session.js";
+import guidedAiEvaluations from "../../../../../data/config/guided-ai-evaluations.json" with {type: "json"};
 
 async function load(request, issueKey) {
   const connection = await resolveJiraConnection({connections: runtime.jiraConnections});
@@ -18,6 +21,9 @@ export async function POST(request) {
     const body = await request.json();
     const issueKey = body.issueKey?.toUpperCase();
     if (!issueKey) return Response.json({error: "evaluation_issue_required"}, {status: 400});
+    const sessionId = parseCookie(request.headers.get("cookie") ?? "", "fulcrum_session");
+    const sessionUser = await runtime.sessions.getAsync(sessionId);
+    const guidedDemo = body.guidedDemo === true && Boolean(findDemoUser(sessionUser?.id));
     const {connection, item} = await load(request, issueKey);
     const stage = body.stage ?? item.statusName;
     if (stage !== item.statusName) return Response.json({error: "evaluation_requires_current_stage", stage: item.statusName}, {status: 409});
@@ -41,10 +47,30 @@ export async function POST(request) {
     };
     const suppliedAssessment = body.action === "publish" && body.assessment && typeof body.assessment === "object" ? body.assessment : null;
     const assessment = suppliedAssessment ?? (stage === "Intake" ? assessIntake(item, undefined, assessmentConfiguration) : evaluateStage(item, stage, undefined, assessmentConfiguration));
-    const attachmentEvidence = await extractJiraPdfAttachments({attachments: item.attachments ?? [], issueKey, cloudId: connection.cloudId, accessToken: connection.accessToken});
+    const attachmentEvidence = guidedDemo
+      ? []
+      : await extractJiraPdfAttachments({attachments: item.attachments ?? [], issueKey, cloudId: connection.cloudId, accessToken: connection.accessToken});
     let decisionSupport;
     let aiError = null;
-    if (assessment.aiDecisionSupport) {
+    if (guidedDemo) {
+      const cached = guidedAiEvaluations.stages[stage];
+      if (!cached) return Response.json({error: "guided_ai_fixture_missing", stage}, {status: 500});
+      const cachedReviews = new Map(cached.checkReviews.map((review) => [review.checkId, review]));
+      const checkReviews = assessment.checks.map((check) => {
+        const review = cachedReviews.get(check.id) ?? {state: "uncertain", observation: "No cached guided-demo review was provided."};
+        return {...review, checkId: check.id, weight: check.weight, points: review.state === "pass" ? check.weight : 0};
+      });
+      decisionSupport = {
+        ...cached,
+        checkReviews,
+        score: checkReviews.reduce((sum, review) => sum + review.points, 0),
+        maxScore: assessment.maxScore,
+        recommendation: "Proceed",
+        reviewedCheckCount: checkReviews.filter((review) => review.state !== "uncertain").length,
+        status: "completed",
+        stage,
+      };
+    } else if (assessment.aiDecisionSupport) {
       decisionSupport = assessment.aiDecisionSupport;
     } else {
       try {

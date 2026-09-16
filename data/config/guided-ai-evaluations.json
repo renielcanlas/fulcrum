@@ -1,0 +1,75 @@
+{
+  "producer": "FULCRUM guided-demo fixture",
+  "modelProvider": "synthetic-cache",
+  "model": "golden-initiative-ai-v1",
+  "instructionVersion": "guided-demo-ai-v1",
+  "validationStatus": "validated-synthetic",
+  "stages": {
+    "Intake": {
+      "confidence": 0.91,
+      "summary": "The Golden Initiative has a clear remittance objective, accountable ownership, useful classification, and enough initial context to begin structured research.",
+      "challenge": "Confirm the first monitoring review owner and keep the launch limits bounded while evidence is collected.",
+      "pros": ["The business change and intended outcome are specific.", "The accountable Product Owner and risk-relevant scope are identified."],
+      "cons": ["Initial monitoring and partner-escalation evidence should be confirmed during research."],
+      "rationale": ["The initiative describes the market, users, scope, risks, and success criteria.", "The Jira record contains an accountable owner, labels, and collaboration context."],
+      "proposedComment": "Guided demo AI observation: Intake context is sufficient to begin structured research, subject to human review.",
+      "checkReviews": [
+        {"checkId":"project","state":"pass","observation":"The initiative is in the FCRM project."},
+        {"checkId":"summary","state":"pass","observation":"The remittance launch objective is specific."},
+        {"checkId":"description","state":"pass","observation":"Business context, scope, users, risks, and success criteria are documented."},
+        {"checkId":"issueType","state":"pass","observation":"The Jira work item has a defined issue type."},
+        {"checkId":"assignee","state":"pass","observation":"An accountable owner is assigned."},
+        {"checkId":"labels","state":"pass","observation":"The work item has useful risk and domain labels."},
+        {"checkId":"collaboration","state":"pass","observation":"Initial collaboration context is present."}
+      ]
+    },
+    "Context and Research": {
+      "confidence": 0.89,
+      "summary": "The research package covers the remittance scope, affected users, operational constraints, partner context, and supporting discussion needed for risk review.",
+      "challenge": "Validate the HarborBridge escalation SLA and the ownership of transaction-monitoring alerts before expanding beyond the bounded launch.",
+      "pros": ["The workbook and Jira discussion add operational context.", "The staged launch scope makes the research questions testable."],
+      "cons": ["Partner and monitoring evidence still require accountable follow-up."],
+      "rationale": ["The work item has detailed context and multiple collaboration notes.", "The added workbook and comments connect the initiative to concrete research questions."],
+      "proposedComment": "Guided demo AI observation: Context and Research is sufficiently documented to proceed to risk assessment, subject to human review.",
+      "checkReviews": [
+        {"checkId":"description","state":"pass","observation":"Research scope, users, constraints, and objectives are described."},
+        {"checkId":"assignee","state":"pass","observation":"A research-stage owner is assigned."},
+        {"checkId":"comments","state":"pass","observation":"Jira discussion records the operational and partner context."},
+        {"checkId":"labels","state":"pass","observation":"The work item remains usefully classified."},
+        {"checkId":"summary","state":"pass","observation":"The objective is specific enough to guide research."}
+      ]
+    },
+    "Risk Assessment": {
+      "confidence": 0.87,
+      "summary": "The initiative presents identifiable cross-border payment, sanctions, fraud, transaction-monitoring, and third-party risks with a bounded operating scope.",
+      "challenge": "Confirm that control owners can evidence alert triage, wallet limits, screening dependencies, and partner escalation before launch approval.",
+      "pros": ["Risk domains and geographies are explicit.", "The initiative includes staged controls and a defined initial limit."],
+      "cons": ["Residual-risk evidence should be refreshed as controls are implemented."],
+      "rationale": ["The description identifies material financial-crime and operational exposures.", "Ownership, priority, classification, and collaboration support a structured risk review."],
+      "proposedComment": "Guided demo AI observation: Risk context is ready for analyst assessment, subject to human review.",
+      "checkReviews": [
+        {"checkId":"description","state":"pass","observation":"Risk-relevant product, user, geographic, and operational context is present."},
+        {"checkId":"assignee","state":"pass","observation":"A named risk-stage owner is assigned."},
+        {"checkId":"comments","state":"pass","observation":"The Jira record contains a substantive risk discussion."},
+        {"checkId":"labels","state":"pass","observation":"Relevant risk classifications are present."},
+        {"checkId":"priority","state":"pass","observation":"The initiative is prioritized for review."}
+      ]
+    },
+    "Review": {
+      "confidence": 0.9,
+      "summary": "The review package provides a coherent initiative record, stage history, supporting analysis, and collaboration context for committee consideration.",
+      "challenge": "Confirm that the remaining launch conditions are assigned, measurable, and tracked after the committee decision.",
+      "pros": ["The initiative has a traceable staged assessment history.", "Supporting comments and analysis make the decision context reviewable."],
+      "cons": ["Post-decision monitoring conditions must remain visible to accountable owners."],
+      "rationale": ["The review-stage record contains the required context, owner, priority, classification, and collaboration.", "The supporting material is sufficient for an authorized human decision."],
+      "proposedComment": "Guided demo AI observation: The review package is decision-ready for authorized committee judgment.",
+      "checkReviews": [
+        {"checkId":"description","state":"pass","observation":"The complete decision context is available."},
+        {"checkId":"assignee","state":"pass","observation":"The review owner is assigned."},
+        {"checkId":"comments","state":"pass","observation":"The review has enough collaboration evidence."},
+        {"checkId":"priority","state":"pass","observation":"The review priority is set."},
+        {"checkId":"labels","state":"pass","observation":"The review classification is maintained."}
+      ]
+    }
+  }
+}

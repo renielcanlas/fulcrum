@@ -79,7 +79,7 @@ async function createGuidedSamplePdf() {
 }
 
 async function createGuidedRiskOfficerPdf() {
-  return fetchGuidedAsset("Golden Initiative - FULCRUM.pdf", "Golden Initiative - risk-officer-analysis.pdf", "application/pdf");
+  return fetchGuidedAsset("Golden Initiative - risk-officer-analysis.pdf", "Golden Initiative - risk-officer-analysis.pdf", "application/pdf");
 }
 
 async function createGuidedRiskWorkbook() {
@@ -593,6 +593,7 @@ export default function DemoPage() {
           action: "assess",
           issueKey,
           stage: selectedWorkItem?.statusName,
+          guidedDemo: tour?.id === "landing-start-demo",
         }),
       });
       const data = await response.json();
