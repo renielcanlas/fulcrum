@@ -105,7 +105,8 @@ export default function DemoPage() {
   const [attachmentEvidence, setAttachmentEvidence] = useState([]);
   const [assessmentBusy, setAssessmentBusy] = useState(false);
   const [assessmentError, setAssessmentError] = useState("");
-  const [transitionOffer, setTransitionOffer] = useState(false);
+  const [transitionAssignmentOpen, setTransitionAssignmentOpen] = useState(false);
+  const [transitionAssignmentError, setTransitionAssignmentError] = useState("");
   const [decisionData, setDecisionData] = useState(null);
   const [decisionBusy, setDecisionBusy] = useState(false);
   const [decisionError, setDecisionError] = useState("");
@@ -410,8 +411,6 @@ export default function DemoPage() {
       if (!response.ok)
         throw new Error(data.error ?? "intake_assessment_publish_failed");
       await refreshWorkItem(activeIssueKey);
-      if ((data.assessment.weightedDecision?.recommendation ?? data.assessment.recommendation) === "Proceed")
-        setTransitionOffer(true);
     } catch (error) {
       setAssessmentError(error.message ?? "intake_assessment_publish_failed");
     } finally {
@@ -419,11 +418,20 @@ export default function DemoPage() {
     }
   }
 
-  async function moveToNextStage() {
+  async function moveToNextStage(personaId) {
     if (assessmentBusy) return;
     setAssessmentBusy(true);
     setAssessmentError("");
+    setTransitionAssignmentError("");
     try {
+      const assignmentResponse = await fetch("/api/jira/assign", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ issueKey: activeIssueKey, personaId }),
+      });
+      const assignmentData = await assignmentResponse.json();
+      if (!assignmentResponse.ok)
+        throw new Error(assignmentData.hint || assignmentData.error || "jira_assignment_failed");
       const response = await fetch("/api/jira/assessment", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -435,13 +443,13 @@ export default function DemoPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "jira_transition_failed");
-      setTransitionOffer(false);
+      setTransitionAssignmentOpen(false);
       await refreshWorkItem(activeIssueKey);
       const boardResponse = await fetch("/api/jira");
       const boardData = await readApiJson(boardResponse, "jira_board_refresh_failed");
       if (boardResponse.ok) setBoardItems(boardData.items ?? []);
     } catch (error) {
-      setAssessmentError(error.message ?? "jira_transition_failed");
+      setTransitionAssignmentError(error.message ?? "jira_transition_failed");
     } finally {
       setAssessmentBusy(false);
     }
@@ -925,12 +933,16 @@ export default function DemoPage() {
               attachmentEvidence={attachmentEvidence}
               assessmentBusy={assessmentBusy}
               assessmentError={assessmentError}
-              transitionOffer={transitionOffer}
+              transitionAssignmentOpen={transitionAssignmentOpen}
+              transitionAssignmentError={transitionAssignmentError}
               onAssessIntake={assessIntakeStage}
               onPublishIntake={publishIntakeAssessment}
-              onRequestMove={() => setTransitionOffer(true)}
-              onMoveToNextStage={moveToNextStage}
-              onDismissTransition={() => setTransitionOffer(false)}
+              onRequestMove={() => {
+                setTransitionAssignmentError("");
+                setTransitionAssignmentOpen(true);
+              }}
+              onConfirmMove={moveToNextStage}
+              onCancelMove={() => setTransitionAssignmentOpen(false)}
               onSubmitDecision={submitHumanDecision}
               onBack={() => {
                 setSelectedWorkItem(null);
@@ -2680,13 +2692,14 @@ function IntakeAssessmentPanel({
   intakeAssessment,
   assessmentBusy,
   assessmentError,
-  transitionOffer,
+  transitionAssignmentOpen,
+  transitionAssignmentError,
   attachmentEvidence,
   onAssessIntake,
   onPublishIntake,
   onRequestMove,
-  onMoveToNextStage,
-  onDismissTransition,
+  onConfirmMove,
+  onCancelMove,
 }) {
   const [selectedVersion, setSelectedVersion] = useState(0);
   const hasDraft = Boolean(intakeAssessment?.assessment);
@@ -2954,7 +2967,7 @@ function IntakeAssessmentPanel({
                 )}
               </div>
             )}
-            {canMove && !transitionOffer && (
+            {canMove && (
               <button
                 type="button"
                 onClick={onRequestMove}
@@ -2966,31 +2979,16 @@ function IntakeAssessmentPanel({
             )}
           </>
         )}
-        {transitionOffer && canMove && (
-          <div className="mt-4 rounded-lg border border-[#b9e4d1] bg-white p-4 text-sm text-slate-700">
-            <strong>Assessment published.</strong> It recommends proceeding
-            to&nbsp;
-            <strong>{nextStages[stage]}</strong>. Would you like to move this
-            Jira item now?
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={onMoveToNextStage}
-                disabled={assessmentBusy}
-                className="cursor-pointer rounded-lg bg-[#102f33] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
-              >
-                Yes, move it
-              </button>
-              <button
-                type="button"
-                onClick={onDismissTransition}
-                className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                Not now
-              </button>
-            </div>
-          </div>
-        )}
+        <TransitionAssignmentDialog
+          open={transitionAssignmentOpen}
+          item={item}
+          currentUser={currentUser}
+          nextStage={nextStages[stage]}
+          busy={assessmentBusy}
+          error={transitionAssignmentError}
+          onCancel={onCancelMove}
+          onConfirm={onConfirmMove}
+        />
         {assessmentError && (
           <p className="mt-3 text-xs font-semibold text-red-700" role="alert">
             {assessmentError}
@@ -2998,6 +2996,43 @@ function IntakeAssessmentPanel({
         )}
       </section>
     </>
+  );
+}
+
+function TransitionAssignmentDialog({open, item, currentUser, nextStage, busy, error, onCancel, onConfirm}) {
+  const [personas, setPersonas] = useState([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedPersonaId("");
+    fetch("/api/demo-users")
+      .then((response) => response.json())
+      .then((users) => setPersonas(Array.isArray(users) ? users : []))
+      .catch(() => setPersonas([]));
+  }, [open]);
+
+  if (!open) return null;
+  const availablePersonas = personas.filter((persona) => persona.jiraIdentity?.jiraAccountId !== item?.assigneeAccountId);
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-[#102f33]/55 p-5" role="presentation">
+      <section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="transition-assignment-title">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#087f70]">Confirm stage transition</p>
+        <h2 id="transition-assignment-title" className="mt-2 text-xl font-bold text-[#102f33]">Reassign before moving to {nextStage}</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Choose the accountable person for the next stage. FULCRUM will verify the Jira assignment first, then move {item?.key} forward.</p>
+        <label htmlFor="transition-assignee" className="mt-5 block text-xs font-bold uppercase tracking-wide text-slate-500">Next-stage assignee</label>
+        <select id="transition-assignee" value={selectedPersonaId} onChange={(event) => setSelectedPersonaId(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]">
+          <option value="">Select a different assignee</option>
+          {availablePersonas.map((persona) => <option key={persona.id} value={persona.id}>{persona.displayName} · {persona.role}</option>)}
+        </select>
+        {currentUser && <p className="mt-2 text-xs text-slate-500">Current signed-in user: {currentUser.displayName}. The current Jira assignee is excluded from this handoff list.</p>}
+        {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs leading-5 text-red-700" role="alert">{error}</p>}
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" onClick={onCancel} disabled={busy} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>
+          <button type="button" onClick={() => onConfirm(selectedPersonaId)} disabled={!selectedPersonaId || busy} className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] disabled:cursor-not-allowed disabled:opacity-40">{busy ? "Assigning and moving…" : "Confirm assignment and move"}</button>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -3178,12 +3213,13 @@ function JiraWorkItemView({
   attachmentEvidence,
   assessmentBusy,
   assessmentError,
-  transitionOffer,
+  transitionAssignmentOpen,
+  transitionAssignmentError,
   onAssessIntake,
   onPublishIntake,
   onRequestMove,
-  onMoveToNextStage,
-  onDismissTransition,
+  onConfirmMove,
+  onCancelMove,
   onBack,
   decisionData,
   decisionBusy,
@@ -3337,12 +3373,13 @@ function JiraWorkItemView({
         intakeAssessment={intakeAssessment}
         assessmentBusy={assessmentBusy}
         assessmentError={assessmentError}
-        transitionOffer={transitionOffer}
+        transitionAssignmentOpen={transitionAssignmentOpen}
+        transitionAssignmentError={transitionAssignmentError}
         onAssessIntake={onAssessIntake}
         onPublishIntake={onPublishIntake}
         onRequestMove={onRequestMove}
-        onMoveToNextStage={onMoveToNextStage}
-        onDismissTransition={onDismissTransition}
+        onConfirmMove={onConfirmMove}
+        onCancelMove={onCancelMove}
       />
       <HumanDecisionPanel
         item={item}
