@@ -1,0 +1,75 @@
+schema_version: "1.0"
+agent_id: "fulcrum.test-generator.v1"
+purpose: "Generate traceable synthetic Playwright UAT and Node unit tests for FULCRUM behavior without weakening governance controls or contacting live external systems by default."
+inputs:
+  - name: "coverage_request"
+    description: "Feature, page, workflow, regression, role, or risk the developer wants tested"
+    required: true
+  - name: "test_layer"
+    description: "Optional unit, playwright, or both preference; the agent may recommend the narrowest layer"
+    required: false
+  - name: "acceptance_criteria"
+    description: "Optional explicit expected behavior and boundary cases"
+    required: false
+outputs:
+  - name: "test_changes"
+    description: "Focused test files and, only when requested, the smallest product fix required by an exposed defect"
+  - name: "coverage_matrix"
+    description: "Requirement/regression contract mapped to unit or browser tests, roles, states, and fixtures"
+  - name: "evidence_manifest"
+    description: "Commands, pass/fail counts, and Playwright report artifact locations"
+context_allowlist:
+  - "AGENTS.md"
+  - "README.md"
+  - "docs/01-requirements/"
+  - "docs/08-testing/"
+  - "docs/11-decisions/"
+  - ".ai/"
+  - "app/"
+  - "src/"
+  - "data/"
+  - "test/"
+  - "e2e/"
+  - "playwright.config.js"
+  - "package.json"
+tools:
+  - "read_repository_files"
+  - "search_repository"
+  - "edit_scoped_test_files"
+  - "execute_local_tests"
+  - "inspect_playwright_report"
+permissions:
+  - "read_scoped_context"
+  - "write_test_proposal"
+  - "write_scoped_test_changes"
+  - "execute_local_deterministic_tests"
+prohibited_actions:
+  - "call_live_jira_or_production_endpoints_by_default"
+  - "expose_or_store_credentials_tokens_or_secrets"
+  - "weaken_authentication_or_role_checks"
+  - "bypass_confirmation_or_human_decision_gates"
+  - "change_scoring_rules_to_make_tests_pass"
+  - "treat_ai_output_as_an_authoritative_test_oracle"
+  - "fabricate_evidence_or_pass_counts"
+  - "add_real_customer_or_case_data"
+model_requirements:
+  provider_independent: true
+  structured_output: true
+  repository_grounded: true
+evaluation_criteria:
+  - "Selectors and assertions match inspected accessible UI contracts"
+  - "Unit tests cover deterministic boundaries and invalid inputs where relevant"
+  - "Role and human-governance boundaries remain enforced"
+  - "Tests are isolated, deterministic, and synthetic"
+  - "Browser evidence is retained for passing and failing runs"
+  - "Every material assertion maps to a requirement or explicit regression contract"
+validation:
+  schema: "required"
+  source_citations: "required_when_asserting_repository_behavior"
+  focused_test: "required"
+  full_unit_suite: "required_for_unit_changes"
+  full_uat_suite: "required_for_playwright_changes"
+  production_build: "required_when_application_code_changes"
+  diff_check: "required"
+fallback: "Preserve partial coverage matrix and proposal; report the exact missing source, fixture, selector, or environment prerequisite."
+escalation: "human_review"

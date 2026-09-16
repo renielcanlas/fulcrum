@@ -6,6 +6,10 @@ AI evaluation uses synthetic golden cases with expected facts/source spans, poli
 
 ## Browser UAT
 
+The repository also includes a user-invocable [FULCRUM Test Generator](../../.github/agents/test-generator.agent.md). Give it a feature, page, regression, role, or acceptance criterion. It inspects the relevant requirements, source, routes, fixtures, and existing tests, then recommends or writes the narrowest suitable unit and/or Playwright coverage. Its versioned contract is `.ai/agents/test-generator.v1.yaml`.
+
+The generator is deliberately bounded: it uses synthetic fixtures, does not contact live Jira/Azure/Neon services by default, must not weaken authorization or human gates, and treats AI output as non-authoritative. It reports a coverage matrix and exact validation counts.
+
 The repository includes a Playwright suite under `e2e/uat.spec.js`. Run it with
 `npm run test:uat`. The suite starts an isolated local Next.js server and
 intercepts external/backend API responses with synthetic fixtures, so it does
