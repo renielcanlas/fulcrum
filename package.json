@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test",
+    "test:uat": "playwright test",
     "db:migrate": "node scripts/migrate.js"
   },
   "engines": {
@@ -26,6 +27,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "tailwindcss": "^4.3.3"
   }

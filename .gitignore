@@ -21,6 +21,9 @@ build/
 out/
 coverage/
 .nyc_output/
+.playwright/
+playwright-report/
+test-results/
 .cache/
 .eslintcache
 *.tsbuildinfo

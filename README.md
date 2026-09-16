@@ -162,6 +162,17 @@ npm test
 npm run dev
 ```
 
+The automated browser UAT suite runs against an isolated local server and
+stubs external Jira, Neon, and AI responses with deterministic fixtures:
+
+```bash
+npm run test:uat
+```
+
+It covers login, role-based navigation, Help Center guidance, evaluation
+loading behavior, and the reassignment-before-stage-transition flow. Failed
+runs retain Playwright screenshots, video, and traces under `test-results/`.
+
 Open [http://localhost:3000](http://localhost:3000). Use `npm run build && npm start` to run the production build locally. See the [Vercel deployment architecture](docs/09-deployment/vercel-nextjs-deployment.md) for the deployment path.
 
 Without Azure configuration, the app runs in safe demo mode. The server automatically loads a local `.env` file if present. Azure configuration is server-only and deployment-specific:
