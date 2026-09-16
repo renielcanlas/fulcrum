@@ -11,5 +11,12 @@ The repository includes a Playwright suite under `e2e/uat.spec.js`. Run it with
 intercepts external/backend API responses with synthetic fixtures, so it does
 not require live Jira, Neon, or Azure credentials. It validates the rendered
 user journeys for login, role access, Help Center content, evaluation loading,
-and reassignment before stage transition. Playwright retains screenshots,
-video, and traces for failed tests in `test-results/`.
+and reassignment before stage transition. Playwright captures a full-page
+screenshot, video, trace, and JSON metadata attachment for every test,
+including passing tests, under `test-results/`.
+
+Open the HTML evidence bundle with `npx playwright show-report`. A report entry
+links to the screenshot, video, trace, and metadata for that UAT journey. The
+fixtures are synthetic and API routes are intercepted, so this evidence proves
+the browser workflow and UI contract; it is not evidence that a live Jira or
+Azure service accepted a write.

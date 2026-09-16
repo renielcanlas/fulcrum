@@ -169,9 +169,13 @@ stubs external Jira, Neon, and AI responses with deterministic fixtures:
 npm run test:uat
 ```
 
-It covers login, role-based navigation, Help Center guidance, evaluation
-loading behavior, and the reassignment-before-stage-transition flow. Failed
-runs retain Playwright screenshots, video, and traces under `test-results/`.
+It covers landing/login success and failure, role-based navigation, guided
+demos, initiatives, every workspace information section, Help Center guidance,
+configuration controls, evaluation loading, provenance, Sandbox gating and
+loading, human decisions, and reassignment-before-stage-transition. Every test
+retains a full-page screenshot, video, trace, and JSON metadata evidence under
+`test-results/`, including passing runs. Open the bundle with
+`npx playwright show-report`.
 
 Open [http://localhost:3000](http://localhost:3000). Use `npm run build && npm start` to run the production build locally. See the [Vercel deployment architecture](docs/09-deployment/vercel-nextjs-deployment.md) for the deployment path.
 

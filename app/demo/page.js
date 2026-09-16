@@ -1815,6 +1815,7 @@ function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace
           >
             Inspect detailed provenance →
           </button>
+          {trace && <TracePanel trace={trace} />}
         </InfoCard>
       </div>
     ),
