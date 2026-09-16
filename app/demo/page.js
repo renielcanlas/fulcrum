@@ -60,6 +60,15 @@ const jiraWorkflowStatuses = [
   "Accepted",
   "Rejected",
 ];
+const guidedGoldenComment = "FULCRUM review: The Golden Initiative has a clear U.S.–Philippines remittance scope. Before launch, confirm HarborBridge partner due diligence, recipient-wallet limits, and transaction-monitoring ownership.";
+
+async function createGuidedSamplePdf() {
+  const filename = "Golden Initiative - FULCRUM.pdf";
+  const response = await fetch(`/demo/${encodeURIComponent(filename)}`, {cache: "no-store"});
+  if (!response.ok) throw new Error("guided_sample_pdf_unavailable");
+  const blob = await response.blob();
+  return new File([blob], filename, {type: "application/pdf"});
+}
 
 async function readApiJson(response, fallback) {
   const raw = await response.text();
@@ -112,6 +121,7 @@ export default function DemoPage() {
   const [decisionError, setDecisionError] = useState("");
   const [tour, setTour] = useState(null);
   const [tourRect, setTourRect] = useState(null);
+  const [guidedCreatedIssueKey, setGuidedCreatedIssueKey] = useState("");
   const activeTour = tour
     ? (() => {
         const demo = guidedDemos.find((item) => item.id === tour.id);
@@ -141,26 +151,70 @@ export default function DemoPage() {
       return;
     }
     const updateTourTarget = () => {
-      const target = document.querySelector(
-        `[data-tour="${tourStep.target}"]`,
-      );
+      const targets = Array.from(document.querySelectorAll(`[data-tour="${tourStep.target}"]`));
+      const target = targets.find((candidate) => {
+        const bounds = candidate.getBoundingClientRect();
+        return bounds.width > 0 && bounds.height > 0;
+      }) ?? targets[0];
       setTourRect(target?.getBoundingClientRect() ?? null);
     };
+    const scrollTargetIntoView = () => {
+      const target = Array.from(document.querySelectorAll(`[data-tour="${tourStep.target}"]`)).find((candidate) => {
+        const bounds = candidate.getBoundingClientRect();
+        return bounds.width > 0 && bounds.height > 0;
+      });
+      target?.scrollIntoView({block: "center", behavior: "smooth"});
+    };
     updateTourTarget();
+    const scrollTimer = window.setTimeout(scrollTargetIntoView, 0);
     window.addEventListener("resize", updateTourTarget);
     window.addEventListener("scroll", updateTourTarget, true);
     return () => {
       window.removeEventListener("resize", updateTourTarget);
       window.removeEventListener("scroll", updateTourTarget, true);
+      window.clearTimeout(scrollTimer);
     };
-  }, [activeView, router, tourStep]);
+  }, [activeView, intakeAssessment, router, selectedWorkItem, tourStep, transitionAssignmentOpen]);
 
   function startTour(demo) {
     if (!demo?.steps?.length) return;
     setTour({ id: demo.id, step: 0 });
   }
 
-  function advanceTour() {
+  async function advanceTour() {
+    const currentStep = activeTour?.steps?.[tour?.step ?? 0];
+    if (currentStep?.id === "add-comment") {
+      const alreadyAdded = selectedWorkItem?.comments?.some(
+        (comment) => comment.body?.trim() === guidedGoldenComment,
+      );
+      if (!alreadyAdded && !(await addComment())) return;
+    }
+    if (currentStep?.id === "add-sample-attachment") {
+      const filename = "Golden Initiative - FULCRUM.pdf";
+      const alreadyAdded = selectedWorkItem?.attachments?.some(
+        (attachment) => attachment.filename === filename,
+      );
+      if (!alreadyAdded) {
+        try {
+          if (!(await addAttachment(await createGuidedSamplePdf()))) return;
+        } catch (error) {
+          setAttachmentError(error.message ?? "guided_sample_pdf_unavailable");
+          return;
+        }
+      }
+    }
+    if (currentStep?.id === "initiative-open-fulcrum" && guidedCreatedIssueKey) {
+      const issueKey = guidedCreatedIssueKey;
+      const href = `/demo?view=work-item&issue=${encodeURIComponent(issueKey)}`;
+      if (issueKey) {
+        setTour((current) => current ? {...current, step: current.step + 1} : current);
+        setSelectedWorkItem(null);
+        setActiveView("work-item");
+        setActiveIssueKey(issueKey);
+        router.replace(href);
+        return;
+      }
+    }
     setTour((current) => {
       if (!current) return null;
       const demo = activeTour;
@@ -270,9 +324,24 @@ export default function DemoPage() {
   }, [router, signedIn]);
 
   useEffect(() => {
-    const issueKey = new URLSearchParams(window.location.search).get("issue");
-    setActiveIssueKey(issueKey ?? "");
-    if (activeView !== "work-item" || !issueKey) return;
+    if (!signedIn || tour) return;
+    if (new URLSearchParams(window.location.search).get("guided") !== "landing-start-demo") return;
+    const demo = guidedDemos.find((item) => item.id === "landing-start-demo");
+    if (demo) {
+      startTour(demo);
+      router.replace("/demo");
+    }
+  }, [router, signedIn, tour]);
+
+  useEffect(() => {
+    const queryIssueKey = new URLSearchParams(window.location.search).get("issue");
+    if (activeView !== "work-item") {
+      if (queryIssueKey) setActiveIssueKey(queryIssueKey);
+      return;
+    }
+    const issueKey = queryIssueKey ?? activeIssueKey ?? guidedCreatedIssueKey;
+    if (!issueKey) return;
+    setActiveIssueKey(issueKey);
     setIntakeAssessment(null);
     setDecisionData(null);
     setDecisionError("");
@@ -299,7 +368,13 @@ export default function DemoPage() {
           error: error.message ?? "jira_work_item_load_failed",
         }),
       );
-  }, [activeView]);
+  }, [activeIssueKey, activeView, guidedCreatedIssueKey]);
+
+  useEffect(() => {
+    if (tour?.id === "landing-start-demo" && tourStep?.id === "add-comment" && !commentText) {
+      setCommentText(guidedGoldenComment);
+    }
+  }, [commentText, tour?.id, tourStep?.id]);
 
   useEffect(() => {
     if (activeView !== "work-item") return;
@@ -310,7 +385,12 @@ export default function DemoPage() {
   }, [activeView]);
 
   async function addComment() {
-    if (!selectedWorkItem?.key || !commentText.trim() || commentBusy) return;
+    const body = commentText.trim() || (
+      tour?.id === "landing-start-demo" && tourStep?.id === "add-comment"
+        ? guidedGoldenComment
+        : ""
+    );
+    if (!selectedWorkItem?.key || !body || commentBusy) return false;
     setCommentBusy(true);
     setCommentError("");
     try {
@@ -319,7 +399,7 @@ export default function DemoPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           issueKey: selectedWorkItem.key,
-          body: commentText.trim(),
+          body,
         }),
       });
       const data = await response.json();
@@ -330,22 +410,24 @@ export default function DemoPage() {
           ...(current.comments ?? []),
           {
             id: data.commentId ?? `local-${Date.now()}`,
-            author: signedIn?.displayName ?? "Current user",
-            body: commentText.trim(),
+            author: tour?.id === "landing-start-demo" ? "fulcrum-bot" : signedIn?.displayName ?? "Current user",
+            body,
             created: new Date().toISOString(),
           },
         ],
       }));
       setCommentText("");
+      return true;
     } catch (error) {
       setCommentError(error.message ?? "jira_comment_failed");
+      return false;
     } finally {
       setCommentBusy(false);
     }
   }
 
   async function addAttachment(file) {
-    if (!selectedWorkItem?.key || !file || attachmentBusy) return;
+    if (!selectedWorkItem?.key || !file || attachmentBusy) return false;
     setAttachmentBusy(true);
     setAttachmentError("");
     try {
@@ -369,15 +451,18 @@ export default function DemoPage() {
               : data.error ?? "jira_attachment_upload_failed",
         );
       await refreshWorkItem(selectedWorkItem.key);
+      return true;
     } catch (error) {
       setAttachmentError(error.message ?? "jira_attachment_upload_failed");
+      return false;
     } finally {
       setAttachmentBusy(false);
     }
   }
 
   async function assessIntakeStage() {
-    if (!activeIssueKey || assessmentBusy) return;
+    const issueKey = activeIssueKey || selectedWorkItem?.key;
+    if (!issueKey) return;
     setAssessmentBusy(true);
     setAssessmentError("");
     try {
@@ -386,7 +471,7 @@ export default function DemoPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           action: "assess",
-          issueKey: activeIssueKey,
+          issueKey,
           stage: selectedWorkItem?.statusName,
         }),
       });
@@ -395,7 +480,7 @@ export default function DemoPage() {
         throw new Error(data.error ?? "intake_assessment_failed");
       setIntakeAssessment((current) => ({
         ...(current ?? {}),
-        issueKey: activeIssueKey,
+        issueKey,
         stage: selectedWorkItem?.statusName,
         assessment: data.assessment,
       }));
@@ -463,6 +548,7 @@ export default function DemoPage() {
       const boardResponse = await fetch("/api/jira");
       const boardData = await readApiJson(boardResponse, "jira_board_refresh_failed");
       if (boardResponse.ok) setBoardItems(boardData.items ?? []);
+      if (tour?.id === "landing-start-demo" && tourStep?.id === "transition-assignment") setTour(null);
     } catch (error) {
       setTransitionAssignmentError(error.message ?? "jira_transition_failed");
     } finally {
@@ -708,6 +794,7 @@ export default function DemoPage() {
           <button
             key={id}
             onClick={() => navigateTo(id)}
+            data-tour={id === "sandbox" ? "sandbox-nav" : undefined}
             className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold ${activeView === id ? "bg-[rgba(9,167,141,0.12)] text-[rgb(25,66,71)]" : "bg-slate-50 text-slate-500"}`}
           >
             {label}
@@ -729,6 +816,7 @@ export default function DemoPage() {
               <Fragment key={id}>
                 <button
                   onClick={() => navigateTo(id)}
+                  data-tour={id === "sandbox" ? "sandbox-nav" : undefined}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${activeView === id ? "bg-[rgba(9,167,141,0.11)] text-[rgb(25,66,71)]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
                 >
                   <span
@@ -950,6 +1038,7 @@ export default function DemoPage() {
               attachmentBusy={attachmentBusy}
               attachmentError={attachmentError}
               onAddAttachment={addAttachment}
+              guidedStepId={tour?.id === "landing-start-demo" ? tourStep?.id : ""}
               intakeAssessment={intakeAssessment}
               decisionData={decisionData}
               decisionBusy={decisionBusy}
@@ -964,6 +1053,9 @@ export default function DemoPage() {
               onRequestMove={() => {
                 setTransitionAssignmentError("");
                 setTransitionAssignmentOpen(true);
+                if (tour?.id === "landing-start-demo" && tourStep?.id === "move-next-stage") {
+                  setTour((current) => current ? {...current, step: current.step + 1} : current);
+                }
               }}
               onConfirmMove={moveToNextStage}
               onCancelMove={() => setTransitionAssignmentOpen(false)}
@@ -982,6 +1074,16 @@ export default function DemoPage() {
               onOpenTrace={loadTrace}
               trace={trace}
               currentUser={signedIn}
+              onCreated={(item) => setGuidedCreatedIssueKey(item?.key ?? "")}
+              onOpenGuidedWorkItem={(issueKey) => {
+                if (tour?.id === "landing-start-demo" && tourStep?.id === "initiative-open-fulcrum") {
+                  setTour((current) => current ? {...current, step: current.step + 1} : current);
+                }
+                setSelectedWorkItem(null);
+                setActiveView("work-item");
+                setActiveIssueKey(issueKey);
+                router.replace(`/demo?view=work-item&issue=${encodeURIComponent(issueKey)}`);
+              }}
             />
           )}
         </section>
@@ -1314,7 +1416,7 @@ function InitiativeDetail({ trace }) {
   );
 }
 
-function InitiativeForm({ currentUser }) {
+function InitiativeForm({ currentUser, onCreated, onOpenGuidedWorkItem }) {
   const [form, setForm] = useState({
     summary: "",
     problem: "",
@@ -1380,6 +1482,7 @@ function InitiativeForm({ currentUser }) {
       if (!response.ok)
         throw new Error(data.hint || data.error || "jira_creation_failed");
       setCreatedItem(data);
+      onCreated?.(data);
       setCreateConfirm(false);
     } catch (error) {
       setCreateError(error.message || "jira_creation_failed");
@@ -1553,10 +1656,18 @@ function InitiativeForm({ currentUser }) {
             <p
               className="mt-4 rounded-lg bg-[#dcefe7] px-3 py-2 text-xs font-semibold text-[#197443]"
               role="status"
+              data-tour="initiative-created-status"
             >
               Created {createdItem.key} in Jira.{" "}
+              {createdItem.url && <a href={createdItem.url} target="_blank" rel="noreferrer" className="ml-1 underline">Open in Jira ↗</a>}{" "}
               <a
                 href={`/demo?view=work-item&issue=${encodeURIComponent(createdItem.key)}`}
+                onClick={(event) => {
+                  if (!onOpenGuidedWorkItem) return;
+                  event.preventDefault();
+                  onOpenGuidedWorkItem(createdItem.key);
+                }}
+                data-tour="initiative-open-fulcrum"
                 className="ml-1 underline"
               >
                 Open in FULCRUM
@@ -1623,7 +1734,7 @@ function InitiativeForm({ currentUser }) {
   );
 }
 
-function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace, currentUser }) {
+function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace, currentUser, onCreated, onOpenGuidedWorkItem }) {
   const [helpTopic, setHelpTopic] = useState(null);
   const screens = {
     initiatives: {
@@ -1770,7 +1881,11 @@ function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace
   const content = {
     configuration: <ConfigurationScreen currentUser={currentUser} onSandboxChange={onSandboxChange} />,
     initiatives: (
-          <InitiativeForm currentUser={currentUser} />
+          <InitiativeForm
+            currentUser={currentUser}
+            onCreated={onCreated}
+            onOpenGuidedWorkItem={onOpenGuidedWorkItem}
+          />
     ),
     evidence: (
       <div className="space-y-5">
@@ -2220,15 +2335,16 @@ function InfoCard({ title, children, id }) {
 }
 
 function GuidedDemosScreen({ demos, onStart }) {
+  const catalogueDemos = demos.filter((demo) => !demo.entryOnly);
   return (
-    <div>
+    <div data-tour="workspace-guided-demos">
       <ScreenHeading
         eyebrow="Guided demos"
         title="Explore the FULCRUM workbench"
         description="Choose a guided tour to learn the main parts of the demo at your own pace."
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {demos.map((demo) => (
+        {catalogueDemos.map((demo) => (
           <article
             key={demo.id}
             className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -2264,12 +2380,14 @@ function GuidedDemosScreen({ demos, onStart }) {
 }
 
 function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
+  const tooltipTop = rect
+    ? rect.bottom + 16 <= window.innerHeight - 300
+      ? rect.bottom + 16
+      : Math.max(20, rect.top - 300)
+    : "50%";
   const tooltipStyle = rect
     ? {
-        top:
-          rect.bottom + 220 <= window.innerHeight
-            ? rect.bottom + 16
-            : Math.max(20, rect.top - 220),
+        top: Math.min(tooltipTop, Math.max(20, window.innerHeight - 300)),
         left: Math.min(window.innerWidth - 340, Math.max(20, rect.left)),
       }
     : { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
@@ -2319,7 +2437,7 @@ function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
         <p className="mt-3 text-sm leading-6 text-slate-600">{step.text}</p>
         {step.interactive && (
           <p className="mt-3 rounded-lg bg-[#eef8f2] px-3 py-2 text-xs font-semibold leading-5 text-[#197443]">
-            Try the highlighted control, then select Next.
+            {step.autoOnNext ? "Select Next to perform the highlighted action and continue." : "Try the highlighted control, then select Next."}
           </p>
         )}
         <div className="mt-5 flex items-center justify-between gap-2">
@@ -2595,7 +2713,7 @@ function CommentComposer({
   onAddComment,
 }) {
   return (
-    <div className="mt-8 border-t border-slate-100 pt-6">
+    <div className="mt-8 border-t border-slate-100 pt-6" data-tour="comments-panel">
       <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">
         Add comment
       </h3>
@@ -2606,6 +2724,7 @@ function CommentComposer({
             onAddComment();
           }}
           className="mt-3"
+          data-tour="comment-composer"
         >
           <textarea
             value={commentText}
@@ -2771,6 +2890,7 @@ function IntakeAssessmentPanel({
         className="mt-8 rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] p-4"
         aria-label="FULCRUM Intake evaluation"
         aria-busy={assessmentBusy}
+        data-tour="evaluation-panel"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -2807,7 +2927,7 @@ function IntakeAssessmentPanel({
           )}
         </div>
         {(history.length > 0 || hasDraft) && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#dcefe7] pt-4">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#dcefe7] pt-4" data-tour="assessment-versions">
             <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-400">
               Assessment version
             </span>
@@ -2837,6 +2957,7 @@ function IntakeAssessmentPanel({
             type="button"
             onClick={onAssessIntake}
             disabled={assessmentBusy}
+            data-tour="evaluate-intake"
             className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
           >
             {assessmentBusy ? "Evaluating " + stage + "…" : "Evaluate " + stage}
@@ -2845,7 +2966,7 @@ function IntakeAssessmentPanel({
           <EvaluationLoadingSkeleton stage={stage} />
         ) : (
           <>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-3" data-tour="evaluation-summary">
               <div className="rounded-lg bg-white p-2.5">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                   Weighted score
@@ -2887,10 +3008,10 @@ function IntakeAssessmentPanel({
                 </p>
               </div>
             </div>
-            <details className="mt-2 rounded-lg bg-white p-2.5">
+            <details className="mt-2 rounded-lg bg-white p-2.5" data-tour="scoring-configuration">
               <summary className="cursor-pointer text-xs font-bold text-slate-600 hover:text-[#087f70]">View scoring configuration</summary>
               <div className="mt-2 grid gap-2 text-[11px] text-slate-500 sm:grid-cols-2">
-                <p>Proceed threshold: <strong className="text-slate-700">{assessment.configurationSnapshot?.assessment?.proceedThreshold ?? assessment.scoreBands?.find((band) => band.label === "Proceed")?.min ?? 80}</strong></p>
+                <p data-tour="proceed-threshold">Proceed threshold: <strong className="text-slate-700">{assessment.configurationSnapshot?.assessment?.proceedThreshold ?? assessment.scoreBands?.find((band) => band.label === "Proceed")?.min ?? 80}</strong>. Fulcrum suggests the next step when the final score reaches this value; a human still decides.</p>
                 <p>Partial credit: <strong className="text-slate-700">{Math.round((assessment.scoring?.partialCreditFactor ?? 0.5) * 100)}%</strong></p>
                 <p>Decision weighting: <strong className="text-slate-700">{assessment.decisionWeighting?.automaticPercent ?? 25}% automatic / {assessment.decisionWeighting?.aiPercent ?? 75}% AI</strong></p>
               </div>
@@ -2907,7 +3028,7 @@ function IntakeAssessmentPanel({
               </p>
             )}
             {assessment.aiDecisionSupport && (
-              <div className="mt-3 rounded-lg border border-[#b9e4d1] bg-[#eef8f2] p-3">
+              <div className="mt-3 rounded-lg border border-[#b9e4d1] bg-[#eef8f2] p-3" data-tour="ai-response">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-[#087f70]">
                     AI response
@@ -2969,7 +3090,7 @@ function IntakeAssessmentPanel({
                 )}
               </div>
             )}
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 text-sm">
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 text-sm" data-tour="evaluation-metrics">
               {assessment.checks.map((check) => {
                 const aiReview = assessment.aiDecisionSupport?.checkReviews?.find((review) => review.checkId === check.id);
                   return <ChecklistScoreGraphic key={check.id} check={check} aiReview={aiReview} weighting={assessment.decisionWeighting} />;
@@ -2981,6 +3102,7 @@ function IntakeAssessmentPanel({
                   type="button"
                   onClick={onPublishIntake}
                   disabled={assessmentBusy}
+                  data-tour="publish-evaluation"
                   className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
                 >
                   {assessmentBusy
@@ -2997,6 +3119,7 @@ function IntakeAssessmentPanel({
                   type="button"
                   onClick={onAssessIntake}
                   disabled={assessmentBusy}
+                  data-tour="reevaluate-evaluation"
                   className="cursor-pointer rounded-lg border border-[#087f70] px-4 py-2.5 text-sm font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] disabled:cursor-wait disabled:opacity-40"
                 >
                   {assessmentBusy
@@ -3015,6 +3138,7 @@ function IntakeAssessmentPanel({
                 type="button"
                 onClick={onRequestMove}
                 disabled={assessmentBusy}
+                data-tour="move-next-stage"
                 className="mt-4 cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] focus:outline-none focus:ring-2 focus:ring-[#52e081] disabled:cursor-wait disabled:opacity-40"
               >
                 Move to {nextStages[stage]}
@@ -3059,12 +3183,12 @@ function TransitionAssignmentDialog({open, item, currentUser, nextStage, busy, e
   const availablePersonas = personas.filter((persona) => persona.jiraIdentity?.jiraAccountId !== item?.assigneeAccountId);
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-[#102f33]/55 p-5" role="presentation">
-      <section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="transition-assignment-title">
+      <section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="transition-assignment-title" data-tour="transition-assignment">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#087f70]">Confirm stage transition</p>
         <h2 id="transition-assignment-title" className="mt-2 text-xl font-bold text-[#102f33]">Reassign before moving to {nextStage}</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">Choose the accountable person for the next stage. FULCRUM will verify the Jira assignment first, then move {item?.key} forward.</p>
         <label htmlFor="transition-assignee" className="mt-5 block text-xs font-bold uppercase tracking-wide text-slate-500">Next-stage assignee</label>
-        <select id="transition-assignee" value={selectedPersonaId} onChange={(event) => setSelectedPersonaId(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]">
+        <select id="transition-assignee" value={selectedPersonaId} onChange={(event) => setSelectedPersonaId(event.target.value)} data-tour="transition-assignee" className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#087f70] focus:ring-2 focus:ring-[#b9e4d1]">
           <option value="">Select a different assignee</option>
           {availablePersonas.map((persona) => <option key={persona.id} value={persona.id}>{persona.displayName} · {persona.role}</option>)}
         </select>
@@ -3072,7 +3196,7 @@ function TransitionAssignmentDialog({open, item, currentUser, nextStage, busy, e
         {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-xs leading-5 text-red-700" role="alert">{error}</p>}
         <div className="mt-6 flex justify-end gap-3">
           <button type="button" onClick={onCancel} disabled={busy} className="cursor-pointer rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>
-          <button type="button" onClick={() => onConfirm(selectedPersonaId)} disabled={!selectedPersonaId || busy} className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] disabled:cursor-not-allowed disabled:opacity-40">{busy ? "Assigning and moving…" : "Confirm assignment and move"}</button>
+          <button type="button" onClick={() => onConfirm(selectedPersonaId)} disabled={!selectedPersonaId || busy} data-tour="confirm-transition" className="cursor-pointer rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#17494d] disabled:cursor-not-allowed disabled:opacity-40">{busy ? "Assigning and moving…" : "Confirm assignment and move"}</button>
         </div>
       </section>
     </div>
@@ -3252,6 +3376,7 @@ function JiraWorkItemView({
   attachmentBusy,
   attachmentError,
   onAddAttachment,
+  guidedStepId,
   intakeAssessment,
   attachmentEvidence,
   assessmentBusy,
@@ -3280,7 +3405,7 @@ function JiraWorkItemView({
     );
   const visibleComments = item.comments ?? [];
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" data-tour="work-item-content">
       <div>
         <button
           type="button"
@@ -3333,23 +3458,30 @@ function JiraWorkItemView({
         <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
           {item.description || "No description provided."}
         </p>
-        <div className="mt-6 border-t border-slate-100 pt-5">
+        <div className="mt-6 border-t border-slate-100 pt-5" data-tour="attachments-panel">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Attachments</h3>
             {userJiraConnected ? (
-              <label className="cursor-pointer rounded-lg border border-[#087f70] px-3 py-2 text-xs font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus-within:ring-2 focus-within:ring-[#b9e4d1]">
-                {attachmentBusy ? "Uploading…" : "Add attachment"}
-                <input
-                  type="file"
-                  className="sr-only"
-                  disabled={attachmentBusy}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    if (file) onAddAttachment(file);
-                  }}
-                />
-              </label>
+              <div className="flex flex-wrap justify-end gap-2">
+                <label className="cursor-pointer rounded-lg border border-[#087f70] px-3 py-2 text-xs font-bold text-[#087f70] transition hover:bg-[#eef8f2] focus-within:ring-2 focus-within:ring-[#b9e4d1]">
+                  {attachmentBusy ? "Uploading…" : "Add attachment"}
+                  <input
+                    type="file"
+                    className="sr-only"
+                    disabled={attachmentBusy}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) onAddAttachment(file);
+                    }}
+                  />
+                </label>
+                {guidedStepId === "add-sample-attachment" && (
+                  <button type="button" onClick={async () => onAddAttachment(await createGuidedSamplePdf())} disabled={attachmentBusy} data-tour="add-sample-attachment" className="cursor-pointer rounded-lg bg-[#102f33] px-3 py-2 text-xs font-bold text-white disabled:opacity-40">
+                    Add sample PDF
+                  </button>
+                )}
+              </div>
             ) : (
               <a
                 href={`/api/jira/user-connect?returnTo=${encodeURIComponent(`/demo?view=work-item&issue=${item.key}`)}`}

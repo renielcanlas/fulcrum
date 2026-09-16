@@ -15,19 +15,33 @@ export default function LoginPage() {
   const [users, setUsers] = useState([]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedDemoUser, setSelectedDemoUser] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [guidedLogin, setGuidedLogin] = useState(false);
 
   useEffect(() => {
-    setNext(new URLSearchParams(window.location.search).get("next") === "/sandbox" ? "/sandbox" : "/demo");
+    const params = new URLSearchParams(window.location.search);
+    const guided = params.get("guided") === "1";
+    setNext(guided ? "/demo?guided=landing-start-demo" : params.get("next") === "/sandbox" ? "/sandbox" : "/demo");
+    setGuidedLogin(guided);
     fetch("/api/demo-users", {cache:"no-store"})
       .then((response) => response.ok ? response.json() : [])
-      .then(setUsers)
+      .then((demoUsers) => {
+        setUsers(demoUsers);
+        if (guided) {
+          const maya = demoUsers.find((user) => user.id === "po-1") ?? demoUsers[0];
+          setSelectedDemoUser(maya?.id ?? "");
+          setUsername(maya?.email ?? "");
+          setPassword(maya ? "genius123!" : "");
+        }
+      })
       .catch(() => setUsers([]));
   }, []);
 
   function selectDemo(event) {
     const selected = users.find((user) => user.id === event.target.value);
+    setSelectedDemoUser(event.target.value);
     setUsername(selected?.email ?? "");
     setPassword(selected ? "genius123!" : "");
     setError("");
@@ -75,13 +89,14 @@ export default function LoginPage() {
               <label className="block text-sm font-semibold" htmlFor="password">Password
                 <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 px-3 font-normal text-slate-800 outline-none focus:border-[rgb(9,167,141)] focus:ring-2 focus:ring-[rgba(9,167,141,0.2)]" />
               </label>
-              <button disabled={busy} className="min-h-11 w-full rounded-lg bg-[rgb(82,224,129)] px-4 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)] disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button>
+              <button disabled={busy} className="min-h-11 w-full rounded-lg bg-[rgb(82,224,129)] px-4 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)] disabled:opacity-50">{busy ? "Signing in…" : guidedLogin ? "Continue to login" : "Sign in"}</button>
               {error && <p className="text-sm font-semibold text-red-700" role="alert">{error}</p>}
             </form>
             <div className="mt-8 border-t border-slate-200 pt-6">
+              {guidedLogin && <div className="mb-5 rounded-xl border border-[#b9e4d1] bg-[#eef8f2] p-4" role="status"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#087f70]">Landing guided demo · 2 of 2</p><h3 className="mt-1 text-base font-bold text-[#102f33]">Choose a synthetic demo user</h3><p className="mt-2 text-sm leading-6 text-slate-600">Select a persona below to populate the username and password. Maya Chen is the Product Owner who can create initiatives; Daniel Reyes is the FCRM Analyst; Helen Morgan is the Risk Committee member. The credentials are synthetic and the normal sign-in flow still applies.</p><button type="button" onClick={() => setGuidedLogin(false)} className="mt-3 text-xs font-bold text-[#087f70]">Dismiss guide</button></div>}
               <p className="text-sm font-bold">Demo user helper</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">Select a synthetic persona to fill the form. You still submit the credentials through the normal login flow.</p>
-              <select aria-label="Select a demo user" onChange={selectDemo} defaultValue="" className="mt-3 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800">
+              <select aria-label="Select a demo user" onChange={selectDemo} value={selectedDemoUser} className="mt-3 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800">
                 <option value="">Choose a demo user</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.displayName} — {user.role}</option>)}
               </select>

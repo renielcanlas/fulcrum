@@ -188,11 +188,165 @@ test("UAT: landing page exposes the entry journey and sandbox flag", async ({pag
   await page.route("**/api/features**", (route) => route.fulfill({json: {allowSyntheticSandbox: true}}));
   await page.goto("/");
   await expect(page.getByRole("heading", {name: /Make every initiative decision-ready/})).toBeVisible();
-  await expect(page.getByRole("button", {name: "Start demo"})).toBeVisible();
+  await expect(page.getByRole("button", {name: "Login", exact: true})).toBeVisible();
   await expect(page.getByRole("link", {name: /Explore the sandbox/})).toBeVisible();
   await expect(page.getByRole("heading", {name: /A complete decision journey/})).toBeVisible();
-  await page.getByRole("button", {name: "Start demo"}).click();
+  await page.getByRole("button", {name: "Login", exact: true}).click();
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test("UAT: landing Start demo begins the guided login journey", async ({page}) => {
+  await page.route("**/api/features**", (route) => route.fulfill({json: {allowSyntheticSandbox: true}}));
+  const marcus = {id: "po-2", displayName: "Marcus Thompson", email: "marcus.thompson@fulcrum.demo", role: "PRODUCT_OWNER", jiraIdentity: {jiraAccountId: "acct-marcus"}};
+  await page.route("**/api/demo-users**", (route) => route.fulfill({json: [...users, marcus]}));
+  const guidedWorkItem = {
+    key: "FCRM-300",
+    summary: "Launch U.S.–Philippines Instant Remittance",
+    description: "Accountable owner\nMaya Chen\n\nProblem / opportunity\nCustomers need a faster, lower-friction way to send money from the United States to recipients in the Philippines.\n\nIntended outcome\nLaunch a bounded digital remittance service with traceable FCRM controls.",
+    statusName: "Intake",
+    assignee: "Maya Chen",
+    assigneeAccountId: "acct-po",
+    projectKey: "FCRM",
+    issueType: "Task",
+    priority: "High",
+    labels: ["payments", "remittance", "golden-demo"],
+    comments: [],
+    attachments: [],
+    url: "https://example.atlassian.net/browse/FCRM-300",
+  };
+  const guidedAssessment = {
+    version: "intake-v1",
+    stage: "Intake",
+    assessedAt: "2026-09-16T00:00:00.000Z",
+    score: 88,
+    maxScore: 100,
+    recommendation: "Proceed",
+    decisionWeighting: {automaticPercent: 25, aiPercent: 75},
+    weightedDecision: {score: 84, maxScore: 100, recommendation: "Proceed", automaticPercent: 25, aiPercent: 75},
+    configurationSnapshot: {assessment: {proceedThreshold: 70}},
+    scoring: {partialCreditFactor: 0.5},
+    checks: [{id: "summary", label: "Clear summary", weight: 100, state: "pass", points: 88, failure: null}],
+    aiDecisionSupport: {
+      score: 82,
+      maxScore: 100,
+      recommendation: "Proceed",
+      reviewedCheckCount: 1,
+      summary: "The bounded remittance context is sufficiently clear for the next review step, subject to partner diligence and monitoring ownership.",
+      challenge: "Confirm the local partner evidence before launch.",
+      pros: ["Clear corridor and scope"],
+      cons: ["Partner diligence remains open"],
+      rationale: ["The context identifies the product, markets, and key controls."],
+      proposedComment: "Review partner diligence and monitoring ownership before launch.",
+      checkReviews: [{checkId: "summary", points: 82, weight: 100, observation: "Summary and ownership are clear."}],
+    },
+    aiContext: {commentCount: 0, attachmentCount: 0, extractedAttachmentCount: 0},
+  };
+  const history = [];
+  let createBody;
+  let commentBody;
+  let assignedPersona;
+  let assessmentCalls = 0;
+  await page.route("**/api/jira/create**", async (route) => {
+    createBody = route.request().postDataJSON();
+    await route.fulfill({status: 201, json: {key: guidedWorkItem.key, url: guidedWorkItem.url, accountableOwner: "Maya Chen", accountableOwnerVerified: true}});
+  });
+  await page.route(/\/api\/jira\/assessment\/ai(?:\?.*)?$/, async (route) => {
+    assessmentCalls += 1;
+    await route.fulfill({json: {ok: true, assessment: {...guidedAssessment, assessedAt: new Date().toISOString()}, attachmentEvidence: []}});
+  });
+  await page.route(/\/api\/jira\/assessment(?:\?.*)?$/, async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({json: {stage: guidedWorkItem.statusName, published: history[0] ?? null, history, allHistory: history}});
+      return;
+    }
+    const body = route.request().postDataJSON();
+    if (body.action === "publish") {
+      const version = {...body.assessment, publishedAt: new Date().toISOString(), revision: history.length + 1, commentId: `guided-${history.length + 1}`};
+      history.unshift(version);
+    }
+    if (body.action === "transition") guidedWorkItem.statusName = "Context and Research";
+    await route.fulfill({json: {ok: true}});
+  });
+  await page.route("**/api/jira/user-status**", (route) => route.fulfill({json: {connected: true}}));
+  await page.route("**/api/jira/comment**", async (route) => {
+    commentBody = route.request().postDataJSON();
+    guidedWorkItem.comments.push({id: "guided-comment", author: "fulcrum-bot", body: commentBody.body, created: new Date().toISOString()});
+    await route.fulfill({json: {ok: true, commentId: "guided-comment"}});
+  });
+  await page.route("**/api/jira/attachment/upload**", async (route) => {
+    guidedWorkItem.attachments.push({id: "guided-pdf", filename: "Golden Initiative - FULCRUM.pdf", mimeType: "application/pdf", size: 420, author: "Maya Chen"});
+    await route.fulfill({json: {ok: true, attachmentId: "guided-pdf"}});
+  });
+  await page.route("**/api/jira/assign**", async (route) => {
+    assignedPersona = route.request().postDataJSON().personaId;
+    guidedWorkItem.assignee = "Marcus Thompson";
+    guidedWorkItem.assigneeAccountId = "acct-marcus";
+    await route.fulfill({json: {ok: true, verified: true}});
+  });
+  await page.route("**/api/jira?issue=FCRM-300", (route) => route.fulfill({json: {item: guidedWorkItem}}));
+  await page.route("**/api/session**", async (route) => {
+    if (route.request().method() === "POST") await route.fulfill({json: {ok: true, user: users[0]}});
+    else await route.fulfill({json: {user: users[0]}});
+  });
+  await page.goto("/");
+  await page.getByRole("button", {name: "Start the demo", exact: true}).click();
+  await expect(page.getByRole("heading", {name: "Start with Login"})).toBeVisible();
+  await page.getByRole("button", {name: "Open Login"}).click();
+  await expect(page).toHaveURL(/\/login\?guided=1$/);
+  await expect(page.getByRole("heading", {name: "Choose a synthetic demo user"})).toBeVisible();
+  await expect(page.getByText(/Maya Chen is the Product Owner/)).toBeVisible();
+  await expect(page.getByLabel("Select a demo user")).toHaveValue("po-1");
+  await expect(page.locator("#username")).toHaveValue(users[0].email);
+  await expect(page.locator("#password")).toHaveValue("genius123!");
+  await page.getByRole("button", {name: "Continue to login"}).click();
+  await expect(page).toHaveURL(/\/demo$/);
+  const next = () => page.getByRole("button", {name: "Next", exact: true}).click();
+  await expect(page.getByRole("heading", {name: "Understand the board at a glance"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Explore the initiative board"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Ask Ciel for explanations"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "What Initiatives is for"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Find other guided demos"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Experiment safely in Sandbox"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Find useful platform information"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Begin the prepared Golden Initiative flow"})).toBeVisible();
+  await page.getByRole("button", {name: "Load Golden Initiative"}).click(); await next();
+  await expect(page.getByRole("heading", {name: "Create it under Maya Chen"})).toBeVisible();
+  await page.getByRole("button", {name: "Create initiative"}).click(); await next();
+  await expect(page.getByRole("heading", {name: "Confirm and create the Jira initiative"})).toBeVisible();
+  await page.getByRole("button", {name: "Confirm and create"}).click();
+  await expect.poll(() => createBody?.owner).toBe("Maya Chen"); await next();
+  await expect(page.getByRole("heading", {name: "Confirm the Jira creation"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Continue in FULCRUM"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Review the initiative context"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "FULCRUM evaluation"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Start the evaluation"})).toBeVisible();
+  await page.getByRole("button", {name: "Evaluate Intake"}).click({force: true}); await expect.poll(() => assessmentCalls).toBe(1); await expect(page.getByText("AI response", {exact: true})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Read the summary scores"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Scoring configuration"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Understand the AI response"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Review the evaluation metrics"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Know when FULCRUM suggests the next step"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Publish the evaluation to Jira"})).toBeVisible();
+  await page.getByRole("button", {name: "Publish evaluation to Jira"}).click(); await next();
+  await expect(page.getByRole("heading", {name: "Re-evaluate when the result needs another look"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Comments stay connected to Jira"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Add a contextual comment"})).toBeVisible();
+  await expect(page.getByPlaceholder("Write a comment to add to Jira…")).toHaveValue(/FULCRUM review:/);
+  await next(); await expect.poll(() => commentBody?.body).toMatch(/FULCRUM review:/);
+  await expect(page.getByRole("heading", {name: "Attachments provide supporting context"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Add the sample PDF"})).toBeVisible();
+  await next(); await expect.poll(() => guidedWorkItem.attachments.length).toBe(1);
+  await expect(page.getByRole("heading", {name: "Re-evaluate after adding context"})).toBeVisible();
+  await page.getByRole("button", {name: "Re-evaluate Intake"}).click(); await expect(page.getByText("AI response", {exact: true})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Publish the reevaluation"})).toBeVisible();
+  await page.getByRole("button", {name: "Publish evaluation to Jira"}).click(); await next();
+  await expect(page.getByRole("heading", {name: "Compare assessment versions"})).toBeVisible(); await next();
+  await expect(page.getByRole("heading", {name: "Move to the next stage when ready"})).toBeVisible();
+  await page.getByRole("button", {name: "Move to Context and Research"}).click();
+  await expect(page.getByRole("heading", {name: "Reassign the next stage"})).toBeVisible();
+  await page.getByLabel("Next-stage assignee").selectOption("po-2");
+  await page.getByRole("button", {name: "Confirm assignment and move"}).click();
+  await expect.poll(() => assignedPersona).toBe("po-2");
 });
 
 test("UAT: invalid credentials remain on login and show an actionable error", async ({page}) => {

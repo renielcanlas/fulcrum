@@ -7,7 +7,8 @@ export default function Home() {
   const router = useRouter();
   const repoDocs = "https://github.com/renielcanlas/fulcrum/blob/main";
   const [sandboxAllowed, setSandboxAllowed] = useState(true);
-  const openLogin = () => router.push("/login");
+  const [landingTourOpen, setLandingTourOpen] = useState(false);
+  const openLogin = (guided = false) => router.push(guided ? "/login?guided=1" : "/login");
   useEffect(() => {
     fetch("/api/features", {cache:"no-store"}).then((response) => response.ok ? response.json() : null).then((features) => {
       if (features) setSandboxAllowed(Boolean(features.allowSyntheticSandbox));
@@ -62,10 +63,10 @@ export default function Home() {
             </a>
           </div>
           <button
-            onClick={openLogin}
+            onClick={() => openLogin(false)}
             className="rounded-full bg-[rgb(82,224,129)] px-4 py-2 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)]"
           >
-            Start demo
+            Login
           </button>
         </div>
       </nav>
@@ -86,7 +87,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button
-              onClick={openLogin}
+              onClick={() => setLandingTourOpen(true)}
               className="rounded-full bg-[rgb(82,224,129)] px-6 py-3 text-center text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)]"
             >
               Start the demo
@@ -529,6 +530,24 @@ export default function Home() {
       <footer className="mx-auto max-w-7xl px-6 pb-8 text-xs text-slate-500 lg:px-10">
         FULCRUM · Hackathon demonstration · All data is synthetic.
       </footer>
+      {landingTourOpen && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-[#102f33]/60 p-5" role="presentation">
+          <section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="landing-tour-title">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#087f70]">Landing-page guided demo · 1 of 2</p>
+                <h2 id="landing-tour-title" className="mt-2 text-2xl font-bold text-[#102f33]">Start with Login</h2>
+              </div>
+              <button type="button" aria-label="Close landing guided demo" onClick={() => setLandingTourOpen(false)} className="text-2xl leading-none text-slate-400 hover:text-slate-800">×</button>
+            </div>
+            <p className="mt-4 text-sm leading-7 text-slate-600">Click <strong className="text-slate-900">Login</strong> in the app bar to enter FULCRUM. The next step explains the synthetic demo users and what each persona can validate.</p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setLandingTourOpen(false)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600">Close</button>
+              <button type="button" onClick={() => openLogin(true)} className="rounded-lg bg-[#102f33] px-4 py-2.5 text-sm font-bold text-white">Open Login</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
