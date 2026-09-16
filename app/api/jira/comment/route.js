@@ -14,7 +14,7 @@ export async function POST(request) {
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   let body;
   try { body = await request.json(); } catch { return Response.json({error: "invalid_json"}, {status: 400}); }
-  const guidedDemo = body.guidedDemo === true && user.id === "po-1";
+  const guidedDemo = body.guidedDemo === true && Boolean(findDemoUser(user.id));
   const connection = guidedDemo ? getGuidedDemoConnection() : await runtime.jiraConnections.getAsync(sessionId);
   if (!connection) return Response.json({error: guidedDemo ? "jira_guided_demo_token_missing" : "jira_user_authorization_required"}, {status: 409});
   const issueKey = String(body.issueKey ?? "").toUpperCase();

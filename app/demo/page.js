@@ -61,13 +61,29 @@ const jiraWorkflowStatuses = [
   "Rejected",
 ];
 const guidedGoldenComment = "FULCRUM review: The Golden Initiative has a clear U.S.–Philippines remittance scope. Before launch, confirm HarborBridge partner due diligence, recipient-wallet limits, and transaction-monitoring ownership.";
+const guidedMayaComments = [
+  "Maya Chen: I will keep the initial transaction limit bounded while the first 30-day monitoring review is completed. The product and operations teams should confirm ownership of alert triage before expansion.",
+  "Maya Chen: I have added the partner due-diligence context and would like the FCRM team to confirm the HarborBridge escalation SLA, recipient-wallet limits, and exception-handling path before launch.",
+];
+const guidedHumanDecisionRationale = "This initiative is approved based on the bounded U.S.–Philippines remittance scope, documented controls, staged evaluation results, and the remaining conditions assigned to accountable owners.";
+
+async function fetchGuidedAsset(filename, outputName = filename, type = "application/octet-stream") {
+  const response = await fetch(`/demo/${encodeURIComponent(filename)}`, {cache: "no-store"});
+  if (!response.ok) throw new Error("guided_asset_unavailable");
+  const blob = await response.blob();
+  return new File([blob], outputName, {type});
+}
 
 async function createGuidedSamplePdf() {
-  const filename = "Golden Initiative - FULCRUM.pdf";
-  const response = await fetch(`/demo/${encodeURIComponent(filename)}`, {cache: "no-store"});
-  if (!response.ok) throw new Error("guided_sample_pdf_unavailable");
-  const blob = await response.blob();
-  return new File([blob], filename, {type: "application/pdf"});
+  return fetchGuidedAsset("Golden Initiative - FULCRUM.pdf", "Golden Initiative - FULCRUM.pdf", "application/pdf");
+}
+
+async function createGuidedRiskOfficerPdf() {
+  return fetchGuidedAsset("Golden Initiative - FULCRUM.pdf", "Golden Initiative - risk-officer-analysis.pdf", "application/pdf");
+}
+
+async function createGuidedRiskWorkbook() {
+  return fetchGuidedAsset("Golden Initiative - risk-analysis.xlsx", "Golden Initiative - risk-analysis.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 }
 
 async function readApiJson(response, fallback) {
@@ -122,6 +138,7 @@ export default function DemoPage() {
   const [tour, setTour] = useState(null);
   const [tourRect, setTourRect] = useState(null);
   const [guidedCreatedIssueKey, setGuidedCreatedIssueKey] = useState("");
+  const [guidedActionBusy, setGuidedActionBusy] = useState(false);
   const activeTour = tour
     ? (() => {
         const demo = guidedDemos.find((item) => item.id === tour.id);
@@ -181,27 +198,87 @@ export default function DemoPage() {
     setTour({ id: demo.id, step: 0 });
   }
 
+  async function switchGuidedPersona(personaId) {
+    const usersResponse = await fetch("/api/demo-users", {cache: "no-store"});
+    const users = await usersResponse.json();
+    const persona = users.find((user) => user.id === personaId);
+    if (!persona) throw new Error("guided_persona_not_found");
+    const response = await fetch("/api/session", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({username: persona.email, password: "genius123!"}),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.user) throw new Error(data.error ?? "guided_persona_switch_failed");
+    setSignedIn(data.user);
+    setJiraUserConnected(false);
+    return data.user;
+  }
+
   async function advanceTour() {
+    if (guidedActionBusy) return;
     const currentStep = activeTour?.steps?.[tour?.step ?? 0];
-    if (currentStep?.id === "add-comment") {
-      const alreadyAdded = selectedWorkItem?.comments?.some(
-        (comment) => comment.body?.trim() === guidedGoldenComment,
-      );
-      if (!alreadyAdded && !(await addComment())) return;
-    }
-    if (currentStep?.id === "add-sample-attachment") {
-      const filename = "Golden Initiative - FULCRUM.pdf";
-      const alreadyAdded = selectedWorkItem?.attachments?.some(
-        (attachment) => attachment.filename === filename,
-      );
-      if (!alreadyAdded) {
-        try {
-          if (!(await addAttachment(await createGuidedSamplePdf()))) return;
-        } catch (error) {
-          setAttachmentError(error.message ?? "guided_sample_pdf_unavailable");
-          return;
+    if (!currentStep) return;
+    setGuidedActionBusy(true);
+    try {
+      if (currentStep.id === "add-comment") {
+        const alreadyAdded = selectedWorkItem?.comments?.some((comment) => comment.body?.trim() === guidedGoldenComment);
+        if (!alreadyAdded && !(await addComment())) return;
+      }
+      if (currentStep.id === "add-sample-attachment") {
+        const filename = "Golden Initiative - FULCRUM.pdf";
+        const alreadyAdded = selectedWorkItem?.attachments?.some((attachment) => attachment.filename === filename);
+        if (!alreadyAdded && !(await addAttachment(await createGuidedSamplePdf()))) return;
+      }
+      if (currentStep.id === "switch-to-marcus") await switchGuidedPersona("po-2");
+      if (currentStep.id === "add-risk-workbook") {
+        const filename = "Golden Initiative - risk-analysis.xlsx";
+        const alreadyAdded = selectedWorkItem?.attachments?.some((attachment) => attachment.filename === filename);
+        if (!alreadyAdded && !(await addAttachment(await createGuidedRiskWorkbook()))) return;
+      }
+      if (currentStep.id === "add-maya-context-comments") {
+        for (const body of guidedMayaComments) {
+          if (!selectedWorkItem?.comments?.some((comment) => comment.body?.trim() === body)) {
+            if (!(await addComment(body, "Maya Chen"))) return;
+          }
         }
       }
+      if (currentStep.id === "evaluate-context" || currentStep.id === "evaluate-risk" || currentStep.id === "evaluate-review") {
+        if (!(await assessIntakeStage())) return;
+      }
+      if (currentStep.id === "publish-context" || currentStep.id === "publish-risk" || currentStep.id === "publish-review" || currentStep.id === "publish-context-reevaluation") {
+        if (!(await publishIntakeAssessment())) return;
+      }
+      if (currentStep.id === "add-risk-officer-analysis") {
+        const filename = "Golden Initiative - risk-officer-analysis.pdf";
+        const alreadyAdded = selectedWorkItem?.attachments?.some((attachment) => attachment.filename === filename);
+        if (!alreadyAdded && !(await addAttachment(await createGuidedRiskOfficerPdf()))) return;
+      }
+      if (currentStep.id === "switch-to-priya") await switchGuidedPersona("analyst-8");
+      if (currentStep.id === "switch-to-helen") await switchGuidedPersona("committee-1");
+      if (currentStep.id === "config-set-threshold") {
+        const configResponse = await fetch("/api/configuration", {cache: "no-store"});
+        const configBody = await configResponse.json();
+        if (!configResponse.ok) throw new Error(configBody.error ?? "configuration_load_failed");
+        const saveResponse = await fetch("/api/configuration", {
+          method: "PUT",
+          headers: {"content-type": "application/json"},
+          body: JSON.stringify({section: "assessments", values: {...configBody.configuration.assessments, proceedThreshold: 50}}),
+        });
+        if (!saveResponse.ok) throw new Error("configuration_save_failed");
+      }
+      if (currentStep.id === "reevaluate-after-context") {
+        if (!(await assessIntakeStage())) return;
+      }
+      if (currentStep.id === "record-human-decision") {
+        if (!(await submitHumanDecision({outcome: "ACCEPTED", rationale: guidedHumanDecisionRationale}))) return;
+      }
+    } catch (error) {
+      setAssessmentError(error.message ?? "guided_demo_action_failed");
+      return;
+    } finally {
+      setGuidedActionBusy(false);
     }
     if (currentStep?.id === "initiative-open-fulcrum" && guidedCreatedIssueKey) {
       const issueKey = guidedCreatedIssueKey;
@@ -402,8 +479,8 @@ export default function DemoPage() {
     };
   }, [activeView, jiraUserConnected, tour?.id]);
 
-  async function addComment() {
-    const body = commentText.trim() || (
+  async function addComment(commentBody = commentText, authorOverride = null) {
+    const body = commentBody.trim() || (
       tour?.id === "landing-start-demo" && tourStep?.id === "add-comment"
         ? guidedGoldenComment
         : ""
@@ -429,7 +506,7 @@ export default function DemoPage() {
           ...(current.comments ?? []),
           {
             id: data.commentId ?? `local-${Date.now()}`,
-            author: tour?.id === "landing-start-demo" ? "fulcrum-bot" : signedIn?.displayName ?? "Current user",
+            author: authorOverride ?? (tour?.id === "landing-start-demo" ? "fulcrum-bot" : signedIn?.displayName ?? "Current user"),
             body,
             created: new Date().toISOString(),
           },
@@ -482,7 +559,7 @@ export default function DemoPage() {
 
   async function assessIntakeStage() {
     const issueKey = activeIssueKey || selectedWorkItem?.key;
-    if (!issueKey) return;
+    if (!issueKey) return false;
     setAssessmentBusy(true);
     setAssessmentError("");
     try {
@@ -505,15 +582,17 @@ export default function DemoPage() {
         assessment: data.assessment,
       }));
       setAttachmentEvidence(data.attachmentEvidence ?? []);
+      return true;
     } catch (error) {
       setAssessmentError(error.message ?? "intake_assessment_failed");
+      return false;
     } finally {
       setAssessmentBusy(false);
     }
   }
 
   async function publishIntakeAssessment() {
-    if (!intakeAssessment?.assessment || assessmentBusy) return;
+    if (!intakeAssessment?.assessment || assessmentBusy) return false;
     setAssessmentBusy(true);
     setAssessmentError("");
     try {
@@ -531,8 +610,10 @@ export default function DemoPage() {
       if (!response.ok)
         throw new Error(data.error ?? "intake_assessment_publish_failed");
       await refreshWorkItem(activeIssueKey);
+      return true;
     } catch (error) {
       setAssessmentError(error.message ?? "intake_assessment_publish_failed");
+      return false;
     } finally {
       setAssessmentBusy(false);
     }
@@ -568,7 +649,9 @@ export default function DemoPage() {
       const boardResponse = await fetch("/api/jira");
       const boardData = await readApiJson(boardResponse, "jira_board_refresh_failed");
       if (boardResponse.ok) setBoardItems(boardData.items ?? []);
-      if (tour?.id === "landing-start-demo" && tourStep?.id === "transition-assignment") setTour(null);
+      if (tour?.id === "landing-start-demo" && ["transition-assignment", "transition-priya-assignment", "transition-helen-assignment"].includes(tourStep?.id)) {
+        setTour((current) => current ? {...current, step: current.step + 1} : current);
+      }
     } catch (error) {
       setTransitionAssignmentError(error.message ?? "jira_transition_failed");
     } finally {
@@ -595,7 +678,7 @@ export default function DemoPage() {
   }
 
   async function submitHumanDecision(decision) {
-    if (!activeIssueKey || decisionBusy) return;
+    if (!activeIssueKey || decisionBusy) return false;
     setDecisionBusy(true);
     setDecisionError("");
     try {
@@ -603,8 +686,10 @@ export default function DemoPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "jira_decision_failed");
       await refreshWorkItem(activeIssueKey);
+      return true;
     } catch (error) {
       setDecisionError(error.message ?? "jira_decision_failed");
+      return false;
     } finally {
       setDecisionBusy(false);
     }
@@ -794,7 +879,7 @@ export default function DemoPage() {
             <span className="hidden rounded-full bg-white/10 px-3 py-1.5 text-white/75 sm:inline">
               Synthetic demo
             </span>
-            <span className="hidden text-white/70 md:inline">
+            <span className="hidden text-white/70 md:inline" data-tour="current-user">
               {signedIn.displayName}
             </span>
             <button
@@ -1073,7 +1158,7 @@ export default function DemoPage() {
               onRequestMove={() => {
                 setTransitionAssignmentError("");
                 setTransitionAssignmentOpen(true);
-                if (tour?.id === "landing-start-demo" && tourStep?.id === "move-next-stage") {
+                if (tour?.id === "landing-start-demo" && ["move-next-stage", "move-to-risk-stage", "move-to-review-stage"].includes(tourStep?.id)) {
                   setTour((current) => current ? {...current, step: current.step + 1} : current);
                 }
               }}
@@ -1094,6 +1179,7 @@ export default function DemoPage() {
               onOpenTrace={loadTrace}
               trace={trace}
               currentUser={signedIn}
+              guidedStepId={tour?.id === "landing-start-demo" ? tourStep?.id : ""}
               onCreated={(item) => setGuidedCreatedIssueKey(item?.key ?? "")}
               onOpenGuidedWorkItem={(issueKey) => {
                 if (tour?.id === "landing-start-demo" && tourStep?.id === "initiative-open-fulcrum") {
@@ -1754,7 +1840,7 @@ function InitiativeForm({ currentUser, onCreated, onOpenGuidedWorkItem }) {
   );
 }
 
-function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace, currentUser, onCreated, onOpenGuidedWorkItem }) {
+function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace, currentUser, guidedStepId, onCreated, onOpenGuidedWorkItem }) {
   const [helpTopic, setHelpTopic] = useState(null);
   const screens = {
     initiatives: {
@@ -1899,7 +1985,7 @@ function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace
   }
 
   const content = {
-    configuration: <ConfigurationScreen currentUser={currentUser} onSandboxChange={onSandboxChange} />,
+    configuration: <ConfigurationScreen currentUser={currentUser} guidedStepId={guidedStepId} onSandboxChange={onSandboxChange} />,
     initiatives: (
           <InitiativeForm
             currentUser={currentUser}
@@ -2207,8 +2293,8 @@ function ConfigurationScreen({onSandboxChange}) {
         <p className="mt-1">These settings are persisted in Neon and take effect without a redeploy. Secrets, API keys, OAuth client secrets, and encryption keys remain server-only Vercel environment variables and are intentionally not editable here.</p>
       </div>
       {message && <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">{message}</p>}
-      <ConfigCard title="Risk assessment methodology" description="Set the rating boundaries and how strongly effective controls can reduce the score.">
-        <details className="mb-5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700">
+      <ConfigCard title="Risk assessment methodology" description="Set the rating boundaries and how strongly effective controls can reduce the score." tourTarget="risk-methodology">
+        <details className="mb-5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700" data-tour="learn-more-risk-scoring">
           <summary className="cursor-pointer px-4 py-3 font-bold text-slate-800">Learn more about risk scoring</summary>
           <div className="border-t border-slate-200 px-4 py-4 leading-6">
             <ol className="list-decimal space-y-2 pl-5"><li>FULCRUM starts with the risks in the initiative. More serious risk factors create a higher starting score.</li><li>Controls reduce that starting score based on how effective they are.</li><li>The remaining score is compared with S1 and S2 to determine Low, Medium, or High.</li></ol>
@@ -2217,19 +2303,19 @@ function ConfigurationScreen({onSandboxChange}) {
           </div>
         </details>
         <div className="grid gap-4 lg:grid-cols-2">
-          <ThresholdRange thresholds={risk.thresholds} onChangeS1={(value) => updateRiskValue("mediumMax", value)} onChangeS2={(value) => updateRiskValue("highMin", value)} />
-          <MitigationScaleControl value={risk.mitigationScale} onChange={(value) => update("risk", "mitigationScale", value)} />
+          <div data-tour="risk-rating-boundaries"><ThresholdRange thresholds={risk.thresholds} onChangeS1={(value) => updateRiskValue("mediumMax", value)} onChangeS2={(value) => updateRiskValue("highMin", value)} /></div>
+          <div data-tour="control-mitigation-strength"><MitigationScaleControl value={risk.mitigationScale} onChange={(value) => update("risk", "mitigationScale", value)} /></div>
         </div>
         <ConfigSaveButton dirty={isDirty("risk")} busy={busy === "risk"} onClick={() => save("risk")} />
       </ConfigCard>
-      <ConfigCard title="Assessment decision support" description="Set how the final readiness score is weighted and when FULCRUM suggests moving to the next workflow step.">
+      <ConfigCard title="Assessment decision support" description="Set how the final readiness score is weighted and when FULCRUM suggests moving to the next workflow step." tourTarget="assessment-decision-support">
         <details className="mb-5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700">
           <summary className="cursor-pointer px-4 py-3 font-bold text-slate-800">Learn more about decision support</summary>
           <div className="border-t border-slate-200 px-4 py-4 leading-6"><p>The AutoScore comes from deterministic checks such as completeness, ownership, labels, and collaboration. The AI score is Ciel’s advisory review of the same assessment context.</p><p className="mt-3">The weighting slider combines those two scores into one readiness score. It does not approve, reject, or move the work automatically.</p><p className="mt-3">The proceed threshold is the point at which FULCRUM suggests moving to the next workflow step. An authorized human still reviews the evidence and confirms what happens next.</p></div>
         </details>
         <div className="grid gap-4 lg:grid-cols-2">
-          <DecisionWeightControl value={assessments.aiPercent} onChange={(aiPercent) => setDrafts((current) => ({...current, assessments: {...current.assessments, aiPercent, automaticPercent: 100 - aiPercent}}))} />
-          <ProceedThresholdControl value={assessments.proceedThreshold} onChange={(value) => update("assessments", "proceedThreshold", value)} />
+          <div data-tour="ai-auto-scoring"><DecisionWeightControl value={assessments.aiPercent} onChange={(aiPercent) => setDrafts((current) => ({...current, assessments: {...current.assessments, aiPercent, automaticPercent: 100 - aiPercent}}))} /></div>
+          <div data-tour="proceed-threshold-config"><ProceedThresholdControl value={assessments.proceedThreshold} onChange={(value) => update("assessments", "proceedThreshold", value)} /></div>
         </div>
         <ConfigSaveButton dirty={isDirty("assessments")} busy={busy === "assessments"} onClick={() => save("assessments")} />
       </ConfigCard>
@@ -2254,8 +2340,8 @@ function ConfigurationScreen({onSandboxChange}) {
   );
 }
 
-function ConfigCard({title, description, children}) {
-  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-bold text-slate-950">{title}</h2><p className="mt-1 text-sm leading-6 text-slate-500">{description}</p><div className="mt-5">{children}</div></section>;
+function ConfigCard({title, description, children, tourTarget}) {
+  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" data-tour={tourTarget}><h2 className="font-bold text-slate-950">{title}</h2><p className="mt-1 text-sm leading-6 text-slate-500">{description}</p><div className="mt-5">{children}</div></section>;
 }
 
 function ConfigInput({label, helper, type="text", readOnly=false, value, onChange}) {
@@ -2576,13 +2662,14 @@ function JiraWorkItemProgress({ item, currentUser, onAssigned }) {
               href={item.url}
               target="_blank"
               rel="noreferrer"
+              data-tour="open-jira-final"
               className="shrink-0 cursor-pointer rounded px-1 text-xs font-semibold text-slate-500 transition hover:bg-[#eef8f2] hover:text-[#087f70] hover:underline focus:outline-none focus:ring-2 focus:ring-[#b9e4d1]"
             >
               Open in Jira ↗
             </a>
           )}
         </div>
-        <div className="pb-1">
+        <div className="pb-1" data-tour="status-ribbon">
           <div className="grid grid-cols-2 items-stretch sm:grid-cols-4">
             {statuses.map((status, index) => (
               <div
@@ -2911,6 +2998,7 @@ function ChecklistScoreGraphic({ check, aiReview, weighting }) {
 function IntakeAssessmentPanel({
   item,
   currentUser,
+  guidedStepId,
   intakeAssessment,
   assessmentBusy,
   assessmentError,
@@ -3210,6 +3298,7 @@ function IntakeAssessmentPanel({
           open={transitionAssignmentOpen}
           item={item}
           currentUser={currentUser}
+          guidedStepId={guidedStepId}
           nextStage={nextStages[stage]}
           busy={assessmentBusy}
           error={transitionAssignmentError}
@@ -3226,13 +3315,20 @@ function IntakeAssessmentPanel({
   );
 }
 
-function TransitionAssignmentDialog({open, item, currentUser, nextStage, busy, error, onCancel, onConfirm}) {
+function TransitionAssignmentDialog({open, item, currentUser, guidedStepId, nextStage, busy, error, onCancel, onConfirm}) {
   const [personas, setPersonas] = useState([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setSelectedPersonaId("");
+    const guidedDefault = guidedStepId === "transition-assignment"
+      ? "po-2"
+      : guidedStepId === "transition-priya-assignment"
+        ? "analyst-8"
+        : guidedStepId === "transition-helen-assignment"
+          ? "committee-1"
+          : "";
+    setSelectedPersonaId(guidedDefault);
     fetch("/api/demo-users")
       .then((response) => response.json())
       .then((users) => setPersonas(Array.isArray(users) ? users : []))
@@ -3318,6 +3414,7 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
     <section
       className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4"
       aria-label="Previous Fulcrum evaluations"
+      data-tour="previous-stage-summaries"
     >
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -3383,9 +3480,15 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
   );
 }
 
-function HumanDecisionPanel({item, currentUser, intakeAssessment, decisionData, decisionBusy, decisionError, onSubmitDecision}) {
+function HumanDecisionPanel({item, currentUser, guidedStepId, intakeAssessment, decisionData, decisionBusy, decisionError, onSubmitDecision}) {
   const [outcome, setOutcome] = useState("ACCEPTED");
   const [rationale, setRationale] = useState("");
+  useEffect(() => {
+    if (["human-decision", "record-human-decision"].includes(guidedStepId)) {
+      setOutcome("ACCEPTED");
+      setRationale(guidedHumanDecisionRationale);
+    }
+  }, [guidedStepId]);
   if (item?.statusName !== "Review") return null;
   const latestDecision = decisionData?.decisions?.[0];
   const publishedEvaluation = intakeAssessment?.published;
@@ -3393,7 +3496,7 @@ function HumanDecisionPanel({item, currentUser, intakeAssessment, decisionData, 
   const isCommittee = currentUser?.role === "RISK_COMMITTEE";
   function submit(event) { event.preventDefault(); onSubmitDecision({outcome, rationale}); }
   return (
-    <section className="mt-8 rounded-xl border border-[#ead9b5] bg-[#fffaf0] p-4" aria-label="Human decision panel">
+    <section className="mt-8 rounded-xl border border-[#ead9b5] bg-[#fffaf0] p-4" aria-label="Human decision panel" data-tour="human-decision">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Human decision</p>
@@ -3545,6 +3648,11 @@ function JiraWorkItemView({
                     Add sample PDF
                   </button>
                 )}
+                {guidedStepId === "add-risk-workbook" && (
+                  <button type="button" onClick={async () => onAddAttachment(await createGuidedRiskWorkbook())} disabled={attachmentBusy} data-tour="add-risk-workbook" className="cursor-pointer rounded-lg bg-[#102f33] px-3 py-2 text-xs font-bold text-white disabled:opacity-40">
+                    Add sample Excel workbook
+                  </button>
+                )}
               </div>
             ) : (
               <button
@@ -3610,6 +3718,7 @@ function JiraWorkItemView({
       <IntakeAssessmentPanel
         item={item}
         currentUser={currentUser}
+        guidedStepId={guidedStepId}
         intakeAssessment={intakeAssessment}
         assessmentBusy={assessmentBusy}
         assessmentError={assessmentError}
@@ -3624,6 +3733,7 @@ function JiraWorkItemView({
       <HumanDecisionPanel
         item={item}
         currentUser={currentUser}
+        guidedStepId={guidedStepId}
         intakeAssessment={intakeAssessment}
         decisionData={decisionData}
         decisionBusy={decisionBusy}

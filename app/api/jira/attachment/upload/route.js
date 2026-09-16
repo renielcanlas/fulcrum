@@ -16,7 +16,7 @@ export async function POST(request) {
   try {
     const form = await request.formData();
     const issueKey = String(form.get("issueKey") ?? "").toUpperCase();
-    const guidedDemo = form.get("guidedDemo") === "true" && user.id === "po-1";
+    const guidedDemo = form.get("guidedDemo") === "true" && Boolean(findDemoUser(user.id));
     const connection = guidedDemo ? getGuidedDemoConnection() : await runtime.jiraConnections.getAsync(sessionId);
     if (!connection) return Response.json({error: guidedDemo ? "jira_guided_demo_token_missing" : "jira_user_authorization_required"}, {status: 409});
     const file = form.get("file");
