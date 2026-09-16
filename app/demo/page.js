@@ -22,11 +22,9 @@ const workflow = [
 const navItems = [
   ["board", "Board", "▦"],
   ["initiatives", "Initiatives", "◫"],
-  ["evidence", "Evidence & lineage", "⌁"],
   ["controls", "Risk & controls", "◈"],
-  ["decisions", "Decisions", "✓"],
-  ["jira", "Jira integration", "↗"],
   ["sandbox", "Sandbox", "⚗"],
+  ["help-center", "Help center", "?"],
 ];
 const jiraBoardUrl =
   "https://geniushacks.atlassian.net/jira/software/projects/KAN/boards/2?filter=&groupBy=none&atlOrigin=eyJpIjoiYjY1ZTgwYTY3NWM5NGU3ZWEwMDEyZjZlNmQwODAzMjQiLCJwIjoiaiJ9";
@@ -933,6 +931,7 @@ export default function DemoPage() {
           ) : (
             <WorkspaceScreen
               view={activeView}
+              onNavigate={navigateTo}
               onOpenTrace={loadTrace}
               trace={trace}
               currentUser={signedIn}
@@ -1577,7 +1576,8 @@ function InitiativeForm({ currentUser }) {
   );
 }
 
-function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
+function WorkspaceScreen({ view, onNavigate, onOpenTrace, trace, currentUser }) {
+  const [helpTopic, setHelpTopic] = useState(null);
   const screens = {
     initiatives: {
       eyebrow: "Portfolio view",
@@ -1589,7 +1589,7 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
       eyebrow: "Decision lineage",
       title: "Evidence & lineage",
       description:
-        "Trace assessment conclusions back to source evidence, extracted facts, controls, and analyst actions.",
+        "Understand why the assessment says what it says: follow the path from source material to risk findings, controls, and the human decision.",
     },
     controls: {
       eyebrow: "Risk methodology",
@@ -1608,6 +1608,12 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
       title: "Jira integration",
       description:
         "FULCRUM keeps the initiative context connected to the delivery work that implements the decision.",
+    },
+    "help-center": {
+      eyebrow: "Reference guide",
+      title: "Help center",
+      description:
+        "Learn what each part of FULCRUM means and how information moves through the workbench.",
     },
   };
   const screen = screens[view] ?? screens.initiatives;
@@ -1714,8 +1720,35 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
           <InitiativeForm currentUser={currentUser} />
     ),
     evidence: (
-      <InfoCard title="Evidence coverage">
-        <div className="grid gap-3 sm:grid-cols-3">
+      <div className="space-y-5">
+        <InfoCard title="What this page answers">
+          <p className="max-w-3xl text-sm leading-6 text-slate-600">
+            Evidence and lineage make the assessment explainable. They show
+            which source records support the facts, which facts support the
+            risks, which controls reduce those risks, and where an authorized
+            human made or changed the decision.
+          </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-5">
+            {[
+              ["1", "Source material", "Jira context, documents, and linked records"],
+              ["2", "Facts", "What FULCRUM extracted or accepted"],
+              ["3", "Risk findings", "The risks identified for review"],
+              ["4", "Controls", "The mitigations and their effectiveness"],
+              ["5", "Decision", "The analyst and committee outcome"],
+            ].map(([number, title, text], index) => (
+              <div key={title} className="relative rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#dcefe7] text-xs font-bold text-[#197443]">
+                  {number}
+                </span>
+                <p className="mt-3 text-sm font-bold text-slate-900">{title}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{text}</p>
+                {index < 4 && <span className="absolute -right-2 top-1/2 hidden text-slate-300 md:block">→</span>}
+              </div>
+            ))}
+          </div>
+        </InfoCard>
+        <InfoCard title="Current evidence coverage">
+          <div className="grid gap-3 sm:grid-cols-3">
           {[
             ["8", "Source records"],
             ["18", "Extracted facts"],
@@ -1726,14 +1759,87 @@ function WorkspaceScreen({ view, onOpenTrace, trace, currentUser }) {
               <p className="mt-1 text-xs text-slate-500">{label}</p>
             </div>
           ))}
-        </div>
-        <button
-          onClick={() => onOpenTrace()}
-          className="mt-5 text-sm font-bold text-[rgb(9,167,141)]"
-        >
-          Inspect source provenance →
-        </button>
-      </InfoCard>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Jira / source fact</p>
+              <p className="mt-2 text-sm leading-5 text-blue-950">What the source says, including its timestamp and locator.</p>
+            </div>
+            <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-700">FULCRUM calculation</p>
+              <p className="mt-2 text-sm leading-5 text-amber-950">Deterministic scoring, thresholds, and control effects.</p>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Human judgment</p>
+              <p className="mt-2 text-sm leading-5 text-emerald-950">Analyst overrides and committee decisions with rationale.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenTrace()}
+            className="mt-5 text-sm font-bold text-[rgb(9,167,141)]"
+          >
+            Inspect detailed provenance →
+          </button>
+        </InfoCard>
+      </div>
+    ),
+    "help-center": (
+      <div className="space-y-5">
+        {!helpTopic && <InfoCard title="What this help center is">
+          <p className="max-w-3xl text-sm leading-7 text-slate-600">
+            These short guides explain the ideas behind FULCRUM in plain language. They are reference material, not another workflow to complete.
+          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              ["Evidence & lineage", "How source material becomes a reviewable risk conclusion."],
+              ["Human decisions", "What the system calculates and what people decide."],
+              ["Jira integration", "Which system owns which information."],
+              ["Ciel and AI", "What Ciel can explain, draft, and never decide."],
+              ["Guided demos", "How to learn the workbench step by step."],
+            ].map(([title, text]) => (
+              <button key={title} type="button" onClick={() => setHelpTopic(title)} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#087f70]">
+                <p className="font-bold text-slate-900">{title}</p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{text}</p>
+                <p className="mt-4 text-xs font-bold text-[#087f70]">Read guide →</p>
+              </button>
+            ))}
+          </div>
+        </InfoCard>}
+        {helpTopic && <button type="button" onClick={() => setHelpTopic(null)} className="text-sm font-bold text-[#087f70]">← All help topics</button>}
+        {helpTopic === "Evidence & lineage" && <InfoCard title="Evidence & lineage" id="help-evidence-and-lineage">
+          <p className="text-sm leading-7 text-slate-600">This is the explanation trail for an assessment. It answers: “Why does FULCRUM say this?” It is useful when an analyst reviews a finding, a committee challenges a recommendation, or an auditor needs to reconstruct the decision later.</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-5">
+            {["Source material", "Facts", "Risk findings", "Controls", "Human decision"].map((item, index) => (
+              <div key={item} className="rounded-xl bg-slate-50 p-4"><span className="text-xs font-bold text-[#087f70]">0{index + 1}</span><p className="mt-2 font-bold text-slate-900">{item}</p></div>
+            ))}
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-blue-700">What comes from a source</p><p className="mt-2 text-sm leading-6 text-blue-950">Jira fields, comments, attachments, and documents are source context. They keep their source identity, timestamp, and freshness.</p></div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">What FULCRUM adds</p><p className="mt-2 text-sm leading-6 text-emerald-950">FULCRUM links accepted facts to findings, controls, deterministic scores, analyst review, and committee decisions.</p></div>
+          </div>
+          <p className="mt-5 text-sm leading-7 text-slate-600">The page is not another evidence upload form and it does not replace Jira. It is the map that makes the assessment explainable.</p>
+        </InfoCard>}
+        {helpTopic === "Human decisions" && <InfoCard title="Human decisions" id="help-human-decisions">
+          <p className="text-sm leading-7 text-slate-600">FULCRUM prepares and explains; it does not make the final decision. The system separates automation from accountability so a useful AI suggestion cannot silently become an approval.</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-7 text-slate-600"><li>Deterministic software owns workflow, authorization, scoring, thresholds, and validation.</li><li>AI can retrieve, classify, draft, challenge, and explain with evidence.</li><li>Authorized people own overrides, approval, rejection, and conditions.</li></ul>
+          <p className="mt-4 text-sm leading-7 text-slate-600"><strong className="text-slate-900">Example:</strong> Ciel may point out that geography risk is high and draft a challenge. The configured scoring service calculates the rating, and an authorized analyst or committee member decides what happens next.</p>
+        </InfoCard>}
+        {helpTopic === "Jira integration" && <InfoCard title="Jira integration" id="help-jira-integration">
+          <p className="text-sm leading-7 text-slate-600">Jira remains authoritative for initiative and delivery work: stories, assignees, status, comments, and attachments. FULCRUM remains authoritative for the assessment, risk methodology, controls, human decisions, conditions, and audit lineage.</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-2"><div className="rounded-xl bg-slate-50 p-4"><p className="font-bold text-slate-900">Jira owns</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600"><li>Initiative description and delivery status</li><li>Assignees, comments, and attachments</li><li>Engineering workflow and collaboration</li></ul></div><div className="rounded-xl bg-slate-50 p-4"><p className="font-bold text-slate-900">FULCRUM owns</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600"><li>Risk assessment and scoring</li><li>Controls, conditions, and human decisions</li><li>Evidence lineage and audit records</li></ul></div></div>
+          <p className="mt-4 text-sm leading-7 text-slate-600">When the two systems disagree, FULCRUM does not silently overwrite Jira. It shows freshness and authorization boundaries, then uses an explicit governed action where a write is allowed.</p>
+        </InfoCard>}
+        {helpTopic === "Ciel and AI" && <InfoCard title="Ciel and AI" id="help-ciel-and-ai">
+          <p className="text-sm leading-7 text-slate-600">Ciel can explain scores, find evidence, identify gaps, draft text, and prepare bounded Jira actions. It cannot approve, reject, vote, change risk ratings, bypass permissions, invent evidence, or directly mutate authoritative state.</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-2"><div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"><p className="font-bold text-emerald-950">Good questions for Ciel</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-emerald-950"><li>Why is residual risk High?</li><li>Which evidence supports this finding?</li><li>What information is still missing?</li><li>Draft a Jira description or challenge.</li></ul></div><div className="rounded-xl border border-rose-100 bg-rose-50 p-4"><p className="font-bold text-rose-950">What Ciel cannot do</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-rose-950"><li>Make the committee decision</li><li>Change a rating or scoring rule</li><li>Invent evidence or citations</li><li>Write to Jira without confirmation</li></ul></div></div>
+          <p className="mt-4 text-sm leading-7 text-slate-600">AI output is an observation or draft. The surrounding deterministic services validate permissions, tools, schemas, and any confirmed action.</p>
+        </InfoCard>}
+        {helpTopic === "Guided demos" && <InfoCard title="Guided demos" id="help-guided-demos">
+          <p className="text-sm leading-7 text-slate-600">The welcome tour explains the main workbench areas. The Golden Initiative flow demonstrates loading synthetic context, reviewing the owner and story, and confirming a Jira creation.</p>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-7 text-slate-600"><li>Start the welcome tour to learn the board, initiative, risk, and decision surfaces.</li><li>Open the Golden Initiative flow from Initiatives.</li><li>Load the synthetic context and review the accountable owner.</li><li>Create the Jira initiative only after the confirmation dialog looks correct.</li></ol>
+          <button type="button" onClick={() => onNavigate("guided-demos")} className="mt-4 text-sm font-bold text-[#087f70]">Open guided demos →</button>
+        </InfoCard>}
+      </div>
     ),
     controls: (
       <InfoCard title="Risk and control posture">
@@ -1818,9 +1924,9 @@ function ScreenHeading({ eyebrow, title, description }) {
   );
 }
 
-function InfoCard({ title, children }) {
+function InfoCard({ title, children, id }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section id={id} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 font-bold text-slate-950">{title}</h2>
       {children}
     </section>
