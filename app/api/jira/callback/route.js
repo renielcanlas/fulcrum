@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
-  const user = runtime.sessions.get(sessionId) ?? (sessionId?.startsWith("demo:") ? findDemoUser(sessionId.slice("demo:".length)) : null);
+  const user = await runtime.sessions.getAsync(sessionId);
   const params = new URL(request.url).searchParams;
   const destination = defaultDestination(request);
   if (!user) { destination.searchParams.set("jira", "authentication_required"); return Response.redirect(destination); }

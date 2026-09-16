@@ -6,9 +6,9 @@ import { hasNonFulcrumChangesSinceEvaluation, parsePublishedStageEvaluations, pu
 import { formatDecisionComment, parsePublishedDecisions, validateDecision } from "../../../../src/integrations/decision.js";
 
 const COOKIE = "fulcrum_session";
-function currentUser(request) {
+async function currentUser(request) {
   const sid = parseCookie(request.headers.get("cookie") ?? "", COOKIE);
-  return runtime.sessions.get(sid) ?? (sid?.startsWith("demo:") ? findDemoUser(sid.slice("demo:".length)) : null);
+  return runtime.sessions.getAsync(sid);
 }
 async function load(issueKey) {
   const connection = await resolveJiraConnection({connections: runtime.jiraConnections});
@@ -31,7 +31,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const issueKey = body.issueKey?.toUpperCase();
-    const user = currentUser(request);
+    const user = await currentUser(request);
     if (!user) return Response.json({error: "fulcrum_session_required"}, {status: 401});
     if (user.role !== "RISK_COMMITTEE") return Response.json({error: "committee_decision_permission_required"}, {status: 403});
     if (!issueKey) return Response.json({error: "decision_issue_required"}, {status: 400});

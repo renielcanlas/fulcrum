@@ -1,57 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
   const repoDocs = "https://github.com/renielcanlas/fulcrum/blob/main";
-  const [users, setUsers] = useState([]);
-  const [userId, setUserId] = useState("");
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loginBusy, setLoginBusy] = useState(false);
-  const [loginError, setLoginError] = useState("");
-  useEffect(() => {
-    fetch("/api/demo-users")
-      .then((r) => r.json())
-      .then(setUsers);
-    if (new URLSearchParams(window.location.search).get("next") === "/sandbox") {
-      setLoginOpen(true);
-    }
-  }, []);
-  async function startDemo() {
-    if (!userId || loginBusy) return;
-    setLoginBusy(true);
-    setLoginError("");
-    try {
-      const r = await fetch("/api/session", {
-        method: "POST",
-        cache: "no-store",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      const d = await r.json();
-      if (!r.ok || !d.user) throw new Error(d.error ?? "demo_login_failed");
-      // Chat histories and model response IDs are persona-specific. Clear them
-      // at the session boundary so a new persona cannot inherit old context.
-      for (const key of [
-        "fulcrum-ciel-chat",
-        "fulcrum-ciel-response-id",
-        "fulcrum-scenario-response-id",
-      ]) {
-        try {
-          window.localStorage.removeItem(key);
-        } catch {
-          // Storage can be unavailable in privacy-restricted browser contexts.
-        }
-      }
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.replace(next === "/sandbox" ? next : "/demo");
-    } catch (error) {
-      setLoginError(error.message ?? "demo_login_failed");
-      setLoginBusy(false);
-    }
-  }
+  const openLogin = () => router.push("/login");
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-[rgb(25,66,71)]">
       <nav className="sticky top-0 z-40 border-b border-[#d8e1e1]/80 bg-[#f5f7f7]/90 backdrop-blur-md">
@@ -101,7 +55,7 @@ export default function Home() {
             </a>
           </div>
           <button
-            onClick={() => setLoginOpen(true)}
+            onClick={openLogin}
             className="rounded-full bg-[rgb(82,224,129)] px-4 py-2 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)]"
           >
             Start demo
@@ -125,7 +79,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button
-              onClick={() => setLoginOpen(true)}
+              onClick={openLogin}
               className="rounded-full bg-[rgb(82,224,129)] px-6 py-3 text-center text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)]"
             >
               Start the demo
@@ -417,7 +371,7 @@ export default function Home() {
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={() => setLoginOpen(true)}
+                onClick={openLogin}
                 className="rounded-full bg-[rgb(82,224,129)] px-6 py-3 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)]"
               >
                 Open interactive demo
@@ -568,80 +522,6 @@ export default function Home() {
       <footer className="mx-auto max-w-7xl px-6 pb-8 text-xs text-slate-500 lg:px-10">
         FULCRUM · Hackathon demonstration · All data is synthetic.
       </footer>
-      {loginOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,34,38,0.72)] px-4 py-8"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setLoginOpen(false);
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="demo-login-title"
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[rgb(9,167,141)]">
-                  Hackathon demo access
-                </p>
-                <h2
-                  id="demo-login-title"
-                  className="mt-2 text-2xl font-bold text-[rgb(25,66,71)]"
-                >
-                  Choose a persona
-                </h2>
-              </div>
-              <button
-                aria-label="Close demo login"
-                onClick={() => { if (!loginBusy) setLoginOpen(false); }}
-                disabled={loginBusy}
-                className="cursor-pointer text-2xl leading-none text-slate-400 hover:text-[rgb(25,66,71)] disabled:cursor-wait disabled:opacity-40"
-              >
-                ×
-              </button>
-            </div>
-            <p className="mt-4 text-sm leading-6 text-slate-600">
-              This is a synthetic demonstration environment. Select a persona to
-              explore the role-based FULCRUM journey. No password or real
-              customer data is used.
-            </p>
-            <label
-              className="mt-6 block text-sm font-semibold text-[rgb(25,66,71)]"
-              htmlFor="modal-persona"
-            >
-              Demo persona
-              <select
-                id="modal-persona"
-                className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-              >
-                <option value="">Select a persona</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.displayName} — {u.role}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              onClick={startDemo}
-              disabled={!userId || loginBusy}
-              className="mt-6 min-h-11 w-full cursor-pointer rounded-lg bg-[rgb(82,224,129)] px-4 text-sm font-bold text-[rgb(12,34,38)] transition hover:bg-[rgb(110,235,151)] focus:outline-none focus:ring-2 focus:ring-[rgb(9,167,141)] disabled:cursor-wait disabled:opacity-50"
-            >
-              {loginBusy ? "Opening demo…" : "Enter the synthetic demo"}
-            </button>
-            {loginError && <p className="mt-3 text-center text-xs font-semibold text-red-700" role="alert">Unable to open the demo. Please try again.</p>}
-            <p className="mt-4 text-center text-xs text-slate-500">
-              AI assists with explanation and drafting. Humans retain decision
-              authority.
-            </p>
-          </section>
-        </div>
-      )}
     </main>
   );
 }

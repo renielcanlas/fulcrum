@@ -1,0 +1,25 @@
+handoff_id: 2026-09-16-authentication-foundation
+status: complete
+objective: Replace client-only demo persona selection with server-side credential login on Vercel.
+changes:
+  - Added /login with username/password and synthetic demo-user form helper.
+  - Added scrypt password verification and random HttpOnly session cookies.
+  - Added Neon-backed session persistence with an in-memory cache.
+  - Updated protected API routes to resolve sessions asynchronously.
+  - Kept Jira OAuth optional after FULCRUM login.
+requirements_traceability:
+  - REQ-025
+  - REQ-026
+  - REQ-027
+  - REQ-028
+validation:
+  tests: 'npm test: 74 passed'
+  build: 'npm run build: passed'
+  diff_check: 'git diff --check: passed'
+deployment:
+  required_variables:
+    - FULCRUM_DEMO_PASSWORD_HASH
+    - DATABASE_URL
+    - FULCRUM_DATA_ENCRYPTION_KEY
+open_questions:
+  - Replace synthetic demo credentials with an approved production identity provider before real users or data.

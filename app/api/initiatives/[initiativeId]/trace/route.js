@@ -5,7 +5,7 @@ const cookieName = "fulcrum_session";
 
 export async function GET(request, {params}) {
   const {initiativeId} = await params;
-  const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
+  const user = await runtime.sessions.getAsync(parseCookie(request.headers.get("cookie") ?? "", cookieName));
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   const assessment = [...runtime.repository.assessments.values()].find(item => item.initiativeId === initiativeId);
   if (!assessment) return Response.json({error: "initiative_not_found"}, {status: 404});

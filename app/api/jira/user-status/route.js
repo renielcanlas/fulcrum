@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
-  const user = runtime.sessions.get(sessionId) ?? (sessionId?.startsWith("demo:") ? findDemoUser(sessionId.slice("demo:".length)) : null);
+  const user = await runtime.sessions.getAsync(sessionId);
   if (!user) return Response.json({authenticated: false, connected: false}, {status: 401});
   const connection = await runtime.jiraConnections.getAsync(sessionId);
   return Response.json({authenticated: true, connected: Boolean(connection), mode: connection?.mode ?? "oauth", siteName: connection?.siteName, siteUrl: connection?.siteUrl});

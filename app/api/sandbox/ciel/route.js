@@ -14,9 +14,9 @@ const sandboxUser = findDemoUser("analyst-7");
 const PERSONA_CONTEXT = DEMO_USERS.map(({id, displayName, role, jiraIdentity}) => `${id} | ${displayName} | ${role} | Jira accountId: ${jiraIdentity?.jiraAccountId ?? "unmapped"}`).join("\n");
 const SESSION_COOKIE = "fulcrum_session";
 
-function sessionUser(request) {
+async function sessionUser(request) {
   const sid = parseCookie(request.headers.get("cookie") ?? "", SESSION_COOKIE);
-  return runtime.sessions.get(sid) ?? (sid?.startsWith("demo:") ? findDemoUser(sid.slice("demo:".length)) : null);
+  return runtime.sessions.getAsync(sid);
 }
 
 function responseText(response) {
@@ -86,7 +86,7 @@ async function improveJiraStory({issue, message, onAzureRequest, onAzureResponse
 }
 
 export async function POST(request) {
-  const actingUser = sessionUser(request) ?? sandboxUser;
+  const actingUser = await sessionUser(request) ?? sandboxUser;
   let body;
   try { body = await request.json(); } catch { return Response.json({error: "invalid_json"}, {status: 400}); }
   const message = typeof body.message === "string" ? body.message.trim() : "";

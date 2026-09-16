@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   if (jiraServiceAccountConfigured()) return Response.redirect(new URL("/sandbox?jira=service_account", request.url));
-  const user = runtime.sessions.get(parseCookie(request.headers.get("cookie") ?? "", cookieName));
+  const user = await runtime.sessions.getAsync(parseCookie(request.headers.get("cookie") ?? "", cookieName));
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   if (await runtime.jiraConnections.getAsync(user.id)) return Response.redirect(new URL("/sandbox?jira=connected", request.url));
   if (!jiraOAuthConfigured()) return Response.json({error: "jira_oauth_not_configured"}, {status: 503});

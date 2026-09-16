@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   const sessionId = parseCookie(request.headers.get("cookie") ?? "", cookieName);
-  const user = runtime.sessions.get(sessionId) ?? (sessionId?.startsWith("demo:") ? findDemoUser(sessionId.slice("demo:".length)) : null);
+  const user = await runtime.sessions.getAsync(sessionId);
   if (!user) return Response.json({error: "authentication_required"}, {status: 401});
   if (!process.env.ATLASSIAN_USER_CLIENT_ID || !process.env.ATLASSIAN_USER_CLIENT_SECRET) return Response.json({error: "jira_user_oauth_3lo_credentials_missing"}, {status: 503});
   const params = new URL(request.url).searchParams;

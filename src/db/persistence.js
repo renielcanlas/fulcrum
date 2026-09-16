@@ -26,6 +26,20 @@ export function createDatabasePersistence({env = process.env, sql = databaseConf
   if (!sql) return null;
   const key = encryptionKey(env);
   return {
+    async saveSession(sessionId, user, expiresAt) {
+      await sql`insert into fulcrum_sessions (session_id, user_id, user_profile, expires_at)
+        values (${sessionId}, ${user.id}, ${JSON.stringify(user)}, ${new Date(expiresAt).toISOString()})
+        on conflict (session_id) do update set user_profile = excluded.user_profile, expires_at = excluded.expires_at`;
+    },
+    async getSession(sessionId, now = Date.now()) {
+      const rows = await sql`select user_profile, expires_at from fulcrum_sessions
+        where session_id = ${sessionId} and expires_at > ${new Date(now).toISOString()}`;
+      if (!rows[0]) return null;
+      return {user: rows[0].user_profile, expiresAt: new Date(rows[0].expires_at).getTime()};
+    },
+    async deleteSession(sessionId) {
+      await sql`delete from fulcrum_sessions where session_id = ${sessionId}`;
+    },
     async saveAuditEvent(event) {
       await sql`insert into fulcrum_audit_events (event_id, interaction_id, event_type, actor_id, actor_type, entity_id, occurred_at, payload)
         values (${event.eventId}, ${event.interactionId ?? null}, ${event.eventType ?? "UNKNOWN"}, ${event.actorId ?? null}, ${event.actorType ?? null}, ${event.entityId ?? null}, ${event.timestamp}, ${JSON.stringify(event)})
