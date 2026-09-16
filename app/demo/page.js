@@ -139,6 +139,7 @@ export default function DemoPage() {
   const [tourRect, setTourRect] = useState(null);
   const [guidedCreatedIssueKey, setGuidedCreatedIssueKey] = useState("");
   const [guidedActionBusy, setGuidedActionBusy] = useState(false);
+  const guidedActionsRef = useRef({});
   const activeTour = tour
     ? (() => {
         const demo = guidedDemos.find((item) => item.id === tour.id);
@@ -174,6 +175,10 @@ export default function DemoPage() {
         return bounds.width > 0 && bounds.height > 0;
       }) ?? targets[0];
       setTourRect(target?.getBoundingClientRect() ?? null);
+      if (target && !updateTourTarget.didScroll) {
+        updateTourTarget.didScroll = true;
+        target.scrollIntoView({block: "center", behavior: "smooth"});
+      }
     };
     const scrollTargetIntoView = () => {
       const target = Array.from(document.querySelectorAll(`[data-tour="${tourStep.target}"]`)).find((candidate) => {
@@ -184,12 +189,14 @@ export default function DemoPage() {
     };
     updateTourTarget();
     const scrollTimer = window.setTimeout(scrollTargetIntoView, 0);
+    const targetPoll = window.setInterval(updateTourTarget, 120);
     window.addEventListener("resize", updateTourTarget);
     window.addEventListener("scroll", updateTourTarget, true);
     return () => {
       window.removeEventListener("resize", updateTourTarget);
       window.removeEventListener("scroll", updateTourTarget, true);
       window.clearTimeout(scrollTimer);
+      window.clearInterval(targetPoll);
     };
   }, [activeView, intakeAssessment, router, selectedWorkItem, tourStep, transitionAssignmentOpen]);
 
@@ -222,6 +229,25 @@ export default function DemoPage() {
     if (!currentStep) return;
     setGuidedActionBusy(true);
     try {
+      const guidedTransitionPersona = {
+        "move-next-stage": "po-2",
+        "move-to-context-stage": "po-2",
+        "move-to-risk-stage": "analyst-8",
+        "move-to-review-stage": "committee-1",
+      }[currentStep.id];
+      if (guidedTransitionPersona) {
+        await moveToNextStage(guidedTransitionPersona);
+        return;
+      }
+      if (currentStep.id === "golden-load") {
+        guidedActionsRef.current.loadGoldenInitiative?.();
+      }
+      if (currentStep.id === "initiative-create") {
+        guidedActionsRef.current.openCreateConfirmation?.();
+      }
+      if (currentStep.id === "initiative-confirm") {
+        if (!(await guidedActionsRef.current.confirmCreate?.())) return;
+      }
       if (currentStep.id === "add-comment") {
         const alreadyAdded = selectedWorkItem?.comments?.some((comment) => comment.body?.trim() === guidedGoldenComment);
         if (!alreadyAdded && !(await addComment())) return;
@@ -244,11 +270,11 @@ export default function DemoPage() {
           }
         }
       }
-      if (currentStep.id === "evaluate-context" || currentStep.id === "evaluate-risk" || currentStep.id === "evaluate-review") {
-        if (!(await assessIntakeStage())) return;
+      if (currentStep.id === "evaluate-intake" || currentStep.id === "evaluate-context" || currentStep.id === "evaluate-risk" || currentStep.id === "evaluate-review" || currentStep.id === "reevaluate-intake" || currentStep.id === "reevaluate-after-context") {
+        if (!(await assessIntakeStage({advanceGuided: false}))) return;
       }
-      if (currentStep.id === "publish-context" || currentStep.id === "publish-risk" || currentStep.id === "publish-review" || currentStep.id === "publish-context-reevaluation") {
-        if (!(await publishIntakeAssessment())) return;
+      if (currentStep.id === "publish-evaluation" || currentStep.id === "publish-context" || currentStep.id === "publish-risk" || currentStep.id === "publish-review" || currentStep.id === "publish-context-reevaluation" || currentStep.id === "publish-intake-reevaluation") {
+        if (!(await publishIntakeAssessment({advanceGuided: false}))) return;
       }
       if (currentStep.id === "add-risk-officer-analysis") {
         const filename = "Golden Initiative - risk-officer-analysis.pdf";
@@ -267,9 +293,6 @@ export default function DemoPage() {
           body: JSON.stringify({section: "assessments", values: {...configBody.configuration.assessments, proceedThreshold: 50}}),
         });
         if (!saveResponse.ok) throw new Error("configuration_save_failed");
-      }
-      if (currentStep.id === "reevaluate-after-context") {
-        if (!(await assessIntakeStage())) return;
       }
       if (currentStep.id === "record-human-decision") {
         if (!(await submitHumanDecision({outcome: "ACCEPTED", rationale: guidedHumanDecisionRationale}))) return;
@@ -557,7 +580,7 @@ export default function DemoPage() {
     }
   }
 
-  async function assessIntakeStage() {
+  async function assessIntakeStage({advanceGuided = true} = {}) {
     const issueKey = activeIssueKey || selectedWorkItem?.key;
     if (!issueKey) return false;
     setAssessmentBusy(true);
@@ -582,6 +605,9 @@ export default function DemoPage() {
         assessment: data.assessment,
       }));
       setAttachmentEvidence(data.attachmentEvidence ?? []);
+      if (advanceGuided && tour?.id === "landing-start-demo" && ["evaluate-intake", "evaluate-context", "evaluate-risk", "evaluate-review", "reevaluate-intake", "reevaluate-after-context"].includes(tourStep?.id)) {
+        setTour((current) => current ? {...current, step: current.step + 1} : current);
+      }
       return true;
     } catch (error) {
       setAssessmentError(error.message ?? "intake_assessment_failed");
@@ -591,7 +617,7 @@ export default function DemoPage() {
     }
   }
 
-  async function publishIntakeAssessment() {
+  async function publishIntakeAssessment({advanceGuided = true} = {}) {
     if (!intakeAssessment?.assessment || assessmentBusy) return false;
     setAssessmentBusy(true);
     setAssessmentError("");
@@ -610,6 +636,9 @@ export default function DemoPage() {
       if (!response.ok)
         throw new Error(data.error ?? "intake_assessment_publish_failed");
       await refreshWorkItem(activeIssueKey);
+      if (advanceGuided && tour?.id === "landing-start-demo" && ["publish-context", "publish-risk", "publish-review", "publish-context-reevaluation", "publish-intake-reevaluation"].includes(tourStep?.id)) {
+        setTour((current) => current ? {...current, step: current.step + 1} : current);
+      }
       return true;
     } catch (error) {
       setAssessmentError(error.message ?? "intake_assessment_publish_failed");
@@ -649,7 +678,7 @@ export default function DemoPage() {
       const boardResponse = await fetch("/api/jira");
       const boardData = await readApiJson(boardResponse, "jira_board_refresh_failed");
       if (boardResponse.ok) setBoardItems(boardData.items ?? []);
-      if (tour?.id === "landing-start-demo" && ["transition-assignment", "transition-priya-assignment", "transition-helen-assignment"].includes(tourStep?.id)) {
+      if (tour?.id === "landing-start-demo" && ["move-next-stage", "move-to-context-stage", "move-to-risk-stage", "move-to-review-stage"].includes(tourStep?.id)) {
         setTour((current) => current ? {...current, step: current.step + 1} : current);
       }
     } catch (error) {
@@ -1157,10 +1186,17 @@ export default function DemoPage() {
               onPublishIntake={publishIntakeAssessment}
               onRequestMove={() => {
                 setTransitionAssignmentError("");
-                setTransitionAssignmentOpen(true);
-                if (tour?.id === "landing-start-demo" && ["move-next-stage", "move-to-risk-stage", "move-to-review-stage"].includes(tourStep?.id)) {
-                  setTour((current) => current ? {...current, step: current.step + 1} : current);
+                const guidedTransitionPersona = {
+                  "move-next-stage": "po-2",
+                  "move-to-context-stage": "po-2",
+                  "move-to-risk-stage": "analyst-8",
+                  "move-to-review-stage": "committee-1",
+                }[tourStep?.id];
+                if (tour?.id === "landing-start-demo" && guidedTransitionPersona) {
+                  moveToNextStage(guidedTransitionPersona);
+                  return;
                 }
+                setTransitionAssignmentOpen(true);
               }}
               onConfirmMove={moveToNextStage}
               onCancelMove={() => setTransitionAssignmentOpen(false)}
@@ -1180,6 +1216,7 @@ export default function DemoPage() {
               trace={trace}
               currentUser={signedIn}
               guidedStepId={tour?.id === "landing-start-demo" ? tourStep?.id : ""}
+              onRegisterGuidedActions={(actions) => { guidedActionsRef.current = actions; }}
               onCreated={(item) => setGuidedCreatedIssueKey(item?.key ?? "")}
               onOpenGuidedWorkItem={(issueKey) => {
                 if (tour?.id === "landing-start-demo" && tourStep?.id === "initiative-open-fulcrum") {
@@ -1200,6 +1237,7 @@ export default function DemoPage() {
           index={tour?.step ?? 0}
           total={activeTour?.steps?.length ?? 0}
           rect={tourRect}
+          busy={guidedActionBusy}
           onBack={() => setTour((current) => current && ({ ...current, step: Math.max(0, current.step - 1) }))}
           onNext={advanceTour}
           onClose={() => setTour(null)}
@@ -1522,7 +1560,7 @@ function InitiativeDetail({ trace }) {
   );
 }
 
-function InitiativeForm({ currentUser, onCreated, onOpenGuidedWorkItem }) {
+function InitiativeForm({ currentUser, onRegisterGuidedActions, onCreated, onOpenGuidedWorkItem }) {
   const [form, setForm] = useState({
     summary: "",
     problem: "",
@@ -1546,6 +1584,13 @@ function InitiativeForm({ currentUser, onCreated, onOpenGuidedWorkItem }) {
       .then(setPersonas)
       .catch(() => setPersonas([]));
   }, []);
+  useEffect(() => {
+    onRegisterGuidedActions?.({
+      loadGoldenInitiative,
+      openCreateConfirmation: () => setCreateConfirm(true),
+      confirmCreate: createInJira,
+    });
+  });
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -1590,8 +1635,10 @@ function InitiativeForm({ currentUser, onCreated, onOpenGuidedWorkItem }) {
       setCreatedItem(data);
       onCreated?.(data);
       setCreateConfirm(false);
+      return true;
     } catch (error) {
       setCreateError(error.message || "jira_creation_failed");
+      return false;
     } finally {
       setCreateBusy(false);
     }
@@ -1840,7 +1887,7 @@ function InitiativeForm({ currentUser, onCreated, onOpenGuidedWorkItem }) {
   );
 }
 
-function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace, currentUser, guidedStepId, onCreated, onOpenGuidedWorkItem }) {
+function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace, currentUser, guidedStepId, onRegisterGuidedActions, onCreated, onOpenGuidedWorkItem }) {
   const [helpTopic, setHelpTopic] = useState(null);
   const screens = {
     initiatives: {
@@ -1989,6 +2036,7 @@ function WorkspaceScreen({ view, onNavigate, onSandboxChange, onOpenTrace, trace
     initiatives: (
           <InitiativeForm
             currentUser={currentUser}
+            onRegisterGuidedActions={onRegisterGuidedActions}
             onCreated={onCreated}
             onOpenGuidedWorkItem={onOpenGuidedWorkItem}
           />
@@ -2485,7 +2533,13 @@ function GuidedDemosScreen({ demos, onStart }) {
   );
 }
 
-function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
+function GuidedDemoTour({ step, index, total, rect, busy, onNext, onClose }) {
+  const nextButtonRef = useRef(null);
+  useEffect(() => {
+    if (busy) return;
+    const focusTimer = window.setTimeout(() => nextButtonRef.current?.focus(), 0);
+    return () => window.clearTimeout(focusTimer);
+  }, [index, busy]);
   const tooltipTop = rect
     ? rect.bottom + 16 <= window.innerHeight - 300
       ? rect.bottom + 16
@@ -2549,18 +2603,12 @@ function GuidedDemoTour({ step, index, total, rect, onBack, onNext, onClose }) {
         <div className="mt-5 flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={onBack}
-            disabled={index === 0}
-            className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Back
-          </button>
-          <button
-            type="button"
             onClick={onNext}
+            disabled={busy}
+            ref={nextButtonRef}
             className="cursor-pointer rounded-lg bg-[#102f33] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#17494d]"
           >
-            {index + 1 === total ? "Finish" : "Next"}
+            {busy ? "Working…" : index + 1 === total ? "Finish" : "Next"}
           </button>
         </div>
       </section>
@@ -3281,7 +3329,7 @@ function IntakeAssessmentPanel({
                 )}
               </div>
             )}
-            {canMove && (
+            {nextStages[stage] && (canMove || ["move-next-stage", "move-to-context-stage", "move-to-risk-stage", "move-to-review-stage"].includes(guidedStepId)) && (
               <button
                 type="button"
                 onClick={onRequestMove}
@@ -3291,6 +3339,11 @@ function IntakeAssessmentPanel({
               >
                 Move to {nextStages[stage]}
               </button>
+            )}
+            {!canMove && !nextStages[stage] && ["move-next-stage", "move-to-risk-stage", "move-to-review-stage"].includes(guidedStepId) && (
+              <div data-tour="move-next-stage" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+                The move action will appear after the latest published evaluation is ready to proceed. If you just published it, wait for the work item to refresh.
+              </div>
             )}
           </>
         )}

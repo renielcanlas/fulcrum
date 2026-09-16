@@ -25,7 +25,7 @@ export async function POST(request) {
     if (file.size > MAX_ATTACHMENT_BYTES) return Response.json({error: "attachment_too_large", maxBytes: MAX_ATTACHMENT_BYTES}, {status: 413});
     const jiraUser = await getJiraCurrentUser({...connection});
     const expectedAccountId = user.jiraIdentity?.jiraAccountId;
-    if (expectedAccountId && jiraUser.accountId !== expectedAccountId) return Response.json({error: "jira_user_identity_mismatch", jiraUser: jiraUser.displayName}, {status: 409});
+    if (!guidedDemo && expectedAccountId && jiraUser.accountId !== expectedAccountId) return Response.json({error: "jira_user_identity_mismatch", jiraUser: jiraUser.displayName}, {status: 409});
     const result = await uploadJiraAttachment({issueKey, file, ...connection});
     runtime.audit.record({eventType: "JiraAttachmentUploaded", actorId: user.id, actorType: guidedDemo ? "GUIDED_DEMO_AUTOMATION" : "DEMO_PERSONA", userRole: user.role, entityId: issueKey, metadata: {connection: connection.mode ?? "user_oauth", filename: file.name, size: file.size, mimeType: file.type || "application/octet-stream"}});
     return Response.json({ok: true, ...result});
