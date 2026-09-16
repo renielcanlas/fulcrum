@@ -11,6 +11,19 @@ test("Intake assessment uses the checked-in weighted configuration", () => {
   assert.equal(assessment.source.issueKey, "FCRM-9");
 });
 
+test("Intake assessment preserves the configuration snapshot used for evaluation", () => {
+  const configurationSnapshot = {assessment: {proceedThreshold: 80}, risk: {thresholds: {mediumMax: 49, highMin: 70}}, versions: {assessments: 3, risk: 2}, capturedAt: "2026-09-04T00:00:00.000Z"};
+  const assessment = assessIntake({key: "FCRM-9", comments: []}, "2026-09-04T00:00:00.000Z", {proceedThreshold: 80, configurationSnapshot});
+  const parsed = parsePublishedIntakeAssessment([{id: "c1", created: assessment.assessedAt, body: formatIntakeAssessmentComment(assessment)}]);
+  assert.deepEqual(parsed.configurationSnapshot, configurationSnapshot);
+});
+
+test("Intake evaluation uses the configured proceed threshold", () => {
+  const item = {key: "FCRM-9", projectKey: "FCRM", summary: "A sufficiently clear intake summary", description: "This business context is long enough to satisfy the configured completeness check and explain the intended outcome for review. It also describes the scope, affected users, operational impact, expected delivery, and key questions that remain for the assessment team.", issueType: "Task", assignee: "Maya Chen", labels: [], comments: []};
+  assert.equal(assessIntake(item, "2026-09-04T00:00:00.000Z", {proceedThreshold: 70}).recommendation, "Proceed");
+  assert.equal(assessIntake(item, "2026-09-04T00:00:00.000Z", {proceedThreshold: 81}).recommendation, "Hold for remediation");
+});
+
 test("Intake assessment marker can be recovered from Jira comments", () => {
   const assessment = assessIntake({key: "FCRM-9", projectKey: "FCRM", summary: "Request", description: "Short", issueType: "Task", assignee: null, labels: [], comments: []});
   const parsed = parsePublishedIntakeAssessment([{id: "c1", created: "2026-09-04", body: formatIntakeAssessmentComment(assessment)}]);

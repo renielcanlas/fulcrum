@@ -15,7 +15,7 @@ function text(value, fallback = "") { return typeof value === "string" && value.
 function clampConfidence(value) { const numeric = Number(value); return Number.isFinite(numeric) ? Math.max(0, Math.min(1, numeric)) : 0; }
 function responseText(response) { if (typeof response?.output_text === "string" && response.output_text.trim()) return response.output_text.trim(); return (response?.output ?? []).filter((item) => item.type === "message").flatMap((item) => item.content ?? []).map((item) => item.text ?? item.value ?? "").filter(Boolean).join("\n").trim(); }
 
-function recommendationForScore(score, stageConfig) { const band = (stageConfig.scoreBands ?? []).find((candidate) => score >= candidate.min && score <= candidate.max); return band?.label ?? (score >= Number(stageConfig.recommendationThresholds?.proceed ?? 75) ? "Proceed" : "Hold for remediation"); }
+function recommendationForScore(score, stageConfig) { return score >= Number(stageConfig.recommendationThresholds?.proceed ?? 75) ? "Proceed" : "Hold for remediation"; }
 export function buildDecisionSupportInstructions({stage = "Intake", stageConfig = intakeAssessmentConfig} = {}) { const parameters = stageConfig.aiParameters ?? {}; return `${INTAKE_DECISION_SUPPORT_INSTRUCTIONS}\n\nCurrent stage: ${stage}\nStage purpose: ${stageConfig.title ?? stage}\nStage-specific focus: ${parameters.focus ?? "Review the current stage only."}\nQuestions to answer: ${(parameters.questions ?? []).join(" | ")}\nEvidence to prioritize: ${(parameters.evidence ?? []).join(" | ")}\nDo not evaluate readiness for another stage, and do not infer that a later-stage requirement is satisfied.`; }
 
 export function parseIntakeDecisionSupport(value) {

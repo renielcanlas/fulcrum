@@ -22,8 +22,23 @@ export async function POST(request) {
     const stage = body.stage ?? item.statusName;
     if (stage !== item.statusName) return Response.json({error: "evaluation_requires_current_stage", stage: item.statusName}, {status: 409});
     if (!evaluationStages.includes(stage)) return Response.json({error: "unsupported_evaluation_stage", stage}, {status: 400});
-    const stageConfig = stage === "Intake" ? (getStageEvaluationConfig(stage) ?? {}) : getStageEvaluationConfig(stage);
-    const assessmentConfiguration = (await runtime.configuration.get("assessments")).config;
+    const baseStageConfig = stage === "Intake" ? (getStageEvaluationConfig(stage) ?? {}) : getStageEvaluationConfig(stage);
+    const assessmentRecord = await runtime.configuration.getFresh("assessments");
+    const riskRecord = await runtime.configuration.getFresh("risk");
+    const configurationSnapshot = {
+      assessment: assessmentRecord.config,
+      risk: riskRecord.config,
+      versions: {assessments: assessmentRecord.version, risk: riskRecord.version},
+      capturedAt: new Date().toISOString(),
+    };
+    const assessmentConfiguration = {...assessmentRecord.config, configurationSnapshot};
+    const stageConfig = {
+      ...baseStageConfig,
+      recommendationThresholds: {
+        ...(baseStageConfig.recommendationThresholds ?? {}),
+        proceed: assessmentRecord.config.proceedThreshold,
+      },
+    };
     const suppliedAssessment = body.action === "publish" && body.assessment && typeof body.assessment === "object" ? body.assessment : null;
     const assessment = suppliedAssessment ?? (stage === "Intake" ? assessIntake(item, undefined, assessmentConfiguration) : evaluateStage(item, stage, undefined, assessmentConfiguration));
     const attachmentEvidence = await extractJiraPdfAttachments({attachments: item.attachments ?? [], issueKey, cloudId: connection.cloudId, accessToken: connection.accessToken});
@@ -39,7 +54,7 @@ export async function POST(request) {
         decisionSupport = {recommendation: assessment.recommendation, confidence: 0, summary: "AI decision support was unavailable; the deterministic stage metrics remain available for review.", challenge: "AI could not challenge this stage because the model was unavailable.", pros: [], cons: [], rationale: [], checkReviews: [], proposedComment: "", status: "unavailable", stage};
       }
     }
-    const weighting = assessmentConfiguration ?? stageConfig.decisionWeighting ?? {automaticPercent: 25, aiPercent: 75};
+    const weighting = assessment.decisionWeighting ?? assessmentConfiguration;
     const weightedDecision = decisionSupport.status === "unavailable"
       ? {score: 0, maxScore: assessment.maxScore, recommendation: "Hold for remediation", automaticPercent: weighting.automaticPercent, aiPercent: weighting.aiPercent, status: "ai_unavailable"}
       : {...calculateWeightedEvaluationDecision({automaticScore: assessment.score, aiScore: decisionSupport.score ?? 0, maxScore: assessment.maxScore, weighting, stageConfig}), status: decisionSupport.status};

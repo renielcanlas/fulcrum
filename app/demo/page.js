@@ -2714,6 +2714,7 @@ function IntakeAssessmentPanel({
       <section
         className="mt-8 rounded-xl border border-[#cfe3d8] bg-[#f7fbf8] p-4"
         aria-label="FULCRUM Intake evaluation"
+        aria-busy={assessmentBusy}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -2725,6 +2726,13 @@ function IntakeAssessmentPanel({
               Evaluate whether this Jira item is ready to proceed to the next
               stage.
             </p>
+            {stage === "Risk Assessment" && (
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                This is a stage-readiness score. Risk boundaries and control
+                mitigation strength affect the separate initiative residual-risk
+                calculation, not these Jira completeness checks.
+              </p>
+            )}
           </div>
           {selectedPublished && !draft && (
             <div className="flex flex-col items-end gap-1">
@@ -2777,6 +2785,8 @@ function IntakeAssessmentPanel({
           >
             {assessmentBusy ? "Evaluating " + stage + "…" : "Evaluate " + stage}
           </button>
+        ) : assessmentBusy ? (
+          <EvaluationLoadingSkeleton stage={stage} />
         ) : (
           <>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -2824,7 +2834,7 @@ function IntakeAssessmentPanel({
             <details className="mt-2 rounded-lg bg-white p-2.5">
               <summary className="cursor-pointer text-xs font-bold text-slate-600 hover:text-[#087f70]">View scoring configuration</summary>
               <div className="mt-2 grid gap-2 text-[11px] text-slate-500 sm:grid-cols-2">
-                <p>Proceed threshold: <strong className="text-slate-700">{assessment.scoreBands?.find((band) => band.label === "Proceed")?.min ?? 80}</strong></p>
+                <p>Proceed threshold: <strong className="text-slate-700">{assessment.configurationSnapshot?.assessment?.proceedThreshold ?? assessment.scoreBands?.find((band) => band.label === "Proceed")?.min ?? 80}</strong></p>
                 <p>Partial credit: <strong className="text-slate-700">{Math.round((assessment.scoring?.partialCreditFactor ?? 0.5) * 100)}%</strong></p>
                 <p>Decision weighting: <strong className="text-slate-700">{assessment.decisionWeighting?.automaticPercent ?? 25}% automatic / {assessment.decisionWeighting?.aiPercent ?? 75}% AI</strong></p>
               </div>
@@ -2991,6 +3001,40 @@ function IntakeAssessmentPanel({
   );
 }
 
+function EvaluationLoadingSkeleton({stage}) {
+  return (
+    <div className="mt-4 animate-pulse" role="status" aria-label={`Re-evaluating ${stage}`}>
+      <span className="sr-only">Re-evaluating {stage}…</span>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {["score", "decision", "checks"].map((section) => (
+          <div key={section} className="rounded-lg bg-white p-3">
+            <div className="h-2.5 w-24 rounded bg-slate-200" />
+            <div className="mt-3 h-6 w-20 rounded bg-slate-200" />
+            <div className="mt-4 space-y-2">
+              <div className="h-2 rounded bg-slate-100" />
+              <div className="h-2 w-4/5 rounded bg-slate-100" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 rounded-lg bg-white p-3">
+        <div className="h-2.5 w-36 rounded bg-slate-200" />
+        <div className="mt-3 h-2 w-full rounded bg-slate-100" />
+        <div className="mt-2 h-2 w-11/12 rounded bg-slate-100" />
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({length: 6}, (_, index) => (
+          <div key={index} className="rounded-lg bg-white p-3">
+            <div className="h-2.5 w-3/5 rounded bg-slate-200" />
+            <div className="mt-3 h-2 w-full rounded bg-slate-100" />
+            <div className="mt-2 h-2 w-4/5 rounded bg-slate-100" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PreviousAssessmentSummary({ item, intakeAssessment }) {
   const latestByStage = new Map();
   for (const evaluation of intakeAssessment?.allHistory ?? []) {
@@ -3023,7 +3067,8 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
           </h3>
         </div>
         <span className="text-[11px] text-slate-500">
-          {history.length} published
+          {intakeAssessment?.allHistory?.length ?? 0} published
+          {intakeAssessment?.assessment ? " · 1 draft" : ""}
         </span>
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -3046,7 +3091,7 @@ function PreviousAssessmentSummary({ item, intakeAssessment }) {
               </span>
             </div>
             <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              Weighted score
+              Stage readiness score
             </p>
             <p className="mt-0.5 text-sm font-bold text-slate-700">
               {(assessment.weightedDecision?.score ?? assessment.score)}/{assessment.weightedDecision?.maxScore ?? assessment.maxScore}

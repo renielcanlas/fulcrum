@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {FakeProvider} from "../src/ai/provider.js";
-import {buildIntakeDecisionSupportInput, calculateWeightedIntakeDecision, generateEvaluationDecisionSupport, generateIntakeDecisionSupport, parseIntakeDecisionSupport} from "../src/ai/intake-decision-support.js";
+import {buildIntakeDecisionSupportInput, calculateWeightedEvaluationDecision, calculateWeightedIntakeDecision, generateEvaluationDecisionSupport, generateIntakeDecisionSupport, parseIntakeDecisionSupport} from "../src/ai/intake-decision-support.js";
 import {getStageEvaluationConfig, evaluateStage, hasNonFulcrumChangesSinceEvaluation, publishedEvaluationRecommendation} from "../src/integrations/stage-evaluation.js";
 import {formatIntakeAssessmentComment} from "../src/integrations/intake-assessment.js";
 
@@ -62,6 +62,12 @@ test("intake decision weighting applies 25 percent automatic and 75 percent AI",
   assert.equal(decision.recommendation, "Hold for remediation");
   assert.equal(decision.automaticPercent, 25);
   assert.equal(decision.aiPercent, 75);
+});
+
+test("weighted stage recommendations use the configured proceed threshold", () => {
+  const stageConfig = {...getStageEvaluationConfig("Risk Assessment"), recommendationThresholds: {proceed: 70}};
+  const decision = calculateWeightedEvaluationDecision({automaticScore: 70, aiScore: 70, maxScore: 100, weighting: {automaticPercent: 25, aiPercent: 75}, stageConfig});
+  assert.equal(decision.recommendation, "Proceed");
 });
 
 test("stage AI context uses the current stage parameters", async () => {

@@ -33,3 +33,16 @@ The application controls use a 15-minute default session lifetime. The
 synthetic Sandbox feature flag is enforced in the landing page, workbench
 navigation, direct page entry, and Sandbox API routes. Disabling it therefore
 removes the advertised entry points and denies forced URL/API access.
+
+Evaluation configuration is resolved fresh from Neon whenever a new evaluation
+or re-evaluation is calculated. The resulting evaluation JSON includes a
+snapshot of the assessment and risk configuration, including registry versions
+and capture time. Published Jira evaluation comments therefore retain the
+settings used at the time of evaluation, while a later re-evaluation can use
+new settings without rewriting prior history.
+
+The configured assessment proceed threshold is applied consistently to the
+deterministic, AI, and weighted recommendations for every Jira workflow stage.
+Risk boundaries and control mitigation strength remain inputs to the separate
+initiative residual-risk calculation; they are not readiness-check inputs for
+Jira stages, which do not carry structured risk-factor and control data.

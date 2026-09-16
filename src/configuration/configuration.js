@@ -51,6 +51,13 @@ export class ConfigurationStore {
     this.#cache.set(section, result);
     return result;
   }
+  async getFresh(section) {
+    const stored = this.persistence?.getConfiguration ? await this.persistence.getConfiguration(section) : null;
+    const config = normalizeConfiguration(section, stored?.config ?? defaultConfiguration()[section]);
+    const result = {config, version: stored?.version ?? 1, updatedBy: stored?.updatedBy ?? null, updatedAt: stored?.updatedAt ?? null};
+    this.#cache.set(section, result);
+    return result;
+  }
   async set(section, input, updatedBy) {
     const config = normalizeConfiguration(section, input);
     const saved = this.persistence?.saveConfiguration ? await this.persistence.saveConfiguration(section, config, updatedBy) : {version: (this.#cache.get(section)?.version ?? 0) + 1, updatedAt: new Date().toISOString()};

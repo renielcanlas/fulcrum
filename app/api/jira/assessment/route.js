@@ -91,7 +91,15 @@ export async function POST(request) {
     const history = [...legacyHistory, ...parsePublishedStageEvaluations(item.comments, stage)].sort((left, right) =>
       String(right.publishedAt ?? "").localeCompare(String(left.publishedAt ?? "")),
     );
-    const assessmentConfiguration = (await runtime.configuration.get("assessments")).config;
+    const assessmentRecord = await runtime.configuration.getFresh("assessments");
+    const riskRecord = await runtime.configuration.getFresh("risk");
+    const configurationSnapshot = {
+      assessment: assessmentRecord.config,
+      risk: riskRecord.config,
+      versions: {assessments: assessmentRecord.version, risk: riskRecord.version},
+      capturedAt: new Date().toISOString(),
+    };
+    const assessmentConfiguration = {...assessmentRecord.config, configurationSnapshot};
     const evaluate = () =>
       stage === "Intake" && !parsePublishedStageEvaluations(item.comments, stage).length
         ? assessIntake(item, undefined, assessmentConfiguration)
