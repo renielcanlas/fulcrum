@@ -162,6 +162,7 @@ export default function DemoPage() {
   }
 
   function navigateTo(view) {
+    if (view === "initiatives" && signedIn?.role !== "PRODUCT_OWNER") return;
     if (view === "sandbox") {
       if (!sandboxAllowed) return;
       window.open("/sandbox", "_blank", "noopener,noreferrer");
@@ -250,8 +251,14 @@ export default function DemoPage() {
 
   useEffect(() => {
     const view = new URLSearchParams(window.location.search).get("view");
-    if (view) setActiveView(view);
-  }, []);
+    if (!view || !signedIn) return;
+    if (view === "initiatives" && signedIn.role !== "PRODUCT_OWNER") {
+      setActiveView("board");
+      router.replace("/demo");
+      return;
+    }
+    setActiveView(view);
+  }, [router, signedIn]);
 
   useEffect(() => {
     const issueKey = new URLSearchParams(window.location.search).get("issue");
@@ -650,7 +657,7 @@ export default function DemoPage() {
       </main>
     );
 
-  const visibleNavItems = navItems.filter(([id]) => (id !== "configuration" || signedIn.role === "FCRM_ANALYST") && (id !== "sandbox" || sandboxAllowed === true));
+  const visibleNavItems = navItems.filter(([id]) => (id !== "initiatives" || signedIn.role === "PRODUCT_OWNER") && (id !== "configuration" || signedIn.role === "FCRM_ANALYST") && (id !== "sandbox" || sandboxAllowed === true));
 
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-[rgb(25,66,71)]">

@@ -3,10 +3,14 @@ import {runtime} from "../../../../src/server/runtime.js";
 import {JIRA_PROJECT_KEY} from "../../../../src/integrations/jira-config.js";
 import {resolveJiraConnection} from "../../../../src/integrations/jira-connection.js";
 import {DEMO_USERS} from "../../../../src/auth/demo-users.js";
+import {parseCookie} from "../../../../src/auth/session.js";
 
 const SANDBOX_ACTOR_ID = "fulcrum-sandbox";
 
 export async function POST(request) {
+  const user = await runtime.sessions.getAsync(parseCookie(request.headers.get("cookie") ?? "", "fulcrum_session"));
+  if (!user) return Response.json({error: "authentication_required"}, {status: 401});
+  if (user.role !== "PRODUCT_OWNER") return Response.json({error: "product_owner_required"}, {status: 403});
   const connection = await resolveJiraConnection({connections: runtime.jiraConnections});
   if (!connection) return Response.json({error: "jira_connection_required"}, {status: 409});
   try {
