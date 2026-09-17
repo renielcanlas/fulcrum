@@ -6,6 +6,7 @@ import {
   JiraUpdateDialog,
   renderCielMessage,
 } from "../../src/components/ciel-chat.js";
+import {isSpreadsheetAttachment, readSpreadsheetPreview} from "../../src/components/spreadsheet-preview.js";
 import guidedDemos from "../../data/config/guided-demos.json" with { type: "json" };
 
 const workflow = [
@@ -3724,7 +3725,7 @@ function JiraWorkItemView({
                 <li key={attachment.id} className="flex min-w-0 items-center gap-3 px-4 py-3">
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-sm text-[#087f70]" aria-hidden="true">↗</span>
                   <div className="min-w-0 flex-1">
-                    {(/\.pdf$/i.test(attachment.filename ?? "") || attachment.mimeType === "application/pdf") ? (
+                    {(/\.pdf$/i.test(attachment.filename ?? "") || attachment.mimeType === "application/pdf" || isSpreadsheetAttachment(attachment)) ? (
                       <button
                         type="button"
                         onClick={() => setOpenAttachment(attachment)}
@@ -3888,16 +3889,86 @@ function JiraWorkItemView({
                 Close
               </button>
             </div>
-            <iframe
-              title={openAttachment.filename}
-              src={`/api/jira/attachment?issue=${encodeURIComponent(item.key)}&attachment=${encodeURIComponent(openAttachment.id)}&filename=${encodeURIComponent(openAttachment.filename)}`}
-              className="min-h-0 flex-1 bg-slate-100"
-            />
+            {isSpreadsheetAttachment(openAttachment) ? (
+              <SpreadsheetAttachmentPreview itemKey={item.key} attachment={openAttachment} />
+            ) : (
+              <iframe
+                title={openAttachment.filename}
+                src={`/api/jira/attachment?issue=${encodeURIComponent(item.key)}&attachment=${encodeURIComponent(openAttachment.id)}&filename=${encodeURIComponent(openAttachment.filename)}`}
+                className="min-h-0 flex-1 bg-slate-100"
+              />
+            )}
           </section>
         </div>
       )}
     </section>
   );
+}
+
+function SpreadsheetAttachmentPreview({itemKey, attachment}) {
+  const [preview, setPreview] = useState(null);
+  const [activeSheetIndex, setActiveSheetIndex] = useState(0);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(true);
+  const source = `/api/jira/attachment?issue=${encodeURIComponent(itemKey)}&attachment=${encodeURIComponent(attachment.id)}&filename=${encodeURIComponent(attachment.filename)}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    setBusy(true);
+    setError("");
+    setPreview(null);
+    setActiveSheetIndex(0);
+    fetch(source, {cache: "no-store"})
+      .then((response) => {
+        if (!response.ok) throw new Error("attachment_preview_unavailable");
+        return response.arrayBuffer();
+      })
+      .then((arrayBuffer) => readSpreadsheetPreview(arrayBuffer))
+      .then((result) => {
+        if (!cancelled) setPreview(result);
+      })
+      .catch(() => {
+        if (!cancelled) setError("This workbook could not be previewed. You can still download the original attachment.");
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
+    return () => { cancelled = true; };
+  }, [source]);
+
+  if (busy) return <div className="grid min-h-0 flex-1 place-items-center bg-slate-50 p-6 text-sm text-slate-500">Loading read-only workbook preview…</div>;
+  if (error) return <div className="grid min-h-0 flex-1 place-items-center bg-slate-50 p-6 text-center text-sm text-slate-600"><div><p>{error}</p><a href={source} download={attachment.filename} className="mt-3 inline-block font-bold text-[#087f70] underline">Download attachment</a></div></div>;
+  if (!preview?.sheets?.length) return <div className="grid min-h-0 flex-1 place-items-center bg-slate-50 p-6 text-sm text-slate-500">The workbook has no visible worksheets.</div>;
+  const activeSheet = preview.sheets[activeSheetIndex] ?? preview.sheets[0];
+
+  return <div className="min-h-0 flex-1 overflow-auto bg-slate-50 p-4 sm:p-6">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <p className="text-xs font-semibold text-slate-500">Read-only preview · {preview.sheets.length} worksheet{preview.sheets.length === 1 ? "" : "s"}</p>
+      <a href={source} download={attachment.filename} className="text-xs font-bold text-[#087f70] underline">Download original</a>
+    </div>
+    <div role="tablist" aria-label="Workbook worksheets" className="flex gap-1 overflow-x-auto border-b border-slate-200">
+      {preview.sheets.map((sheet, index) => <button
+        key={`${sheet.name}-${index}`}
+        type="button"
+        role="tab"
+        aria-selected={index === activeSheetIndex}
+        aria-controls={`worksheet-panel-${index}`}
+        onClick={() => setActiveSheetIndex(index)}
+        className={`shrink-0 cursor-pointer border-b-2 px-4 py-2.5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[#b9e4d1] ${index === activeSheetIndex ? "border-[#087f70] text-[#087f70]" : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"}`}
+      >{sheet.name}</button>)}
+    </div>
+    <div id={`worksheet-panel-${activeSheetIndex}`} role="tabpanel" aria-label={activeSheet.name} className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-auto">
+          <table className="min-w-full border-collapse text-left text-xs">
+            <tbody>{activeSheet.rows.map((row, rowIndex) => <tr key={`${activeSheet.name}-${rowIndex}`} className={rowIndex === 0 ? "bg-[#f7fbf8] font-bold text-[#102f33]" : "text-slate-700"}>
+              <td className="sticky left-0 border-r border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-semibold text-slate-400">{rowIndex + 1}</td>
+              {row.map((cell, columnIndex) => <td key={`${activeSheet.name}-${rowIndex}-${columnIndex}`} className="max-w-xs whitespace-pre-wrap border-b border-slate-100 px-3 py-2 align-top">{cell}</td>)}
+            </tr>)}</tbody>
+          </table>
+        </div>
+        {activeSheet.truncated && <p className="border-t border-amber-100 bg-amber-50 px-4 py-2 text-[11px] text-amber-800">Preview limited to the first 200 rows and 30 columns. Download the original for the complete workbook.</p>}
+    </div>
+  </div>;
 }
 
 function JiraBoardCard({ item }) {
