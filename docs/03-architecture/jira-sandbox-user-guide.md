@@ -12,7 +12,7 @@ Use `/sandbox` to inspect the server-side Jira connection, search the fixed `FCR
 - **Connection indicators**: Jira service-account status and Azure AI status in the app bar.
 - **Scenario source selector**: checked-in JSON scenarios plus **Custom scenario**.
 - **Scenario details**: description, ordered steps, action names, and validation indicators.
-- **FULCRUM work-item view**: selecting a Jira key opens an independent FULCRUM detail page; the external Jira link is available from that detail page.
+- **FULCRUM work-item view**: selecting a Jira key opens an independent FULCRUM detail page; the external Jira link is available from that detail page. PDF attachments preview in place, and Excel/CSV attachments open in a read-only worksheet-tab preview with a bounded table and original-file download.
 - **JSON view**: the current scenario JSON for inspection.
 - **AI scenario assistant**: a prompt area for creating or revising a scenario.
 - **Ciel chat**: the FULCRUM AI Assistant, available from the floating ✦ button without signing in. It can inspect a linked live FCRM Jira story and, after explicit confirmation, improve its description; it does not execute Jira scenarios.
@@ -44,7 +44,7 @@ Select the floating ✦ button from any sandbox view and ask the FULCRUM AI Assi
 ## Evaluate a Jira work item stage
 
 1. Open a work item from the board and confirm its current Jira status.
-2. Select **Evaluate [stage]**. FULCRUM loads the current Jira fields, comments, attachments, and supported PDF evidence.
+2. Select **Evaluate [stage]**. FULCRUM loads the current Jira fields, comments, attachments, and supported PDF evidence. Spreadsheet attachments can be inspected separately in the read-only worksheet preview; the preview does not edit or upload workbook content.
 3. Review the deterministic checklist and the stage-specific AI response. The AI focus changes by stage: research readiness, risk evidence, analyst review quality, or decision readiness.
 4. Review the weighted result. It uses 25% automatic checklist scoring and 75% AI checklist scoring; the same weighting applies to each metric and the overall recommendation.
 5. Publish the evaluation when ready. The result is written to Jira as a human-readable FULCRUM comment with a hidden machine-readable payload.

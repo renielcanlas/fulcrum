@@ -18,3 +18,12 @@ test("spreadsheet preview is read-only data with sheet names and bounded cells",
   assert.deepEqual(preview.sheets[0].rows, [["Control", "Owner"], ["Sanctions screening", "FCRM"]]);
   assert.equal(preview.sheets[0].truncated, false);
 });
+
+test("spreadsheet preview marks rows and columns beyond the display cap", () => {
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([["A", "B"], ["1", "2"], ["3", "4"]]);
+  XLSX.utils.book_append_sheet(workbook, sheet, "Data");
+  const preview = readSpreadsheetPreview(XLSX.write(workbook, {type: "array", bookType: "xlsx"}), {maxRows: 2, maxColumns: 1});
+  assert.deepEqual(preview.sheets[0].rows, [["A"], ["1"]]);
+  assert.equal(preview.sheets[0].truncated, true);
+});

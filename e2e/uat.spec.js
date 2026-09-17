@@ -877,6 +877,24 @@ test("UAT: PDF attachment opens in the evidence preview dialog", async ({page}) 
   await expect(page.getByRole("button", {name: "Close", exact: true})).toBeVisible();
 });
 
+test("UAT: Excel attachment opens as a read-only worksheet-tab preview", async ({page}) => {
+  const itemWithWorkbook = {...workItem, attachments: [{id: "xlsx-1", filename: "risk-analysis.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", size: 4096, author: "Maya Chen"}]};
+  await mockSessionAndCommonApis(page, users[0]);
+  await page.unroute("**/api/jira**");
+  await page.route("**/api/jira**", async (route) => { const url = new URL(route.request().url()); await route.fulfill({json: url.searchParams.has("issue") ? {item: itemWithWorkbook} : {items: []}}); });
+  await page.route("**/api/jira/attachment**", (route) => route.fulfill({path: "public/demo/Golden Initiative - risk-analysis.xlsx"}));
+  await page.route("**/api/jira/user-status", (route) => route.fulfill({json: {connected: true}}));
+  await page.goto("/demo?view=work-item&issue=FCRM-101");
+  await page.getByRole("button", {name: "risk-analysis.xlsx", exact: true}).click();
+  await expect(page.getByRole("heading", {name: "risk-analysis.xlsx"})).toBeVisible();
+  await expect(page.getByRole("tab", {name: "Risk Summary", exact: true})).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText("Risk Summary", {exact: true})).toHaveCount(1);
+  await page.getByRole("tab", {name: "Control Assessment", exact: true}).click();
+  await expect(page.getByRole("tab", {name: "Control Assessment", exact: true})).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", {name: "Risk Summary", exact: true})).toHaveAttribute("aria-selected", "false");
+  await expect(page.getByText("Download original", {exact: true})).toBeVisible();
+});
+
 test("UAT: Fulcrum comments remain collapsed until expanded", async ({page}) => {
   const commentedItem = {...workItem, comments: [{id: "fulcrum-1", author: "FULCRUM", body: "FULCRUM_EVALUATION_JSON:\n{\"score\":80}", created: "2026-09-16T00:00:00.000Z"}]};
   await mockSessionAndCommonApis(page, users[0]);

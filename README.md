@@ -147,6 +147,7 @@ The repository currently contains the architecture foundation and the first exec
 - read-only decision trace at `/api/initiatives/INIT-2026-0007/trace`
 - Provider-neutral AI Gateway with safe no-key demo mode; Azure AI Foundry is the primary platform direction
 - Azure AI Document Intelligence PDF extraction with page-level evidence provenance; additional document types remain roadmap work
+- read-only Jira attachment previews for Excel/CSV workbooks with worksheet tabs, bounded rendering, and original-file download
 - AI interaction audit records
 - Ciel action planning for supported Jira mutations: Azure returns a structured intent and response plan once, while Fulcrum validates, executes, verifies, and selects the final response deterministically
 - tests proving tool execution, access isolation, and decision non-mutation
