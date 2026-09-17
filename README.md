@@ -210,6 +210,15 @@ JIRA_CLOUD_ID=your-jira-cloud-id
 JIRA_SITE_URL=https://your-site.atlassian.net
 ```
 
+For the landing-page **Guided Demo**, also configure the server-side synthetic Jira automation principal in the Vercel environment used by the deployed URL:
+
+```bash
+JIRA_GUIDED_DEMO_EMAIL=synthetic-demo-account@example.com
+JIRA_GUIDED_DEMO_API_TOKEN=your-jira-api-token
+```
+
+The guided comment and attachment actions return `409 jira_guided_demo_token_missing` when either guided-demo variable, `JIRA_CLOUD_ID`, or `JIRA_SITE_URL` is absent. Add the variables to the Production environment and redeploy; the token is never sent to the browser.
+
 The client ID and secret are used server-side with Atlassian's service-account client-credentials flow, so the sandbox does not require interactive Jira reauthentication. The Cloud ID is the value from `https://your-site.atlassian.net/_edge/tenant_info`; it is not the organization ID. The sandbox project is fixed to `FCRM` by `data/config/jira-integration.json`.
 
 ## Jira sandbox walkthrough

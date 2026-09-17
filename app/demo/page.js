@@ -523,7 +523,12 @@ export default function DemoPage() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "jira_comment_failed");
+      if (!response.ok)
+        throw new Error(
+          data.error === "jira_guided_demo_token_missing"
+            ? "Guided demo Jira automation is not configured. Add the guided-demo Jira variables in the Vercel deployment settings."
+            : data.error ?? "jira_comment_failed",
+        );
       setSelectedWorkItem((current) => ({
         ...current,
         comments: [

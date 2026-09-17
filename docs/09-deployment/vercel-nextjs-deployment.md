@@ -35,7 +35,9 @@ Recommended external dependencies: Supabase PostgreSQL or equivalent managed Pos
 
 ## Environment configuration
 
-Configure Azure AI Foundry endpoint/API version, deployment names for fast/reasoning/embedding routes, Azure credential mode, Document Intelligence endpoint, optional `APPLICATIONINSIGHTS_CONNECTION_STRING`, database URL, session secret, Jira OAuth client ID/secret, and callback URLs in Vercel project environment variables for Development, Preview, and Production as appropriate. Vercel encrypts environment variables at rest; changes apply to new deployments, so rotate/redeploy deliberately. [Vercel environment variables](https://vercel.com/docs/environment-variables)
+Configure Azure AI Foundry endpoint/API version, deployment names for fast/reasoning/embedding routes, Azure credential mode, Document Intelligence endpoint, optional `APPLICATIONINSIGHTS_CONNECTION_STRING`, database URL, session secret, Jira OAuth client ID/secret, and callback URLs in Vercel project environment variables for Development, Preview, and Production as appropriate. For the landing-page Guided Demo, also configure `JIRA_GUIDED_DEMO_EMAIL` and `JIRA_GUIDED_DEMO_API_TOKEN` alongside `JIRA_CLOUD_ID` and `JIRA_SITE_URL`; these are the server-side synthetic Jira principal used for the guided comment and attachment steps. Vercel encrypts environment variables at rest; changes apply to new deployments, so rotate/redeploy deliberately. [Vercel environment variables](https://vercel.com/docs/environment-variables)
+
+If the guided demo returns HTTP `409` with `jira_guided_demo_token_missing`, the guided principal is not fully configured. Verify all four variables are present in the environment serving the deployed URL, that the API token belongs to the synthetic demo account, and redeploy after changing them. The normal Atlassian service-account credentials do not satisfy this guided-demo check.
 
 Only variables intentionally safe for the browser use the `NEXT_PUBLIC_` prefix. Never use that prefix for OpenAI, Jira, database, or session secrets.
 
