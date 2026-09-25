@@ -455,14 +455,8 @@ export default function DemoPage() {
           throw new Error(data.error ?? "jira_work_item_load_failed");
         if (!data.item) throw new Error("work_item_not_found");
         setSelectedWorkItem(data.item);
-        const assessmentResponse = await fetch(
-          `/api/jira/assessment?issue=${encodeURIComponent(issueKey)}`,
-        );
-        const assessmentData = await assessmentResponse.json();
-        if (assessmentResponse.ok) setIntakeAssessment(assessmentData);
-        const decisionResponse = await fetch(`/api/jira/decision?issue=${encodeURIComponent(issueKey)}`);
-        const decisionResponseData = await decisionResponse.json();
-        if (decisionResponse.ok) setDecisionData(decisionResponseData);
+        if (data.assessment) setIntakeAssessment(data.assessment);
+        if (data.decision) setDecisionData(data.decision);
       })
       .catch((error) =>
         setSelectedWorkItem({
@@ -480,6 +474,7 @@ export default function DemoPage() {
   useEffect(() => {
     if (activeView !== "work-item") return;
     let cancelled = false;
+    let shouldPoll = true;
     const checkConnection = () => {
       const statusUrl = tour?.id === "landing-start-demo"
         ? "/api/jira/user-status?guidedDemo=true"
@@ -487,14 +482,17 @@ export default function DemoPage() {
       fetch(statusUrl, {cache: "no-store"})
         .then((response) => response.json())
         .then((data) => {
-          if (!cancelled) setJiraUserConnected(Boolean(data.connected));
+          if (!cancelled) {
+            setJiraUserConnected(Boolean(data.connected));
+            shouldPoll = !data.connected && data.mode !== "guided_demo_unconfigured" && !data.error;
+          }
         })
         .catch(() => {
           if (!cancelled) setJiraUserConnected(false);
         });
     };
     checkConnection();
-    const interval = jiraUserConnected ? null : window.setInterval(checkConnection, 2500);
+    const interval = jiraUserConnected ? null : window.setInterval(() => { if (shouldPoll) checkConnection(); }, 5000);
     window.addEventListener("focus", checkConnection);
     return () => {
       cancelled = true;
@@ -703,14 +701,8 @@ export default function DemoPage() {
     if (!response.ok)
       throw new Error(data.error ?? "jira_work_item_load_failed");
     setSelectedWorkItem(data.item);
-    const assessmentResponse = await fetch(
-      `/api/jira/assessment?issue=${encodeURIComponent(issueKey)}`,
-    );
-    const assessmentData = await assessmentResponse.json();
-    if (assessmentResponse.ok) setIntakeAssessment(assessmentData);
-    const decisionResponse = await fetch(`/api/jira/decision?issue=${encodeURIComponent(issueKey)}`);
-    const decisionResponseData = await decisionResponse.json();
-    if (decisionResponse.ok) setDecisionData(decisionResponseData);
+    if (data.assessment) setIntakeAssessment(data.assessment);
+    if (data.decision) setDecisionData(data.decision);
   }
 
   async function submitHumanDecision(decision) {

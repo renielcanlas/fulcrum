@@ -86,13 +86,11 @@ export async function extractJiraPdfAttachment({attachment, cloudId, accessToken
 }
 
 export async function extractJiraPdfAttachments({attachments = [], issueKey, cloudId, accessToken, fetchImpl = fetch, env = process.env}) {
-  const results = [];
-  for (const attachment of attachments) {
+  return Promise.all(attachments.map(async (attachment) => {
     try {
-      results.push(await extractJiraPdfAttachment({attachment: {...attachment, issueKey}, cloudId, accessToken, fetchImpl, env}));
+      return await extractJiraPdfAttachment({attachment: {...attachment, issueKey}, cloudId, accessToken, fetchImpl, env});
     } catch (error) {
-      results.push({attachmentId: String(attachment.id), filename: attachment.filename, status: "failed", reason: error.message ?? "document_intelligence_attachment_failed"});
+      return {attachmentId: String(attachment.id), filename: attachment.filename, status: "failed", reason: error.message ?? "document_intelligence_attachment_failed"};
     }
-  }
-  return results;
+  }));
 }

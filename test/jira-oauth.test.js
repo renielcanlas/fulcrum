@@ -61,6 +61,21 @@ test("service-account OAuth token uses client credentials and is cached", async 
   assert.equal(calls, 1);
 });
 
+test("concurrent service-account token requests share one in-flight request", async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    return new Response(JSON.stringify({access_token: "concurrent-token", expires_in: 3600}), {status: 200});
+  };
+  const tokens = await Promise.all([
+    getServiceAccountAccessToken({clientId: "client-concurrent", clientSecret: "secret", fetchImpl, now: () => 1000}),
+    getServiceAccountAccessToken({clientId: "client-concurrent", clientSecret: "secret", fetchImpl, now: () => 1000}),
+  ]);
+  assert.deepEqual(tokens, ["concurrent-token", "concurrent-token"]);
+  assert.equal(calls, 1);
+});
+
 test("service-account connection uses configured cloud and site", async () => {
   const connection = await getServiceAccountConnection({
     env: {ATLASSIAN_CLIENT_ID: "client-connection", ATLASSIAN_CLIENT_SECRET: "secret", JIRA_CLOUD_ID: "cloud-1", JIRA_SITE_URL: "https://geniushacks.atlassian.net"},

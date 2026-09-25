@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {FakeProvider, InstrumentedProvider} from "../src/ai/provider.js";
+import {AzureOpenAIProvider, FakeProvider, InstrumentedProvider} from "../src/ai/provider.js";
 import {AiTelemetryStore} from "../src/observability/ai-telemetry.js";
 
 test("instrumented provider records safe model usage and timing metadata", async () => {
@@ -50,4 +50,20 @@ test("instrumented provider records failures without exposing request content", 
   assert.equal(record.provider, "azure");
   assert.equal(record.errorMessage, "AZURE_AI_FOUNDRY_HTTP_429");
   assert.equal("secret prompt" in record, false);
+});
+
+test("AI provider request can cap output tokens for latency-sensitive replies", async () => {
+  const requests = [];
+  const provider = new AzureOpenAIProvider({endpoint: "https://example.openai.azure.com", apiKey: "key", deployment: "fast"});
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    requests.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({output_text: "Short answer"}), {status: 200});
+  };
+  try {
+    await provider.generateResponse({instructions: "i", input: "q", maxOutputTokens: 350});
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.equal(requests[0].max_output_tokens, 350);
 });

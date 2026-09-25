@@ -12,10 +12,10 @@ export function normalizePreviousResponseId(value) {
 export class OpenAIProvider extends AIProvider {
   constructor({apiKey, model = "gpt-5"} = {}) { super(); this.apiKey = apiKey; this.model = model; this.providerName = "openai-compatible"; }
 
-  async generateResponse({instructions, input, tools, text, stream = false, previousResponseId}) {
+  async generateResponse({instructions, input, tools, text, stream = false, previousResponseId, maxOutputTokens}) {
     if (!this.apiKey) throw new Error("OPENAI_API_KEY is required for OpenAIProvider");
     const normalizedPreviousResponseId = normalizePreviousResponseId(previousResponseId);
-    const response = await fetch("https://api.openai.com/v1/responses", {method:"POST", headers:{"content-type":"application/json", authorization:`Bearer ${this.apiKey}`}, body:JSON.stringify({model:this.model, instructions, input, tools, text, stream, ...(normalizedPreviousResponseId ? {previous_response_id: normalizedPreviousResponseId} : {})})});
+    const response = await fetch("https://api.openai.com/v1/responses", {method:"POST", headers:{"content-type":"application/json", authorization:`Bearer ${this.apiKey}`}, body:JSON.stringify({model:this.model, instructions, input, tools, text, stream, ...(Number.isInteger(maxOutputTokens) ? {max_output_tokens: maxOutputTokens} : {}), ...(normalizedPreviousResponseId ? {previous_response_id: normalizedPreviousResponseId} : {})})});
     if (!response.ok) throw new Error(`OPENAI_HTTP_${response.status}`);
     return stream ? response.body : response.json();
   }
@@ -24,11 +24,11 @@ export class OpenAIProvider extends AIProvider {
 export class AzureOpenAIProvider extends AIProvider {
   constructor({endpoint, apiKey, deployment, apiVersion = "v1"} = {}) { super(); this.endpoint = endpoint?.replace(/\/$/, ""); this.apiKey = apiKey; this.deployment = deployment; this.model = deployment; this.apiVersion = apiVersion; this.providerName = "azure"; }
 
-  async generateResponse({instructions, input, tools, text, stream = false, previousResponseId}) {
+  async generateResponse({instructions, input, tools, text, stream = false, previousResponseId, maxOutputTokens}) {
     if (!this.endpoint || !this.apiKey || !this.deployment) throw new Error("AZURE_AI_FOUNDRY configuration is incomplete");
     if (this.apiVersion !== "v1") throw new Error("AZURE_AI_FOUNDRY_API_VERSION must be v1");
     const normalizedPreviousResponseId = normalizePreviousResponseId(previousResponseId);
-    const response = await fetch(`${this.endpoint}/openai/v1/responses`, {method: "POST", headers: {accept: "application/json", "content-type": "application/json", "api-key": this.apiKey}, body: JSON.stringify({model: this.deployment, instructions, input, tools, text, stream, ...(normalizedPreviousResponseId ? {previous_response_id: normalizedPreviousResponseId} : {})})});
+    const response = await fetch(`${this.endpoint}/openai/v1/responses`, {method: "POST", headers: {accept: "application/json", "content-type": "application/json", "api-key": this.apiKey}, body: JSON.stringify({model: this.deployment, instructions, input, tools, text, stream, ...(Number.isInteger(maxOutputTokens) ? {max_output_tokens: maxOutputTokens} : {}), ...(normalizedPreviousResponseId ? {previous_response_id: normalizedPreviousResponseId} : {})})});
     if (!response.ok) {
       const detail = await response.text();
       let message = "";

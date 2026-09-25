@@ -2,6 +2,9 @@ import {fetchJiraWorkItems, getJiraWorkItem} from "../../../src/integrations/jir
 import {runtime} from "../../../src/server/runtime.js";
 import {JIRA_PROJECT_KEY} from "../../../src/integrations/jira-config.js";
 import {resolveJiraConnection} from "../../../src/integrations/jira-connection.js";
+import {parsePublishedIntakeAssessments, parsePublishedAssessments} from "../../../src/integrations/intake-assessment.js";
+import {evaluationStages, parsePublishedStageEvaluations} from "../../../src/integrations/stage-evaluation.js";
+import {parsePublishedDecisions} from "../../../src/integrations/decision.js";
 
 const SANDBOX_ACTOR_ID = "fulcrum-sandbox";
 
@@ -16,7 +19,21 @@ export async function GET(request) {
       if (!connection) return Response.json({error: "jira_connection_required"}, {status: 409});
       const item = await getJiraWorkItem({issueKey, cloudId: connection.cloudId, accessToken: connection.accessToken, siteUrl: connection.siteUrl});
       runtime.audit.record({eventType: "SandboxJiraIssueRead", actorId: SANDBOX_ACTOR_ID, actorType: "SANDBOX_SERVICE_ACCOUNT", userRole: "SERVICE_ACCOUNT", entityId: issueKey, metadata: {mode: "live"}});
-      return Response.json({mode: "live", projectKey, item});
+      const allHistory = [
+        ...parsePublishedAssessments(item.comments),
+        ...evaluationStages.flatMap((stage) => parsePublishedStageEvaluations(item.comments, stage)),
+      ].sort((left, right) => String(right.publishedAt ?? "").localeCompare(String(left.publishedAt ?? "")));
+      const history = item.statusName === "Intake"
+        ? [...parsePublishedIntakeAssessments(item.comments), ...parsePublishedStageEvaluations(item.comments, item.statusName)]
+        : parsePublishedStageEvaluations(item.comments, item.statusName);
+      history.sort((left, right) => String(right.publishedAt ?? "").localeCompare(String(left.publishedAt ?? "")));
+      return Response.json({
+        mode: "live",
+        projectKey,
+        item,
+        assessment: {issueKey, stage: item.statusName, published: history[0] ?? null, history, allHistory},
+        decision: {issueKey, stage: item.statusName, decisions: parsePublishedDecisions(item.comments)},
+      });
     }
     const result = await fetchJiraWorkItems({projectKey, extraJql, ...(connection ? {cloudId: connection.cloudId, accessToken: connection.accessToken, siteUrl: connection.siteUrl} : {})});
     runtime.audit.record({eventType: "SandboxJiraSearch", actorId: SANDBOX_ACTOR_ID, actorType: "SANDBOX_SERVICE_ACCOUNT", userRole: "SERVICE_ACCOUNT", entityId: projectKey, metadata: {mode: result.mode, jql: result.jql, resultCount: result.items.length}});

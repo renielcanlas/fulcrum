@@ -58,7 +58,8 @@ export async function planCielAction({provider, message, conversation, issue, pe
   const result = await provider.generateResponse({
     instructions: ACTION_PLAN_INSTRUCTIONS,
     input: `Return the JSON action plan now.\n\nCurrent Fulcrum user:\n${currentUserContext || "(sandbox user; no logged-in persona)"}\n\nUser request:\n${message}\n\nRecent conversation:\n${conversation || "(none)"}\n\nCurrent UI URL:\n${currentUrl || "(none)"}\n\nLive Jira issue context:\n${issue ? JSON.stringify(issue) : "(none)"}\n\nVerified persona catalog:\n${personaContext || "(none)"}${planningNote ? `\n\nCorrection required:\n${planningNote}` : ""}`,
-    text: {format: {type: "json_object"}}
+    text: {format: {type: "json_object"}},
+    maxOutputTokens: 350
   });
   onAzureResponse?.(result);
   return parseCielActionPlan(responseText(result));

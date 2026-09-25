@@ -6,11 +6,11 @@ const MAX_TOOL_CALLS = 4;
 export class CopilotOrchestrator {
   constructor({provider, tools, audit}) { this.provider = provider; this.tools = tools; this.audit = audit; }
 
-  async respond({interactionId, conversationId, previousResponseId, user, assessmentId, message, stream = false, allowAssessmentTools = true}) {
+  async respond({interactionId, conversationId, previousResponseId, user, assessmentId, message, stream = false, allowAssessmentTools = true, maxOutputTokens = 700}) {
     const started = Date.now();
     const scope = assessmentId ? `Active assessment: ${assessmentId}` : "No FULCRUM assessment is linked to this conversation.";
     const telemetryContext = {correlationId: interactionId, interactionId, conversationId, task:"fulcrum-assistant.v1", instructionVersion:"ciel-instructions.v1", assessmentId, userId:user.id, callType:"initial"};
-    const request = {instructions: INSTRUCTIONS, input: [{role:"user", content:`${scope}\nUser role: ${user.role}\nQuestion: ${message}`}], tools: allowAssessmentTools ? toolDefinitions(this.tools.names()) : [], stream, previousResponseId, telemetryContext};
+    const request = {instructions: INSTRUCTIONS, input: [{role:"user", content:`${scope}\nUser role: ${user.role}\nQuestion: ${message}`}], tools: allowAssessmentTools ? toolDefinitions(this.tools.names()) : [], stream, previousResponseId, maxOutputTokens, telemetryContext};
     let response = await this.provider.generateResponse(request);
     const toolsUsed = [];
     if (!stream && response.output) {

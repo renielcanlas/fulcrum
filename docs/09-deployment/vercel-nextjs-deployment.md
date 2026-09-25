@@ -74,6 +74,16 @@ The first Preview should use synthetic data and non-production credentials. Conf
 
 Keep interactive Copilot requests bounded and stream responses. Move OCR, document extraction, bulk Jira synchronization, embeddings, and retries to durable background jobs. Do not depend on local filesystem persistence or global in-memory state. Vercel documents plan-dependent function duration and memory limits; configure `maxDuration` only after measuring the actual workload. [Vercel function limits](https://vercel.com/docs/functions/limitations)
 
+### Current latency safeguards
+
+- A work-item read returns the Jira item, assessment history, and decision history together, avoiding duplicate Jira reads during page load and refresh.
+- PDF evidence extraction runs concurrently per attachment while preserving attachment order and per-file failure isolation.
+- Concurrent cold-start requests share one in-flight Atlassian service-account token request.
+- The work-item connection check backs off to five seconds and stops polling when the deployment reports a terminal configuration error.
+- Ciel continuation requests avoid resending the already-linked conversation transcript, and normal replies are capped at 700 output tokens; action plans are capped at 350 tokens.
+
+These changes do not cache authoritative Jira content or bypass a fresh read before a governed mutation. If Jira or the AI provider remains slow after deployment, measure the `CielJiraRead`, AI telemetry latency, and Vercel function duration before changing timeouts or model routing.
+
 ## Rollback
 
 Use Vercel deployment promotion/rollback for application code, retain database migrations as forward-compatible, and version prompts/models/configuration. Never roll back by deleting audit events or rewriting assessment decisions.
