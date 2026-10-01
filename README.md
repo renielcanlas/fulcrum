@@ -189,7 +189,24 @@ AZURE_AI_FOUNDRY_FAST_DEPLOYMENT=your-fast-deployment
 AZURE_AI_FOUNDRY_REASONING_DEPLOYMENT=your-reasoning-deployment
 AZURE_AI_FOUNDRY_EMBEDDING_DEPLOYMENT=your-embedding-deployment
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-document-resource.cognitiveservices.azure.com/
+
+# Optional published Microsoft Foundry hosted agent used as the primary runtime
+# for Ciel and evaluations. OpenAI is used only as bounded failover.
+AZURE_AI_FOUNDRY_AGENT_ENABLED=false
+AZURE_AI_FOUNDRY_PROJECT_ENDPOINT=https://your-resource.services.ai.azure.com/api/projects/your-project
+AZURE_AI_FOUNDRY_AGENT_NAME=your-agent-name
+AZURE_AI_FOUNDRY_AGENT_API_VERSION=v1
+AZURE_AI_FOUNDRY_AGENT_BEARER_TOKEN= # optional short-lived local token
+AZURE_AI_FOUNDRY_AGENT_SCOPE=https://ai.azure.com/.default
+# Used by DefaultAzureCredential when a managed identity/workload identity is unavailable.
+AZURE_TENANT_ID=your-tenant-id
+AZURE_CLIENT_ID=your-client-id
+AZURE_CLIENT_SECRET=your-client-secret
+OPENAI_API_KEY=your-openai-fallback-key
+OPENAI_MODEL=gpt-5
 ```
+
+When `AZURE_AI_FOUNDRY_AGENT_ENABLED=true`, Ciel calls the published Foundry agent endpoint. The agent's stored instructions and indexed knowledge remain in Foundry. FULCRUM continues to supply scoped assessment/Jira context and owns authorization, scoring, workflow, audit, confirmation, and verification. The project endpoint format and bearer-token authentication follow Microsoft's Foundry prompt-agent endpoint contract.
 
 Then run `npm start`. `.env` is ignored by Git; never commit real credentials.
 

@@ -75,9 +75,9 @@ function parseJsonObject(value) {
 
 async function improveJiraStory({issue, message, onAzureRequest, onAzureResponse}) {
   onAzureRequest?.();
-  const result = await runtime.provider.generateResponse({
+  const result = await runtime.cielProvider.generateResponse({
     instructions: "You prepare a Jira story detail update for FULCRUM. Return JSON only with one string property named description. Preserve factual details from the existing story, improve clarity and structure, and do not invent requirements, dates, people, evidence, permissions, or acceptance results. Use concise plain text with short paragraphs and bullet lines beginning with '-'.",
-    input: `User request: ${message}\n\nExisting Jira story:\n${JSON.stringify(issue)}\n\nReturn JSON only, with the improved description in the description property.`,
+    input: `FULCRUM_MODE=JIRA_DRAFT_JSON\nUser request: ${message}\n\nExisting Jira story:\n${JSON.stringify(issue)}\n\nReturn JSON only, with the improved description in the description property.`,
     text: {format: {type: "json_object"}}
   });
   onAzureResponse?.(result);
@@ -124,11 +124,11 @@ export async function POST(request) {
       if (actionRequested) {
         try {
           cielDebug("Ciel sent the message to Azure");
-          actionPlan = await planCielAction({provider: runtime.provider, message: effectiveMessage, conversation: recentConversation, issue, personaContext: heuristicAssignmentRequested ? PERSONA_CONTEXT : "", currentUrl, currentUserContext: `${actingUser.id} | ${actingUser.displayName} | ${actingUser.role}`, onAzureResponse: (response) => cielDebug("actual Azure response", response)});
+          actionPlan = await planCielAction({provider: runtime.cielProvider, message: effectiveMessage, conversation: recentConversation, issue, personaContext: heuristicAssignmentRequested ? PERSONA_CONTEXT : "", currentUrl, currentUserContext: `${actingUser.id} | ${actingUser.displayName} | ${actingUser.role}`, onAzureResponse: (response) => cielDebug("actual Azure response", response)});
         } catch {
           try {
             cielDebug("Ciel sent the message to Azure");
-            actionPlan = await planCielAction({provider: runtime.provider, message: effectiveMessage, conversation: recentConversation, issue, personaContext: heuristicAssignmentRequested ? PERSONA_CONTEXT : "", currentUrl, currentUserContext: `${actingUser.id} | ${actingUser.displayName} | ${actingUser.role}`, planningNote: "The previous response was invalid or incomplete. Return the required JSON object only, with one supported intent and a concise responsePlan.", onAzureResponse: (response) => cielDebug("actual Azure response", response)});
+            actionPlan = await planCielAction({provider: runtime.cielProvider, message: effectiveMessage, conversation: recentConversation, issue, personaContext: heuristicAssignmentRequested ? PERSONA_CONTEXT : "", currentUrl, currentUserContext: `${actingUser.id} | ${actingUser.displayName} | ${actingUser.role}`, planningNote: "The previous response was invalid or incomplete. Return the required JSON object only, with one supported intent and a concise responsePlan.", onAzureResponse: (response) => cielDebug("actual Azure response", response)});
           } catch {
             actionPlan = null;
           }
@@ -145,7 +145,7 @@ export async function POST(request) {
         try {
           cielDebug("Ciel sent the message to Azure");
           actionPlan = await planCielAction({
-            provider: runtime.provider,
+            provider: runtime.cielProvider,
             message: effectiveMessage,
             conversation: recentConversation,
             issue,
@@ -213,8 +213,8 @@ export async function POST(request) {
     // Responses API continuation IDs already carry prior turns. Re-sending the
     // same conversation here increases prompt size and latency; retain the
     // local transcript only as a fallback for the first turn or an expired ID.
-    const conversationForModel = body.previousResponseId ? "" : recentConversation;
-    const scopedMessage = `Current Fulcrum user: ${actingUser.id} | ${actingUser.displayName} | ${actingUser.role}. Interpret "me" or "myself" as this user only.\n\n${conversationForModel ? `Recent conversation (use it to resolve follow-ups; do not repeat introductions):\n${conversationForModel}\n\n` : ""}${message}${currentUrl ? `\n\nCurrent FULCRUM page URL (UI metadata): ${origin}${new URL(currentUrl, origin).pathname}${new URL(currentUrl, origin).search}` : ""}${absoluteContext ? `\n\nOptional current UI context (ignore if unrelated to the question):\n${absoluteContext}\n\nWhen relevant, link to the supplied absolute FULCRUM work-item view and Jira URL. Do not invent links.` : ""}${jiraContext}${jiraUpdate}\n\nServer-operation rule: report only the Jira operations explicitly confirmed and actually completed by this request. Do not infer or claim a status transition unless this request returned a transition result.`;
+    const conversationForModel = body.previousResponseId && runtime.cielProvider.supportsPreviousResponseId !== false ? "" : recentConversation;
+    const scopedMessage = `FULCRUM_MODE=CHAT\nCurrent Fulcrum user: ${actingUser.id} | ${actingUser.displayName} | ${actingUser.role}. Interpret "me" or "myself" as this user only.\n\n${conversationForModel ? `Recent conversation (use it to resolve follow-ups; do not repeat introductions):\n${conversationForModel}\n\n` : ""}${message}${currentUrl ? `\n\nCurrent FULCRUM page URL (UI metadata): ${origin}${new URL(currentUrl, origin).pathname}${new URL(currentUrl, origin).search}` : ""}${absoluteContext ? `\n\nOptional current UI context (ignore if unrelated to the question):\n${absoluteContext}\n\nWhen relevant, link to the supplied absolute FULCRUM work-item view and Jira URL. Do not invent links.` : ""}${jiraContext}${jiraUpdate}\n\nServer-operation rule: report only the Jira operations explicitly confirmed and actually completed by this request. Do not infer or claim a status transition unless this request returned a transition result.`;
     if (actionPlan?.intent && actionPlan.intent !== "none" && actionPlan.responsePlan.pending && actionPlan.responsePlan.success && actionPlan.responsePlan.failure) {
       const answer = redactPersonaAccountIds(jiraUpdate.trim() || actionPlan.responsePlan.pending);
       cielDebug("Ciel action result", operationOutcome ?? {success: false, reason: "not executed"});
@@ -222,7 +222,8 @@ export async function POST(request) {
       return Response.json({answer, raw: null, responseId: null, context: issueKey ? `jira:${issueKey}` : "jira_unlinked", pendingAction, actionPlan: {intent: actionPlan.intent, confidence: actionPlan.confidence, requiresConfirmation: actionPlan.requiresConfirmation}, operationOutcome});
     }
     cielDebug("Ciel sent the message to Azure");
-    const result = await runtime.copilot.respond({interactionId: randomUUID(), conversationId: body.conversationId ?? randomUUID(), previousResponseId: body.previousResponseId, user: actingUser, message: scopedMessage, allowAssessmentTools: false});
+    const cielCopilot = runtime.cielProvider === runtime.provider ? runtime.copilot : new (runtime.copilot.constructor)({provider: runtime.cielProvider, tools: runtime.tools, audit: runtime.audit});
+    const result = await cielCopilot.respond({interactionId: randomUUID(), conversationId: body.conversationId ?? randomUUID(), previousResponseId: runtime.cielProvider.supportsPreviousResponseId === false ? undefined : body.previousResponseId, user: actingUser, message: scopedMessage, allowAssessmentTools: false});
     const answer = redactPersonaAccountIds(responseText(result));
     cielDebug("actual Azure response", result);
     cielDebug("response given back to user", answer);

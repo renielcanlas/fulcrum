@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {AzureOpenAIProvider, FakeProvider, InstrumentedProvider} from "../src/ai/provider.js";
+import {AzureOpenAIProvider, FailoverProvider, FakeProvider, FoundryHostedAgentProvider, InstrumentedProvider} from "../src/ai/provider.js";
 import {AiTelemetryStore} from "../src/observability/ai-telemetry.js";
 
 test("instrumented provider records safe model usage and timing metadata", async () => {
@@ -66,4 +66,48 @@ test("AI provider request can cap output tokens for latency-sensitive replies", 
     globalThis.fetch = originalFetch;
   }
   assert.equal(requests[0].max_output_tokens, 350);
+});
+
+test("Foundry hosted agent uses the project agent Responses endpoint and Entra bearer token", async () => {
+  let request;
+  const provider = new FoundryHostedAgentProvider({
+    projectEndpoint: "https://resource.services.ai.azure.com/api/projects/project",
+    agentName: "ciel",
+    bearerToken: "test-token",
+    fetchImpl: async (url, options) => {
+      request = {url, options};
+      return new Response(JSON.stringify({id: "resp-agent-1", output_text: "grounded answer", output: []}), {status: 200, headers: {"content-type": "application/json"}});
+    }
+  });
+  const response = await provider.generateResponse({input: [{role: "user", content: "What is the policy?"}], maxOutputTokens: 200});
+  assert.equal(response.output_text, "grounded answer");
+  assert.equal(request.url, "https://resource.services.ai.azure.com/api/projects/project/agents/ciel/endpoint/protocols/openai/responses?api-version=v1");
+  assert.equal(request.options.headers.authorization, "Bearer test-token");
+  assert.deepEqual(JSON.parse(request.options.body), {input: [{role: "user", content: "What is the policy?"}], stream: false, max_output_tokens: 200});
+  assert.equal(provider.supportsPreviousResponseId, false);
+});
+
+test("Foundry hosted agent rejects incomplete configuration", async () => {
+  const provider = new FoundryHostedAgentProvider({bearerToken: "test-token"});
+  await assert.rejects(() => provider.generateResponse({input: "hello"}), /AZURE_AI_FOUNDRY_AGENT configuration is incomplete/);
+});
+
+test("Foundry provider falls back to OpenAI for unsupported local tools and invalid JSON", async () => {
+  const fallback = new FakeProvider([{output_text: JSON.stringify({ok: true}), output: []}, {output_text: "tool fallback", output: []}]);
+  const primary = new FakeProvider([{output_text: "not JSON", output: []}]);
+  primary.providerName = "azure-foundry-agent";
+  primary.supportsTools = false;
+  const provider = new FailoverProvider({primary, fallback});
+  const response = await provider.generateResponse({text: {format: {type: "json_object"}}, input: "return json"});
+  assert.equal(response.output_text, JSON.stringify({ok: true}));
+  const toolResponse = await provider.generateResponse({tools: [{type: "function", name: "getStatus"}], input: "status"});
+  assert.equal(toolResponse.output_text, "tool fallback");
+});
+
+test("Foundry provider falls back when evaluation JSON is valid but incomplete", async () => {
+  const fallback = new FakeProvider([{output_text: JSON.stringify({summary: "complete", proposedComment: "review", checkReviews: []}), output: []}]);
+  const primary = new FakeProvider([{output_text: JSON.stringify({summary: "missing comment"}), output: []}]);
+  const provider = new FailoverProvider({primary, fallback});
+  const response = await provider.generateResponse({text: {format: {type: "json_object"}}, input: "FULCRUM_MODE=EVALUATION_JSON\nReturn the evaluation"});
+  assert.equal(response.output_text.includes('"proposedComment"'), true);
 });

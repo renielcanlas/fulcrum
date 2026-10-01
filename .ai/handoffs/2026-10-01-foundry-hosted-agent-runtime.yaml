@@ -1,0 +1,33 @@
+artifact_type: "agent_handoff"
+artifact_version: "1"
+handoff_id: "foundry-hosted-agent-runtime-2026-10-01"
+status: "IMPLEMENTED"
+producer:
+  agent: "Codex"
+  version: "GPT-5"
+  model_provider: "OpenAI"
+instruction_version: "AGENTS.md + repository instructions"
+objective: "Connect Ciel to an opt-in published Microsoft Foundry prompt agent while preserving FULCRUM governance boundaries."
+changes:
+  - "Added FoundryHostedAgentProvider using the project agent OpenAI-compatible Responses endpoint."
+  - "Added DefaultAzureCredential bearer authentication with a short-lived bearer-token test override."
+  - "Added hosted-agent environment placeholders and README deployment guidance."
+  - "Added hosted-agent health status and disabled previous_response_id continuation for this provider."
+  - "Added ADR-040 and preserved the existing Azure model-deployment fallback."
+sources:
+  - "Microsoft Foundry prompt-agent endpoint documentation"
+  - "Repository README.md"
+  - "docs/05-ai/azure-ai-foundry-and-document-intelligence.md"
+  - "docs/05-ai/agent-and-tool-contracts.md"
+confidence: 0.9
+validation_status: "PENDING_TESTS"
+human_review_required:
+  - "Populate server-only Foundry project endpoint and agent name."
+  - "Grant the deployment identity the required Foundry project/agent access."
+  - "Confirm whether structured Jira action planning remains on the model adapter or is enabled on the hosted agent."
+prohibited_actions_preserved:
+  - "approve_or_reject"
+  - "bypass_authorization"
+  - "mutate_authoritative_state"
+  - "change_scoring_rules"
+  - "fabricate_evidence"
