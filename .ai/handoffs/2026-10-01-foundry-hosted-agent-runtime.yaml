@@ -13,6 +13,8 @@ changes:
   - "Added DefaultAzureCredential bearer authentication with a short-lived bearer-token test override."
   - "Added hosted-agent environment placeholders and README deployment guidance."
   - "Added hosted-agent health status and disabled previous_response_id continuation for this provider."
+  - "Added explicit mode markers for chat, evaluation, action planning, Jira drafts, and sandbox scenarios."
+  - "Added semantic structured-output validation, request timeouts, empty-response fallback, and scenario validation routing."
   - "Added ADR-040 and preserved the existing Azure model-deployment fallback."
 sources:
   - "Microsoft Foundry prompt-agent endpoint documentation"

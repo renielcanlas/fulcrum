@@ -18,13 +18,14 @@ const persistence = createDatabasePersistence();
 const audit = new AuditLog({persist: persistence?.saveAuditEvent});
 const hostedAgentConfigured = process.env.AZURE_AI_FOUNDRY_AGENT_ENABLED === "true" && process.env.AZURE_AI_FOUNDRY_PROJECT_ENDPOINT && process.env.AZURE_AI_FOUNDRY_AGENT_NAME;
 const azureConfigured = process.env.AZURE_AI_FOUNDRY_ENDPOINT && process.env.AZURE_AI_FOUNDRY_API_KEY && process.env.AZURE_AI_FOUNDRY_FAST_DEPLOYMENT;
-const openAiFallback = process.env.OPENAI_API_KEY ? new OpenAIProvider({apiKey:process.env.OPENAI_API_KEY, model:process.env.OPENAI_MODEL ?? "gpt-5"}) : null;
+const aiTimeoutMs = Number.isFinite(Number(process.env.AI_REQUEST_TIMEOUT_MS)) ? Math.max(5000, Math.min(60000, Number(process.env.AI_REQUEST_TIMEOUT_MS))) : 25000;
+const openAiFallback = process.env.OPENAI_API_KEY ? new OpenAIProvider({apiKey:process.env.OPENAI_API_KEY, model:process.env.OPENAI_MODEL ?? "gpt-5", timeoutMs:aiTimeoutMs}) : null;
 const legacyProvider = azureConfigured
-    ? new AzureOpenAIProvider({endpoint:process.env.AZURE_AI_FOUNDRY_ENDPOINT, apiKey:process.env.AZURE_AI_FOUNDRY_API_KEY, deployment:process.env.AZURE_AI_FOUNDRY_FAST_DEPLOYMENT, apiVersion:process.env.AZURE_AI_FOUNDRY_API_VERSION ?? "v1"})
+    ? new AzureOpenAIProvider({endpoint:process.env.AZURE_AI_FOUNDRY_ENDPOINT, apiKey:process.env.AZURE_AI_FOUNDRY_API_KEY, deployment:process.env.AZURE_AI_FOUNDRY_FAST_DEPLOYMENT, apiVersion:process.env.AZURE_AI_FOUNDRY_API_VERSION ?? "v1", timeoutMs:aiTimeoutMs})
     : openAiFallback ?? new FakeProvider([{output_text:"Demo mode: configure Azure AI Foundry or OPENAI_API_KEY to enable AI.", output:[]}]);
 const aiTelemetry = new AiTelemetryStore({persist: persistence?.saveAiExecution});
 const hostedAgentProvider = hostedAgentConfigured
-  ? new FoundryHostedAgentProvider({projectEndpoint:process.env.AZURE_AI_FOUNDRY_PROJECT_ENDPOINT, agentName:process.env.AZURE_AI_FOUNDRY_AGENT_NAME, apiVersion:process.env.AZURE_AI_FOUNDRY_AGENT_API_VERSION ?? "v1", bearerToken:process.env.AZURE_AI_FOUNDRY_AGENT_BEARER_TOKEN, scope:process.env.AZURE_AI_FOUNDRY_AGENT_SCOPE ?? "https://ai.azure.com/.default"})
+  ? new FoundryHostedAgentProvider({projectEndpoint:process.env.AZURE_AI_FOUNDRY_PROJECT_ENDPOINT, agentName:process.env.AZURE_AI_FOUNDRY_AGENT_NAME, apiVersion:process.env.AZURE_AI_FOUNDRY_AGENT_API_VERSION ?? "v1", bearerToken:process.env.AZURE_AI_FOUNDRY_AGENT_BEARER_TOKEN, scope:process.env.AZURE_AI_FOUNDRY_AGENT_SCOPE ?? "https://ai.azure.com/.default", timeoutMs:aiTimeoutMs})
   : null;
 const rawProvider = hostedAgentProvider ? new FailoverProvider({primary:hostedAgentProvider, fallback:openAiFallback ?? legacyProvider}) : legacyProvider;
 const provider = new InstrumentedProvider(rawProvider, aiTelemetry);

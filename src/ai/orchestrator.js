@@ -10,7 +10,7 @@ export class CopilotOrchestrator {
     const started = Date.now();
     const scope = assessmentId ? `Active assessment: ${assessmentId}` : "No FULCRUM assessment is linked to this conversation.";
     const telemetryContext = {correlationId: interactionId, interactionId, conversationId, task:"fulcrum-assistant.v1", instructionVersion:"ciel-instructions.v1", assessmentId, userId:user.id, callType:"initial"};
-    const request = {instructions: INSTRUCTIONS, input: [{role:"user", content:`${scope}\nUser role: ${user.role}\nQuestion: ${message}`}], tools: allowAssessmentTools ? toolDefinitions(this.tools.names()) : [], stream, previousResponseId: this.provider.supportsPreviousResponseId === false ? undefined : previousResponseId, maxOutputTokens, telemetryContext};
+    const request = {instructions: INSTRUCTIONS, input: [{role:"user", content:`FULCRUM_MODE=CHAT\n${scope}\nUser role: ${user.role}\nQuestion: ${message}`}], tools: allowAssessmentTools ? toolDefinitions(this.tools.names()) : [], stream, previousResponseId: this.provider.supportsPreviousResponseId === false ? undefined : previousResponseId, maxOutputTokens, telemetryContext};
     let response = await this.provider.generateResponse(request);
     const toolsUsed = [];
     if (!stream && response.output) {

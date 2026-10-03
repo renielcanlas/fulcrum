@@ -58,7 +58,7 @@ export async function POST(request) {
     const body = await request.json();
     if (!body.message?.trim()) return Response.json({error: "message_required"}, {status: 400});
     const existingScenario = typeof body.currentScenario === "string" ? body.currentScenario.trim() : "";
-    const input = existingScenario ? `${EXECUTION_CONTEXT}\n\nUser request:\n${body.message.trim()}\n\nModify this existing scenario as context. Preserve valid parts unless the request changes them. Return the complete revised scenario JSON. Return JSON only:\n${existingScenario.slice(0, 20000)}` : `${EXECUTION_CONTEXT}\n\nUser request:\n${body.message.trim()}\n\nCreate a new scenario from scratch. Return JSON only.`;
+    const input = existingScenario ? `FULCRUM_MODE=SCENARIO_JSON\n${EXECUTION_CONTEXT}\n\nUser request:\n${body.message.trim()}\n\nModify this existing scenario as context. Preserve valid parts unless the request changes them. Return the complete revised scenario JSON. Return JSON only:\n${existingScenario.slice(0, 20000)}` : `FULCRUM_MODE=SCENARIO_JSON\n${EXECUTION_CONTEXT}\n\nUser request:\n${body.message.trim()}\n\nCreate a new scenario from scratch. Return JSON only.`;
     if (body.draftOnly) {
       const result = await runtime.provider.generateResponse({instructions: INSTRUCTIONS, input, text: SCENARIO_FORMAT});
       const output = getResponseText(result);
@@ -67,7 +67,7 @@ export async function POST(request) {
     let output = "";
     let lastError = "scenario_generation_failed";
     let previousResponseId = body.previousResponseId;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
       const repairInput = attempt === 0 ? input : `${input}\n\nThe previous response failed deterministic validation. Repair it and return the complete scenario JSON only. Validation failure: ${lastError}\nPrevious response:\n${output.slice(0, 20000)}`;
       const result = await runtime.provider.generateResponse({instructions: INSTRUCTIONS, input: repairInput, text: SCENARIO_FORMAT, previousResponseId});
       previousResponseId = result.id ?? previousResponseId;
